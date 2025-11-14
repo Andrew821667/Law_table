@@ -174,24 +174,54 @@ var TelegramNotifier = (function() {
   function setup() {
     const ui = SpreadsheetApp.getUi();
 
-    const response = ui.prompt(
-      'Настройка Telegram Bot',
-      'Введите Bot Token (получите у @BotFather):',
+    // Шаг 1: Bot Token
+    const tokenResponse = ui.prompt(
+      'Настройка Telegram Bot - Шаг 1/2',
+      'Введите Bot Token (получите у @BotFather):\n\nПример: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz',
       ui.ButtonSet.OK_CANCEL
     );
 
-    if (response.getSelectedButton() !== ui.Button.OK) return;
+    if (tokenResponse.getSelectedButton() !== ui.Button.OK) return;
 
-    const botToken = response.getResponseText();
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty(BOT_TOKEN_KEY, botToken);
+    const botToken = tokenResponse.getResponseText().trim();
 
-    ui.alert(
-      '✅ Bot Token сохранён!\n\n' +
-      'Теперь добавьте пользователям их Telegram Chat ID через UserManager.'
+    if (!botToken) {
+      ui.alert('❌ Bot Token не может быть пустым!');
+      return;
+    }
+
+    // Шаг 2: Admin Chat ID
+    const chatIdResponse = ui.prompt(
+      'Настройка Telegram Bot - Шаг 2/2',
+      'Введите ваш Telegram User ID (получите у @userinfobot):\n\nПример: 123456789',
+      ui.ButtonSet.OK_CANCEL
     );
 
-    AppLogger.info('TelegramNotifier', 'Bot Token настроен');
+    if (chatIdResponse.getSelectedButton() !== ui.Button.OK) return;
+
+    const adminChatId = chatIdResponse.getResponseText().trim();
+
+    if (!adminChatId) {
+      ui.alert('❌ Admin Chat ID не может быть пустым!');
+      return;
+    }
+
+    // Сохранить настройки
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty(BOT_TOKEN_KEY, botToken);
+    props.setProperty('TELEGRAM_ADMIN_CHAT_ID', adminChatId);
+
+    ui.alert(
+      '✅ Telegram Bot настроен!\n\n' +
+      `Bot Token: ${botToken.substring(0, 10)}...\n` +
+      `Admin Chat ID: ${adminChatId}\n\n` +
+      'Следующие шаги:\n' +
+      '1. Настройте Webhook через меню\n' +
+      '2. Создайте код привязки для своего аккаунта\n' +
+      '3. Отправьте боту /link с кодом'
+    );
+
+    AppLogger.info('TelegramNotifier', `Bot Token и Admin Chat ID настроены (Admin: ${adminChatId})`);
   }
 
   /**
