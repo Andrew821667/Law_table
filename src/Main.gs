@@ -587,3 +587,95 @@ function checkPermission(permission) {
 
   return true;
 }
+
+// ============================================
+// ОБЁРТКИ ДЛЯ LEGALWORKFLOWMANAGER
+// ============================================
+
+/**
+ * Юридические функции - обёртки для LegalWorkflowManager
+ */
+
+function assignCaseToLawyer() {
+  return LegalWorkflowManager.assignCaseToLawyer();
+}
+
+function bulkAssignCases() {
+  return LegalWorkflowManager.bulkAssignCases();
+}
+
+function searchCase() {
+  return LegalWorkflowManager.searchCase();
+}
+
+function filterCasesByStatus() {
+  return LegalWorkflowManager.filterCasesByStatus();
+}
+
+function showLawyerCases() {
+  return LegalWorkflowManager.showLawyerCases();
+}
+
+function archiveCompletedCases() {
+  return LegalWorkflowManager.archiveCompletedCases();
+}
+
+function checkStatuteOfLimitations() {
+  return LegalWorkflowManager.checkStatuteOfLimitations();
+}
+
+function showCourtSchedule() {
+  return LegalWorkflowManager.showCourtSchedule();
+}
+
+function showMyCourtSchedule() {
+  return LegalWorkflowManager.showMyCourtSchedule();
+}
+
+function manageEnforcementProceedings() {
+  return LegalWorkflowManager.manageEnforcementProceedings();
+}
+
+function showClientsDatabase() {
+  return LegalWorkflowManager.showClientsDatabase();
+}
+
+function showFinancialReport() {
+  return LegalWorkflowManager.showFinancialReport();
+}
+
+function showTimeTracking() {
+  return LegalWorkflowManager.showTimeTracking();
+}
+
+function showMyTimeTracking() {
+  return LegalWorkflowManager.showMyTimeTracking();
+}
+
+function addTimeEntry() {
+  return LegalWorkflowManager.addTimeEntry();
+}
+
+function generateReport() {
+  return LegalWorkflowManager.generateReport();
+}
+
+function generateMyReport() {
+  return LegalWorkflowManager.generateMyReport();
+}
+
+function showLawyersStatistics() {
+  return LegalWorkflowManager.showLawyersStatistics();
+}
+
+function showMyStatistics() {
+  return LegalWorkflowManager.showMyStatistics();
+}
+
+function showDeadlinesReport() {
+  return LegalWorkflowManager.showDeadlinesReport();
+}
+
+function showMyDeadlinesReport() {
+  return LegalWorkflowManager.showMyDeadlinesReport();
+}
