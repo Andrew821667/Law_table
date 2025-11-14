@@ -208,7 +208,8 @@ function createMenuForRole(ui, role) {
       .addSeparator()
       .addSubMenu(ui.createMenu('📋 Логи и мониторинг')
         .addItem('Показать статистику логов', 'showLogStats')
-        .addItem('Поиск в логах', 'searchLogs')
+        .addItem('📋 Показать последние логи', 'showRecentLogs')
+        .addItem('🔍 Поиск в логах', 'searchLogs')
         .addItem('Очистить старые логи', 'clearOldLogs')
         .addSeparator()
         .addItem('🧪 Запустить тесты', 'runAllTests')
@@ -292,7 +293,8 @@ function createMenuForRole(ui, role) {
       .addSeparator()
       .addSubMenu(ui.createMenu('📋 Логи')
         .addItem('Показать статистику', 'showLogStats')
-        .addItem('Поиск в логах', 'searchLogs')
+        .addItem('📋 Показать последние логи', 'showRecentLogs')
+        .addItem('🔍 Поиск в логах', 'searchLogs')
       )
       .addSeparator()
       .addItem('❓ О системе', 'showAbout');
@@ -581,24 +583,93 @@ function syncUsers() {
 function setupAllTriggers() {
   if (!checkPermission('all')) return;
 
-  try {
-    AppLogger.setupAutoCleanup();
-    Dashboard.setupAutoUpdate();
-    TelegramNotifier.setupDailyDigest();
-    ReminderManager.setupDailyCheck();
+  const ui = SpreadsheetApp.getUi();
 
-    SpreadsheetApp.getUi().alert(
-      '✅ Все триггеры настроены:\n\n' +
-      '- Автоочистка логов (ежедневно в 3:00)\n' +
-      '- Обновление дашборда (каждый час)\n' +
-      '- Telegram дайджест (ежедневно в 9:00)\n' +
-      '- Проверка напоминаний (ежедневно в 8:00)'
+  try {
+    // Удалить старые триггеры
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => ScriptApp.deleteTrigger(trigger));
+
+    // Создать новые триггеры
+
+    // 1. Автоочистка логов (ежедневно в 3:00)
+    ScriptApp.newTrigger('autoCleanupLogs')
+      .timeBased()
+      .atHour(3)
+      .everyDays(1)
+      .create();
+
+    // 2. Обновление дашборда (каждые 6 часов)
+    ScriptApp.newTrigger('autoUpdateDashboard')
+      .timeBased()
+      .everyHours(6)
+      .create();
+
+    // 3. Проверка дедлайнов (ежедневно в 8:00)
+    ScriptApp.newTrigger('autoCheckDeadlines')
+      .timeBased()
+      .atHour(8)
+      .everyDays(1)
+      .create();
+
+    // 4. Обработка отложенных уведомлений (каждые 30 минут)
+    ScriptApp.newTrigger('processPendingNotifications')
+      .timeBased()
+      .everyMinutes(30)
+      .create();
+
+    ui.alert(
+      '✅ Все триггеры настроены!\n\n' +
+      '📋 Созданные триггеры:\n\n' +
+      '1️⃣ Автоочистка логов\n' +
+      '   → Ежедневно в 3:00\n\n' +
+      '2️⃣ Обновление дашборда\n' +
+      '   → Каждые 6 часов\n\n' +
+      '3️⃣ Проверка дедлайнов\n' +
+      '   → Ежедневно в 8:00\n\n' +
+      '4️⃣ Обработка уведомлений\n' +
+      '   → Каждые 30 минут\n\n' +
+      'Триггеры можно посмотреть в:\n' +
+      'Расширения → Apps Script → Триггеры'
     );
 
-    AppLogger.info('Main', 'Все триггеры настроены');
+    AppLogger.info('Main', 'Все триггеры настроены успешно');
   } catch (error) {
     AppLogger.error('Main', 'Ошибка настройки триггеров', { error: error.message });
-    SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
+    ui.alert('❌ Ошибка настройки триггеров:\n\n' + error.message);
+  }
+}
+
+// Функции для триггеров
+function autoCleanupLogs() {
+  try {
+    AppLogger.clearOldLogs(30);
+    AppLogger.info('Main', 'Автоочистка логов выполнена');
+  } catch (error) {
+    Logger.log('Ошибка автоочистки логов: ' + error.message);
+  }
+}
+
+function autoUpdateDashboard() {
+  try {
+    EnhancedDashboard.createOrUpdateDashboard();
+    AppLogger.info('Main', 'Дашборд обновлён автоматически');
+  } catch (error) {
+    Logger.log('Ошибка обновления дашборда: ' + error.message);
+  }
+}
+
+function autoCheckDeadlines() {
+  try {
+    const warningDays = ConfigManager.get('NOTIFICATIONS.DEADLINE_WARNING_DAYS') || 7;
+    const problems = DeadlineChecker.findUpcomingDeadlines(warningDays);
+
+    if (problems.length > 0) {
+      DeadlineChecker.sendDeadlineReport(problems);
+      AppLogger.info('Main', `Найдено ${problems.length} приближающихся дедлайнов`);
+    }
+  } catch (error) {
+    Logger.log('Ошибка проверки дедлайнов: ' + error.message);
   }
 }
 
@@ -609,6 +680,11 @@ function setupAllTriggers() {
 function showLogStats() {
   if (!checkPermission('view')) return;
   AppLogger.showStats();
+}
+
+function showRecentLogs() {
+  if (!checkPermission('view')) return;
+  AppLogger.showRecentLogs(50);
 }
 
 function searchLogs() {

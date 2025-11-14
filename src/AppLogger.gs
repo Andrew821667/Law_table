@@ -414,6 +414,70 @@ var AppLogger = (function() {
     info('AppLogger', 'Автоочистка настроена (каждый день в 3:00)');
   }
 
+  /**
+   * Показать последние N записей логов
+   * @param {number} limit - Количество записей (по умолчанию 50)
+   */
+  function showRecentLogs(limit = 50) {
+    const ui = SpreadsheetApp.getUi();
+    const sheet = getOrCreateLogSheet();
+
+    if (!sheet) {
+      ui.alert('❌ Лист логов не найден');
+      return;
+    }
+
+    const lastRow = sheet.getLastRow();
+
+    if (lastRow <= 1) {
+      ui.alert('ℹ️ Логи пусты');
+      return;
+    }
+
+    // Получить последние N строк (но не меньше 2, т.к. строка 1 - заголовок)
+    const startRow = Math.max(2, lastRow - limit + 1);
+    const numRows = lastRow - startRow + 1;
+
+    const data = sheet.getRange(startRow, 1, numRows, 5).getValues();
+
+    // Форматировать логи
+    let logsText = `📋 ПОСЛЕДНИЕ ${numRows} ЗАПИСЕЙ ЛОГОВ\n`;
+    logsText += '═══════════════════════════════════════════\n\n';
+
+    data.reverse().forEach((row, index) => {
+      const timestamp = row[0];
+      const level = row[1];
+      const module = row[2];
+      const message = row[3];
+
+      const timeStr = timestamp instanceof Date
+        ? Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'dd.MM HH:mm:ss')
+        : timestamp;
+
+      const levelEmoji = {
+        'DEBUG': '🔍',
+        'INFO': 'ℹ️',
+        'WARN': '⚠️',
+        'ERROR': '❌'
+      }[level] || '📝';
+
+      logsText += `${levelEmoji} [${timeStr}] ${module}\n`;
+      logsText += `   ${message}\n\n`;
+    });
+
+    logsText += '═══════════════════════════════════════════\n';
+    logsText += `Всего логов в системе: ${lastRow - 1}`;
+
+    // Показать в модальном окне
+    const htmlOutput = HtmlService.createHtmlOutput(
+      `<pre style="font-family: 'Courier New', monospace; font-size: 11px; white-space: pre-wrap; padding: 10px;">${logsText}</pre>`
+    )
+      .setWidth(700)
+      .setHeight(600);
+
+    ui.showModalDialog(htmlOutput, `📋 Последние ${numRows} записей логов`);
+  }
+
   // Экспорт публичных методов
   return {
     debug: debug,
@@ -428,6 +492,7 @@ var AppLogger = (function() {
     exportToJSON: exportToJSON,
     search: search,
     showSearchDialog: showSearchDialog,
+    showRecentLogs: showRecentLogs,
     setupAutoCleanup: setupAutoCleanup
   };
 })();

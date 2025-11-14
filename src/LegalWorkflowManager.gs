@@ -241,7 +241,12 @@ var LegalWorkflowManager = (function() {
 
     // Перейти к первому результату
     if (results.length > 0) {
-      sheet.setActiveRange(sheet.getRange(results[0].row, 1));
+      sheet.activate(); // Активировать лист "Судебные дела"
+      const targetRange = sheet.getRange(results[0].row, 1);
+      sheet.setActiveRange(targetRange);
+      SpreadsheetApp.setActiveSheet(sheet);
+      // Прокрутить к найденной ячейке
+      SpreadsheetApp.getActiveSpreadsheet().setActiveRange(targetRange);
     }
   }
 
@@ -450,6 +455,7 @@ var LegalWorkflowManager = (function() {
 
     const now = new Date();
     const warnings = [];
+    const oldCases = []; // Дела старше 1.5 лет
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
@@ -461,6 +467,16 @@ var LegalWorkflowManager = (function() {
 
         // Общий срок исковой давности - 3 года (36 месяцев)
         const monthsLeft = 36 - monthsPassed;
+
+        // Дела старше 1.5 лет (18 месяцев) - предупреждение
+        if (monthsPassed >= 18 && monthsLeft > 6) {
+          oldCases.push({
+            caseNumber: caseNumber,
+            monthsPassed: Math.floor(monthsPassed),
+            monthsLeft: Math.floor(monthsLeft),
+            row: i + 1
+          });
+        }
 
         if (monthsLeft < 6 && monthsLeft > 0) {
           warnings.push({
@@ -480,7 +496,7 @@ var LegalWorkflowManager = (function() {
       }
     }
 
-    if (warnings.length === 0) {
+    if (warnings.length === 0 && oldCases.length === 0) {
       ui.alert(
         '✅ Всё в порядке!',
         'Нет дел с истекающим сроком исковой давности',
@@ -507,6 +523,17 @@ var LegalWorkflowManager = (function() {
       soonExpiring.slice(0, 10).forEach(w => {
         message += `  • ${w.caseNumber} - осталось ${w.monthsLeft} мес. (${w.daysLeft} дн.)\n`;
       });
+      message += '\n';
+    }
+
+    if (oldCases.length > 0) {
+      message += `🟡 ДЕЛА СТАРШЕ 1.5 ЛЕТ (${oldCases.length} дел):\n`;
+      oldCases.slice(0, 10).forEach(c => {
+        message += `  • ${c.caseNumber} - прошло ${c.monthsPassed} мес., осталось ${c.monthsLeft} мес.\n`;
+      });
+      if (oldCases.length > 10) {
+        message += `  ...и ещё ${oldCases.length - 10} дел\n`;
+      }
     }
 
     ui.alert(
@@ -532,6 +559,7 @@ var LegalWorkflowManager = (function() {
     const data = sheet.getDataRange().getValues();
 
     const now = new Date();
+    const oneMonthLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // +30 дней
     const upcoming = [];
 
     for (let i = 1; i < data.length; i++) {
@@ -539,7 +567,8 @@ var LegalWorkflowManager = (function() {
       const caseNumber = row[0];
       const hearingDate = row[8]; // Дата заседания в колонке 9
 
-      if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
+      // Показываем только заседания в ближайший месяц
+      if (hearingDate && hearingDate instanceof Date && hearingDate >= now && hearingDate <= oneMonthLater) {
         const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
 
         upcoming.push({
@@ -553,7 +582,7 @@ var LegalWorkflowManager = (function() {
     }
 
     if (upcoming.length === 0) {
-      ui.alert('ℹ️ Нет запланированных заседаний');
+      ui.alert('ℹ️ Нет запланированных заседаний в ближайший месяц');
       return;
     }
 
@@ -567,7 +596,7 @@ var LegalWorkflowManager = (function() {
     }).join('\n');
 
     ui.alert(
-      '📅 Расписание заседаний',
+      '📅 Расписание заседаний (на месяц вперёд)',
       `Всего заседаний: ${upcoming.length}\n\n${message}` +
       (upcoming.length > 15 ? `\n\n...и ещё ${upcoming.length - 15} заседаний` : ''),
       ui.ButtonSet.OK
@@ -708,17 +737,104 @@ var LegalWorkflowManager = (function() {
     if (!checkPermission('view_cases')) return;
 
     const ui = SpreadsheetApp.getUi();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    ui.alert(
-      '📄 Генерация отчёта',
-      'Функция в разработке.\n\n' +
-      'Позволит создать:\n' +
-      '• Сводные отчёты по делам\n' +
-      '• Отчёты по юристам\n' +
-      '• Финансовые отчёты\n' +
-      '• Экспорт в PDF/Excel',
-      ui.ButtonSet.OK
-    );
+    // Получить данные из листа "Судебные дела"
+    const casesSheet = ss.getSheetByName('Судебные дела');
+    if (!casesSheet) {
+      ui.alert('❌ Лист "Судебные дела" не найден');
+      return;
+    }
+
+    const data = casesSheet.getDataRange().getValues();
+
+    // Статистика по делам
+    const stats = {
+      total: data.length - 1,
+      byStatus: {},
+      byLawyer: {},
+      byCourt: {},
+      byMonth: {}
+    };
+
+    const now = new Date();
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = row[6] || 'Не указан';
+      const lawyer = row[5] || 'Не назначен';
+      const court = row[4] || 'Не указан';
+      const dateCreated = row[2];
+
+      // По статусам
+      stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
+
+      // По юристам
+      stats.byLawyer[lawyer] = (stats.byLawyer[lawyer] || 0) + 1;
+
+      // По судам
+      stats.byCourt[court] = (stats.byCourt[court] || 0) + 1;
+
+      // По месяцам
+      if (dateCreated && dateCreated instanceof Date) {
+        const monthKey = Utilities.formatDate(dateCreated, Session.getScriptTimeZone(), 'MM.yyyy');
+        stats.byMonth[monthKey] = (stats.byMonth[monthKey] || 0) + 1;
+      }
+    }
+
+    // Формирование отчёта
+    let report = '═══════════════════════════════════\n';
+    report += '      📄 СВОДНЫЙ ОТЧЁТ ПО ДЕЛАМ\n';
+    report += '═══════════════════════════════════\n\n';
+    report += `Дата формирования: ${Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}\n\n`;
+
+    report += `📊 ОБЩАЯ СТАТИСТИКА:\n`;
+    report += `   Всего дел: ${stats.total}\n\n`;
+
+    report += `📋 ПО СТАТУСАМ:\n`;
+    Object.keys(stats.byStatus).sort().forEach(status => {
+      report += `   ${status}: ${stats.byStatus[status]} дел\n`;
+    });
+    report += '\n';
+
+    report += `👥 ПО ЮРИСТАМ:\n`;
+    Object.keys(stats.byLawyer).sort().forEach(lawyer => {
+      report += `   ${lawyer}: ${stats.byLawyer[lawyer]} дел\n`;
+    });
+    report += '\n';
+
+    report += `⚖️ ПО СУДАМ (топ-10):\n`;
+    const topCourts = Object.entries(stats.byCourt)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    topCourts.forEach(([court, count]) => {
+      report += `   ${court}: ${count} дел\n`;
+    });
+    report += '\n';
+
+    report += `📅 ПО МЕСЯЦАМ (последние 6 месяцев):\n`;
+    const recentMonths = Object.entries(stats.byMonth)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .slice(0, 6);
+    recentMonths.forEach(([month, count]) => {
+      report += `   ${month}: ${count} дел\n`;
+    });
+
+    report += '\n═══════════════════════════════════\n';
+    report += 'Для детальной аналитики используйте:\n';
+    report += '📊 Отчёты → Расширенная аналитика\n';
+    report += '═══════════════════════════════════';
+
+    // Показать отчёт
+    const htmlOutput = HtmlService.createHtmlOutput(
+      `<pre style="font-family: monospace; font-size: 12px; white-space: pre-wrap;">${report}</pre>`
+    )
+      .setWidth(600)
+      .setHeight(500);
+
+    ui.showModalDialog(htmlOutput, '📄 Сводный отчёт по делам');
+
+    AppLogger.info('LegalWorkflowManager', 'Сгенерирован сводный отчёт', { totalCases: stats.total });
   }
 
   /**
