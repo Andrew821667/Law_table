@@ -141,6 +141,18 @@ function createMenuForRole(ui, role) {
         .addItem('✅ Проверить данные', 'validateAllData')
       )
       .addSeparator()
+      .addSubMenu(ui.createMenu('🤖 Шаблоны и автоматизация')
+        .addSubMenu(ui.createMenu('📝 Шаблоны документов')
+          .addItem('➕ Создать шаблон', 'createDocumentTemplate')
+          .addItem('📄 Генерировать документ', 'generateFromTemplate')
+          .addItem('📋 Список шаблонов', 'showTemplatesList')
+        )
+        .addSeparator()
+        .addItem('⚡ Быстрые действия', 'quickActions')
+        .addItem('⚙️ Правила автоматизации', 'setupAutomationRules')
+        .addItem('📅 Планировщик задач', 'taskScheduler')
+      )
+      .addSeparator()
       .addSubMenu(ui.createMenu('📊 Отчёты и аналитика')
         .addItem('📈 Обновить дашборд', 'updateDashboard')
         .addItem('📄 Генерация сводного отчёта', 'generateReport')
@@ -977,4 +989,32 @@ function setupAutomaticBackup() {
 
 function showBackupStatistics() {
   return BackupManager.showBackupStatistics();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ WORKFLOWAUTOMATION
+// ============================================
+
+function createDocumentTemplate() {
+  return WorkflowAutomation.createDocumentTemplate();
+}
+
+function generateFromTemplate() {
+  return WorkflowAutomation.generateFromTemplate();
+}
+
+function showTemplatesList() {
+  return WorkflowAutomation.showTemplatesList();
+}
+
+function setupAutomationRules() {
+  return WorkflowAutomation.setupAutomationRules();
+}
+
+function quickActions() {
+  return WorkflowAutomation.quickActions();
+}
+
+function taskScheduler() {
+  return WorkflowAutomation.taskScheduler();
 }
