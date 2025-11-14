@@ -725,39 +725,32 @@ var TelegramBot = (function() {
 
       if (!webhookUrl) {
         // Веб-приложение не развёрнуто - показать инструкцию
-        const instructionResponse = ui.alert(
+        ui.alert(
           '📋 Веб-приложение не развёрнуто',
           'Для работы Telegram Bot нужно развернуть веб-приложение.\n\n' +
-          'Инструкция:\n\n' +
-          '1. Нажмите: Расширения → Apps Script\n' +
-          '2. Нажмите: Deploy → New deployment\n' +
-          '3. Выберите тип: Web app\n' +
-          '4. Execute as: Me\n' +
-          '5. Who has access: Anyone\n' +
-          '6. Нажмите: Deploy\n' +
-          '7. Скопируйте URL\n\n' +
-          'Развернуть веб-приложение сейчас?\n' +
-          '(откроется редактор Apps Script)',
-          ui.ButtonSet.YES_NO
+          '📝 ПОШАГОВАЯ ИНСТРУКЦИЯ:\n\n' +
+          '1. Откройте: Расширения → Apps Script\n\n' +
+          '2. Нажмите: Deploy → New deployment\n\n' +
+          '3. Нажмите на иконку шестерёнки ⚙️\n' +
+          '   Выберите тип: Web app\n\n' +
+          '4. Настройки развёртывания:\n' +
+          '   • Description: Telegram Bot Webhook\n' +
+          '   • Execute as: Me (ваш email)\n' +
+          '   • Who has access: Anyone ⬅️ ВАЖНО!\n\n' +
+          '5. Нажмите: Deploy\n\n' +
+          '6. СКОПИРУЙТЕ Web app URL\n' +
+          '   (начинается с https://script.google.com/macros/s/...)\n\n' +
+          '7. Вернитесь сюда и введите этот URL в следующем окне\n\n' +
+          'Нажмите OK для продолжения...',
+          ui.ButtonSet.OK
         );
 
-        if (instructionResponse === ui.Button.YES) {
-          // Открыть редактор Apps Script
-          const scriptUrl = `https://script.google.com/home/projects/${ScriptApp.getScriptId()}/edit`;
-          const htmlOutput = HtmlService.createHtmlOutput(
-            `<script>window.open('${scriptUrl}', '_blank'); google.script.host.close();</script>` +
-            `<p>Редактор Apps Script откроется в новой вкладке.</p>` +
-            `<p>После развёртывания веб-приложения, вернитесь и повторите настройку webhook.</p>`
-          ).setWidth(400).setHeight(200);
-          ui.showModalDialog(htmlOutput, 'Открытие редактора Apps Script');
-          return;
-        }
-
-        // Предложить ввести URL вручную
+        // Запросить URL
         const manualResponse = ui.prompt(
           '🔗 Введите URL веб-приложения',
-          'Если вы уже развернули веб-приложение, введите его URL:\n\n' +
-          'Пример:\nhttps://script.google.com/macros/s/AKfycby.../exec',
+          'Вставьте URL, который вы скопировали из Deploy:\n\n' +
+          'Пример:\nhttps://script.google.com/macros/s/AKfycby.../exec\n\n' +
+          'Если вы ещё НЕ развернули приложение - нажмите Cancel, выполните шаги выше и повторите.',
           ui.ButtonSet.OK_CANCEL
         );
 
@@ -767,8 +760,8 @@ var TelegramBot = (function() {
 
         webhookUrl = manualResponse.getResponseText().trim();
 
-        if (!webhookUrl || !webhookUrl.startsWith('https://')) {
-          ui.alert('❌ Неверный URL. Должен начинаться с https://');
+        if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/macros/')) {
+          ui.alert('❌ Неверный URL!\n\nURL должен начинаться с:\nhttps://script.google.com/macros/s/\n\nПопробуйте ещё раз.');
           return;
         }
       }
