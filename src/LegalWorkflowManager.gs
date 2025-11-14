@@ -650,20 +650,7 @@ var LegalWorkflowManager = (function() {
    * Показать базу клиентов
    */
   function showClientsDatabase() {
-    if (!checkPermission('view_cases')) return;
-
-    const ui = SpreadsheetApp.getUi();
-
-    ui.alert(
-      '👥 База клиентов',
-      'Функция в разработке.\n\n' +
-      'Планируется:\n' +
-      '• Карточки клиентов\n' +
-      '• История дел клиента\n' +
-      '• Контактная информация\n' +
-      '• Документы клиента',
-      ui.ButtonSet.OK
-    );
+    return ClientDatabase.showClientsDatabase();
   }
 
   // ============================================

@@ -98,7 +98,15 @@ function createMenuForRole(ui, role) {
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
-        .addItem('👥 База клиентов', 'showClientsDatabase')
+        .addSubMenu(ui.createMenu('👥 База клиентов')
+          .addItem('➕ Добавить клиента', 'addNewClient')
+          .addItem('🔍 Найти клиента', 'searchClient')
+          .addItem('📋 Все клиенты', 'showAllClients')
+          .addSeparator()
+          .addItem('📊 Статистика по клиентам', 'showClientStatistics')
+          .addItem('🔄 Обновить статистику дел', 'updateAllClientStatistics')
+        )
+        .addSeparator()
         .addItem('💵 Финансовый учёт', 'showFinancialReport')
         .addSeparator()
         .addSubMenu(ui.createMenu('⏱️ Учёт времени')
@@ -170,7 +178,15 @@ function createMenuForRole(ui, role) {
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
-        .addItem('👥 База клиентов', 'showClientsDatabase')
+        .addSubMenu(ui.createMenu('👥 База клиентов')
+          .addItem('➕ Добавить клиента', 'addNewClient')
+          .addItem('🔍 Найти клиента', 'searchClient')
+          .addItem('📋 Все клиенты', 'showAllClients')
+          .addSeparator()
+          .addItem('📊 Статистика по клиентам', 'showClientStatistics')
+          .addItem('🔄 Обновить статистику дел', 'updateAllClientStatistics')
+        )
+        .addSeparator()
         .addItem('💵 Финансовый учёт', 'showFinancialReport')
         .addSeparator()
         .addSubMenu(ui.createMenu('⏱️ Учёт времени')
@@ -716,4 +732,32 @@ function recalculateTimeCosts() {
 
 function exportTimeToCSV() {
   return TimeTracker.exportTimeToCSV();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ CLIENTDATABASE
+// ============================================
+
+function addNewClient() {
+  return ClientDatabase.addNewClient();
+}
+
+function searchClient() {
+  return ClientDatabase.searchClient();
+}
+
+function showAllClients() {
+  return ClientDatabase.showAllClients();
+}
+
+function showClientStatistics() {
+  return ClientDatabase.showClientStatistics();
+}
+
+function updateAllClientStatistics() {
+  return ClientDatabase.updateAllClientStatistics();
+}
+
+function showClientCases(clientId) {
+  return ClientDatabase.showClientCases(clientId);
 }
