@@ -312,6 +312,25 @@ var ClientDatabase = (function() {
     );
 
     AppLogger.info('ClientDatabase', `Добавлен новый клиент: ${clientName} (${clientId})`);
+
+    // Отправить уведомление администраторам
+    try {
+      if (typeof NotificationManager !== 'undefined') {
+        const template = NotificationManager.TEMPLATES.newClient(clientId, clientName, clientType);
+        NotificationManager.send({
+          eventType: 'CLIENT_NEW',
+          priority: NotificationManager.PRIORITY.MEDIUM,
+          channels: [NotificationManager.CHANNELS.EMAIL, NotificationManager.CHANNELS.TELEGRAM],
+          recipients: 'role:ADMIN',
+          subject: template.subject,
+          message: template.message,
+          htmlMessage: template.htmlMessage,
+          relatedEntity: clientId
+        });
+      }
+    } catch (e) {
+      AppLogger.warn('ClientDatabase', 'Не удалось отправить уведомление о новом клиенте', { error: e.message });
+    }
   }
 
   // ============================================

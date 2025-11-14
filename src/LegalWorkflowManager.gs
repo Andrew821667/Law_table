@@ -82,6 +82,26 @@ var LegalWorkflowManager = (function() {
     );
 
     AppLogger.info('LegalWorkflow', `Дело ${caseNumber} назначено юристу ${selectedEmail}`);
+
+    // Отправить уведомление юристу
+    try {
+      if (typeof NotificationManager !== 'undefined') {
+        const caseName = sheet.getRange(activeRow, 2).getValue() || 'Без названия';
+        const template = NotificationManager.TEMPLATES.caseAssigned(caseNumber, caseName, lawyerName);
+        NotificationManager.send({
+          eventType: 'CASE_ASSIGNED',
+          priority: NotificationManager.PRIORITY.HIGH,
+          channels: [NotificationManager.CHANNELS.EMAIL, NotificationManager.CHANNELS.TELEGRAM],
+          recipients: [selectedEmail],
+          subject: template.subject,
+          message: template.message,
+          htmlMessage: template.htmlMessage,
+          relatedEntity: caseNumber
+        });
+      }
+    } catch (e) {
+      AppLogger.warn('LegalWorkflow', 'Не удалось отправить уведомление о назначении дела', { error: e.message });
+    }
   }
 
   /**

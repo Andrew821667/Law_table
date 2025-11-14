@@ -448,6 +448,25 @@ var EnforcementProceedings = (function() {
         ui.ButtonSet.OK
       );
 
+      // Отправить уведомление администраторам и менеджерам
+      try {
+        if (typeof NotificationManager !== 'undefined') {
+          const template = NotificationManager.TEMPLATES.newIP(ipId, debtor, collectionAmount.toFixed(2), defaultStatus);
+          NotificationManager.send({
+            eventType: 'IP_NEW',
+            priority: NotificationManager.PRIORITY.MEDIUM,
+            channels: [NotificationManager.CHANNELS.EMAIL, NotificationManager.CHANNELS.TELEGRAM],
+            recipients: 'role:ADMIN',
+            subject: template.subject,
+            message: template.message,
+            htmlMessage: template.htmlMessage,
+            relatedEntity: ipId
+          });
+        }
+      } catch (e) {
+        AppLogger.warn('EnforcementProceedings', 'Не удалось отправить уведомление о новом ИП', { error: e.message });
+      }
+
       // Обновление статистики в дашборде
       if (typeof EnhancedDashboard !== 'undefined') {
         EnhancedDashboard.createOrUpdateDashboard();

@@ -153,7 +153,14 @@ function createMenuForRole(ui, role) {
         .addItem('Настройки системы', 'showConfigDialog')
         .addItem('👥 Управление пользователями', 'showUsersDialog')
         .addItem('💾 Синхронизировать пользователей', 'syncUsers')
-        .addItem('📱 Настройка Telegram', 'setupTelegram')
+        .addSeparator()
+        .addSubMenu(ui.createMenu('🔔 Уведомления')
+          .addItem('📊 Статистика уведомлений', 'showNotificationStatistics')
+          .addItem('📋 История уведомлений', 'showNotificationHistory')
+          .addSeparator()
+          .addItem('⚙️ Настроить авто-уведомления', 'setupAutoNotifications')
+          .addItem('📱 Настройка Telegram', 'setupTelegram')
+        )
         .addSeparator()
         .addItem('⏰ Настроить триггеры', 'setupAllTriggers')
       )
@@ -835,4 +842,26 @@ function searchIP() {
 
 function showEnforcementProceedings() {
   return EnforcementProceedings.showEnforcementProceedings();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ NOTIFICATIONMANAGER
+// ============================================
+
+function showNotificationStatistics() {
+  return NotificationManager.showStatistics();
+}
+
+function showNotificationHistory() {
+  const sheet = NotificationManager.getOrCreateHistorySheet();
+  sheet.activate();
+  SpreadsheetApp.setActiveSheet(sheet);
+}
+
+function setupAutoNotifications() {
+  return NotificationManager.setupAutoNotifications();
+}
+
+function processPendingNotifications() {
+  return NotificationManager.processPendingNotifications();
 }

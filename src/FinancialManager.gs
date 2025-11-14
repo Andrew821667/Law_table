@@ -472,6 +472,25 @@ var FinancialManager = (function() {
     );
 
     AppLogger.info('FinancialManager', `Добавлен гонорар ${feeId} на сумму ${total.toFixed(2)} ₽`);
+
+    // Отправить уведомление администраторам и менеджерам
+    try {
+      if (typeof NotificationManager !== 'undefined') {
+        const template = NotificationManager.TEMPLATES.payment(total.toFixed(2), clientName, caseNumber, serviceType);
+        NotificationManager.send({
+          eventType: 'PAYMENT',
+          priority: NotificationManager.PRIORITY.MEDIUM,
+          channels: [NotificationManager.CHANNELS.EMAIL, NotificationManager.CHANNELS.TELEGRAM],
+          recipients: 'role:ADMIN',
+          subject: template.subject,
+          message: template.message,
+          htmlMessage: template.htmlMessage,
+          relatedEntity: feeId
+        });
+      }
+    } catch (e) {
+      AppLogger.warn('FinancialManager', 'Не удалось отправить уведомление о гонораре', { error: e.message });
+    }
   }
 
   // ============================================
