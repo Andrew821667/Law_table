@@ -720,22 +720,63 @@ var TelegramBot = (function() {
     try {
       const ui = SpreadsheetApp.getUi();
 
-      // Получить Web App URL
-      const response = ui.prompt(
-        '🔗 Настройка Webhook',
-        'Введите URL вашего Web App (из Deploy):\n\n' +
-        'Пример: https://script.google.com/macros/s/ABC.../exec',
-        ui.ButtonSet.OK_CANCEL
-      );
+      // Попытка получить URL автоматически
+      let webhookUrl = ScriptApp.getService().getUrl();
 
-      if (response.getSelectedButton() !== ui.Button.OK) {
-        return;
+      if (!webhookUrl) {
+        // Веб-приложение не развёрнуто - показать инструкцию
+        const instructionResponse = ui.alert(
+          '📋 Веб-приложение не развёрнуто',
+          'Для работы Telegram Bot нужно развернуть веб-приложение.\n\n' +
+          'Инструкция:\n\n' +
+          '1. Нажмите: Расширения → Apps Script\n' +
+          '2. Нажмите: Deploy → New deployment\n' +
+          '3. Выберите тип: Web app\n' +
+          '4. Execute as: Me\n' +
+          '5. Who has access: Anyone\n' +
+          '6. Нажмите: Deploy\n' +
+          '7. Скопируйте URL\n\n' +
+          'Развернуть веб-приложение сейчас?\n' +
+          '(откроется редактор Apps Script)',
+          ui.ButtonSet.YES_NO
+        );
+
+        if (instructionResponse === ui.Button.YES) {
+          // Открыть редактор Apps Script
+          const scriptUrl = `https://script.google.com/home/projects/${ScriptApp.getScriptId()}/edit`;
+          const htmlOutput = HtmlService.createHtmlOutput(
+            `<script>window.open('${scriptUrl}', '_blank'); google.script.host.close();</script>` +
+            `<p>Редактор Apps Script откроется в новой вкладке.</p>` +
+            `<p>После развёртывания веб-приложения, вернитесь и повторите настройку webhook.</p>`
+          ).setWidth(400).setHeight(200);
+          ui.showModalDialog(htmlOutput, 'Открытие редактора Apps Script');
+          return;
+        }
+
+        // Предложить ввести URL вручную
+        const manualResponse = ui.prompt(
+          '🔗 Введите URL веб-приложения',
+          'Если вы уже развернули веб-приложение, введите его URL:\n\n' +
+          'Пример:\nhttps://script.google.com/macros/s/AKfycby.../exec',
+          ui.ButtonSet.OK_CANCEL
+        );
+
+        if (manualResponse.getSelectedButton() !== ui.Button.OK) {
+          return;
+        }
+
+        webhookUrl = manualResponse.getResponseText().trim();
+
+        if (!webhookUrl || !webhookUrl.startsWith('https://')) {
+          ui.alert('❌ Неверный URL. Должен начинаться с https://');
+          return;
+        }
       }
 
-      const webhookUrl = response.getResponseText().trim();
-
-      if (!webhookUrl.startsWith('https://')) {
-        ui.alert('❌ URL должен начинаться с https://');
+      // Проверить наличие токена
+      const token = getBotToken();
+      if (!token) {
+        ui.alert('❌ Bot Token не настроен!\n\nСначала настройте Bot Token через меню "Настройка Telegram".');
         return;
       }
 
@@ -744,11 +785,11 @@ var TelegramBot = (function() {
       props.setProperty(WEBHOOK_URL_KEY, webhookUrl);
 
       // Установить webhook в Telegram
-      const token = getBotToken();
       const telegramUrl = `https://api.telegram.org/bot${token}/setWebhook`;
 
       const payload = {
-        url: webhookUrl
+        url: webhookUrl,
+        allowed_updates: ['message', 'callback_query']
       };
 
       const options = {
@@ -762,20 +803,23 @@ var TelegramBot = (function() {
       const result = JSON.parse(apiResponse.getContentText());
 
       if (!result.ok) {
-        throw new Error(result.description);
+        throw new Error(`Telegram API: ${result.description}`);
       }
 
       ui.alert(
-        '✅ Webhook настроен!',
-        `URL: ${webhookUrl}\n\nБот готов принимать команды.`,
-        ui.ButtonSet.OK
+        '✅ Webhook успешно настроен!\n\n' +
+        `Webhook URL:\n${webhookUrl}\n\n` +
+        `Бот готов принимать команды!\n\n` +
+        `Следующий шаг:\n` +
+        `1. Создайте код привязки через меню\n` +
+        `2. Отправьте боту: /link ВАШ_КОД`
       );
 
       AppLogger.info('TelegramBot', 'Webhook настроен', { url: webhookUrl });
 
     } catch (error) {
       AppLogger.error('TelegramBot', 'Ошибка настройки webhook', { error: error.message });
-      SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
+      SpreadsheetApp.getUi().alert('❌ Ошибка настройки webhook:\n\n' + error.message);
     }
   }
 
