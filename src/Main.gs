@@ -149,6 +149,14 @@ function createMenuForRole(ui, role) {
         .addItem('⏱️ Отчёт по срокам', 'showDeadlinesReport')
       )
       .addSeparator()
+      .addSubMenu(ui.createMenu('📥 Импорт/Экспорт')
+        .addItem('📤 Экспорт данных', 'exportData')
+        .addItem('📥 Импорт данных', 'importData')
+        .addSeparator()
+        .addItem('📝 Создать шаблон импорта', 'createImportTemplate')
+        .addItem('💾 Экспорт текущего листа', 'exportCurrentSheet')
+      )
+      .addSeparator()
       .addSubMenu(ui.createMenu('⚙️ Настройки')
         .addItem('Настройки системы', 'showConfigDialog')
         .addItem('👥 Управление пользователями', 'showUsersDialog')
@@ -916,4 +924,24 @@ function createTelegramLinkCode() {
 
 function showTelegramLinkCodes() {
   return TelegramBot.showLinkCodes();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ DATAIMPORTEXPORT
+// ============================================
+
+function exportData() {
+  return DataImportExport.exportData();
+}
+
+function importData() {
+  return DataImportExport.importData();
+}
+
+function createImportTemplate() {
+  return DataImportExport.createImportTemplate();
+}
+
+function exportCurrentSheet() {
+  return DataImportExport.exportSheetToCSV();
 }
