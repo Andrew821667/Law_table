@@ -230,7 +230,7 @@ function processAllCases() {
   }
 }
 
-function processMyC ases() {
+function processMyCases() {
   const userEmail = Session.getActiveUser().getEmail();
   const user = UserManager.getUser(userEmail);
 
