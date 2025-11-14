@@ -107,7 +107,14 @@ function createMenuForRole(ui, role) {
           .addItem('🔄 Обновить статистику дел', 'updateAllClientStatistics')
         )
         .addSeparator()
-        .addItem('💵 Финансовый учёт', 'showFinancialReport')
+        .addSubMenu(ui.createMenu('💵 Финансовый учёт')
+          .addItem('💰 Добавить гонорар', 'addFee')
+          .addItem('💸 Добавить расход', 'addExpense')
+          .addItem('📄 Создать счёт', 'createInvoice')
+          .addSeparator()
+          .addItem('📊 Финансовая сводка', 'showFinancialSummary')
+          .addItem('⬇️ Импорт из учёта времени', 'importFromTimeTracking')
+        )
         .addSeparator()
         .addSubMenu(ui.createMenu('⏱️ Учёт времени')
           .addItem('📊 Общий учёт времени', 'showTimeTracking')
@@ -187,7 +194,14 @@ function createMenuForRole(ui, role) {
           .addItem('🔄 Обновить статистику дел', 'updateAllClientStatistics')
         )
         .addSeparator()
-        .addItem('💵 Финансовый учёт', 'showFinancialReport')
+        .addSubMenu(ui.createMenu('💵 Финансовый учёт')
+          .addItem('💰 Добавить гонорар', 'addFee')
+          .addItem('💸 Добавить расход', 'addExpense')
+          .addItem('📄 Создать счёт', 'createInvoice')
+          .addSeparator()
+          .addItem('📊 Финансовая сводка', 'showFinancialSummary')
+          .addItem('⬇️ Импорт из учёта времени', 'importFromTimeTracking')
+        )
         .addSeparator()
         .addSubMenu(ui.createMenu('⏱️ Учёт времени')
           .addItem('📊 Общий учёт времени', 'showTimeTracking')
@@ -760,4 +774,28 @@ function updateAllClientStatistics() {
 
 function showClientCases(clientId) {
   return ClientDatabase.showClientCases(clientId);
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ FINANCIALMANAGER
+// ============================================
+
+function addFee() {
+  return FinancialManager.addFee();
+}
+
+function addExpense() {
+  return FinancialManager.addExpense();
+}
+
+function createInvoice() {
+  return FinancialManager.createInvoice();
+}
+
+function showFinancialSummary() {
+  return FinancialManager.showFinancialSummary();
+}
+
+function importFromTimeTracking() {
+  return FinancialManager.importFromTimeTracking();
 }

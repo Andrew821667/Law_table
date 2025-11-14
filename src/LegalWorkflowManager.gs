@@ -661,20 +661,7 @@ var LegalWorkflowManager = (function() {
    * Показать финансовый отчёт
    */
   function showFinancialReport() {
-    if (!checkPermission('view_cases')) return;
-
-    const ui = SpreadsheetApp.getUi();
-
-    ui.alert(
-      '💵 Финансовый учёт',
-      'Функция в разработке.\n\n' +
-      'Планируется:\n' +
-      '• Гонорары по делам\n' +
-      '• Расходы и издержки\n' +
-      '• Акты выполненных работ\n' +
-      '• Финансовые отчёты',
-      ui.ButtonSet.OK
-    );
+    return FinancialManager.showFinancialReport();
   }
 
   // ============================================
