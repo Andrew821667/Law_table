@@ -157,6 +157,15 @@ function createMenuForRole(ui, role) {
         .addItem('💾 Экспорт текущего листа', 'exportCurrentSheet')
       )
       .addSeparator()
+      .addSubMenu(ui.createMenu('💾 Резервное копирование')
+        .addItem('📦 Создать резервную копию', 'createManualBackup')
+        .addItem('📋 Список резервных копий', 'showBackupsList')
+        .addItem('🔄 Восстановить из копии', 'restoreFromBackup')
+        .addSeparator()
+        .addItem('⚙️ Настроить автоматическое копирование', 'setupAutomaticBackup')
+        .addItem('📊 Статистика резервных копий', 'showBackupStatistics')
+      )
+      .addSeparator()
       .addSubMenu(ui.createMenu('⚙️ Настройки')
         .addItem('Настройки системы', 'showConfigDialog')
         .addItem('👥 Управление пользователями', 'showUsersDialog')
@@ -944,4 +953,28 @@ function createImportTemplate() {
 
 function exportCurrentSheet() {
   return DataImportExport.exportSheetToCSV();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ BACKUPMANAGER
+// ============================================
+
+function createManualBackup() {
+  return BackupManager.createBackup('manual');
+}
+
+function showBackupsList() {
+  return BackupManager.showBackupsList();
+}
+
+function restoreFromBackup() {
+  return BackupManager.restoreFromBackup();
+}
+
+function setupAutomaticBackup() {
+  return BackupManager.setupAutomaticBackup();
+}
+
+function showBackupStatistics() {
+  return BackupManager.showBackupStatistics();
 }
