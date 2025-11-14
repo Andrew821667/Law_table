@@ -159,7 +159,14 @@ function createMenuForRole(ui, role) {
           .addItem('📋 История уведомлений', 'showNotificationHistory')
           .addSeparator()
           .addItem('⚙️ Настроить авто-уведомления', 'setupAutoNotifications')
-          .addItem('📱 Настройка Telegram', 'setupTelegram')
+          .addSeparator()
+          .addSubMenu(ui.createMenu('🤖 Telegram Bot')
+            .addItem('📱 Настройка Telegram', 'setupTelegram')
+            .addItem('🔗 Настроить Webhook', 'setupTelegramWebhook')
+            .addSeparator()
+            .addItem('🔑 Создать код привязки', 'createTelegramLinkCode')
+            .addItem('📋 Показать коды привязки', 'showTelegramLinkCodes')
+          )
         )
         .addSeparator()
         .addItem('⏰ Настроить триггеры', 'setupAllTriggers')
@@ -864,4 +871,49 @@ function setupAutoNotifications() {
 
 function processPendingNotifications() {
   return NotificationManager.processPendingNotifications();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ TELEGRAMBOT
+// ============================================
+
+function setupTelegramWebhook() {
+  return TelegramBot.setupWebhook();
+}
+
+function createTelegramLinkCode() {
+  const ui = SpreadsheetApp.getUi();
+
+  const response = ui.prompt(
+    '🔑 Создание кода привязки',
+    'Введите email пользователя:',
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response.getSelectedButton() !== ui.Button.OK) return;
+
+  const email = response.getResponseText().trim();
+
+  if (!email) {
+    ui.alert('❌ Email не может быть пустым');
+    return;
+  }
+
+  try {
+    const code = TelegramBot.generateLinkCode(email);
+    ui.alert(
+      '✅ Код создан',
+      `Код привязки для ${email}:\n\n${code}\n\n` +
+      `Отправьте этот код пользователю.\n` +
+      `Пользователь должен отправить боту: /link ${code}\n\n` +
+      `Код действителен 24 часа.`,
+      ui.ButtonSet.OK
+    );
+  } catch (error) {
+    ui.alert('❌ Ошибка: ' + error.message);
+  }
+}
+
+function showTelegramLinkCodes() {
+  return TelegramBot.showLinkCodes();
 }
