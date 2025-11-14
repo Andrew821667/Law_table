@@ -471,8 +471,7 @@ function updateDashboard() {
   if (!checkPermission('view')) return;
 
   try {
-    Dashboard.updateDashboard();
-    SpreadsheetApp.getUi().alert('✅ Дашборд обновлён!');
+    EnhancedDashboard.createOrUpdateDashboard();
   } catch (error) {
     AppLogger.error('Main', 'Ошибка обновления дашборда', { error: error.message });
     SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
