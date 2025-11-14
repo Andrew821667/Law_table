@@ -624,22 +624,10 @@ var LegalWorkflowManager = (function() {
 
   /**
    * Управление исполнительными производствами
+   * @deprecated Используйте EnforcementProceedings модуль напрямую
    */
   function manageEnforcementProceedings() {
-    if (!checkPermission('view_cases')) return;
-
-    const ui = SpreadsheetApp.getUi();
-
-    ui.alert(
-      '⚖️ Исполнительные производства',
-      'Функция в разработке.\n\n' +
-      'Планируется:\n' +
-      '• Учёт исполнительных листов\n' +
-      '• Отслеживание статусов ИП\n' +
-      '• Контроль сроков взыскания\n' +
-      '• Интеграция с ФССП',
-      ui.ButtonSet.OK
-    );
+    return EnforcementProceedings.showEnforcementProceedings();
   }
 
   // ============================================

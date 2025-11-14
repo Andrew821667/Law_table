@@ -72,7 +72,8 @@ var EnhancedDashboard = (function() {
       financial: collectFinancialData(),
       time: collectTimeData(),
       clients: collectClientsData(),
-      lawyers: collectLawyersData()
+      lawyers: collectLawyersData(),
+      ip: collectIPData()
     };
 
     return data;
@@ -297,6 +298,27 @@ var EnhancedDashboard = (function() {
     return lawyers;
   }
 
+  /**
+   * Собрать данные по исполнительным производствам
+   */
+  function collectIPData() {
+    try {
+      if (typeof EnforcementProceedings !== 'undefined') {
+        return EnforcementProceedings.collectIPData();
+      }
+    } catch (e) {
+      AppLogger.error('EnhancedDashboard', 'Ошибка сбора данных ИП: ' + e.message);
+    }
+
+    return {
+      total: 0,
+      byStatus: {},
+      totalClaim: 0,
+      totalCollected: 0,
+      collectionRate: 0
+    };
+  }
+
   // ============================================
   // ПОСТРОЕНИЕ ДАШБОРДА
   // ============================================
@@ -337,6 +359,11 @@ var EnhancedDashboard = (function() {
 
     // Блок клиентов
     currentRow = buildClientsBlock(sheet, currentRow, data.clients);
+
+    currentRow++; // Пустая строка
+
+    // Блок исполнительных производств
+    currentRow = buildIPBlock(sheet, currentRow, data.ip);
   }
 
   /**
@@ -583,6 +610,48 @@ var EnhancedDashboard = (function() {
       sheet.getRange(row, 2).setValue(clientRow[1]).setHorizontalAlignment('right');
       row++;
     });
+
+    return row;
+  }
+
+  /**
+   * Блок исполнительных производств
+   */
+  function buildIPBlock(sheet, row, ipData) {
+    sheet.getRange(row, 1).setValue('⚖️ ИСПОЛНИТЕЛЬНЫЕ ПРОИЗВОДСТВА')
+      .setFontSize(14)
+      .setFontWeight('bold')
+      .setBackground('#9E69AF')
+      .setFontColor('#ffffff');
+
+    sheet.getRange(row, 1, 1, 6).merge();
+    row++;
+
+    const ipRows = [
+      ['Всего ИП', ipData.total],
+      ['Сумма взысканий', `${ipData.totalClaim.toFixed(2)} ₽`],
+      ['Взыскано', `${ipData.totalCollected.toFixed(2)} ₽`],
+      ['Процент взыскания', `${ipData.collectionRate}%`]
+    ];
+
+    ipRows.forEach(ipRow => {
+      sheet.getRange(row, 1).setValue(ipRow[0]).setFontWeight('bold');
+      sheet.getRange(row, 2).setValue(ipRow[1]).setHorizontalAlignment('right');
+      row++;
+    });
+
+    // Статистика по статусам
+    if (Object.keys(ipData.byStatus).length > 0) {
+      row++;
+      sheet.getRange(row, 1).setValue('По статусам:').setFontWeight('bold').setFontStyle('italic');
+      row++;
+
+      Object.keys(ipData.byStatus).forEach(status => {
+        sheet.getRange(row, 1).setValue(`  ${status}`);
+        sheet.getRange(row, 2).setValue(ipData.byStatus[status]).setHorizontalAlignment('right');
+        row++;
+      });
+    }
 
     return row;
   }

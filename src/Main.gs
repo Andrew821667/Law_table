@@ -93,7 +93,14 @@ function createMenuForRole(ui, role) {
       .addSeparator()
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
         .addItem('⏰ Контроль сроков исковой давности', 'checkStatuteOfLimitations')
-        .addItem('⚖️ Исполнительные производства', 'manageEnforcementProceedings')
+        .addSubMenu(ui.createMenu('⚖️ Исполнительные производства')
+          .addItem('➕ Добавить ИП', 'addEnforcementProceeding')
+          .addItem('🔄 Обновить статус ИП', 'updateIPStatus')
+          .addItem('🔍 Поиск ИП', 'searchIP')
+          .addSeparator()
+          .addItem('📊 Статистика ИП', 'showIPStatistics')
+          .addItem('📋 Все ИП', 'showEnforcementProceedings')
+        )
         .addItem('📅 Расписание заседаний', 'showCourtSchedule')
       )
       .addSeparator()
@@ -180,7 +187,14 @@ function createMenuForRole(ui, role) {
       .addSeparator()
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
         .addItem('⏰ Контроль сроков исковой давности', 'checkStatuteOfLimitations')
-        .addItem('⚖️ Исполнительные производства', 'manageEnforcementProceedings')
+        .addSubMenu(ui.createMenu('⚖️ Исполнительные производства')
+          .addItem('➕ Добавить ИП', 'addEnforcementProceeding')
+          .addItem('🔄 Обновить статус ИП', 'updateIPStatus')
+          .addItem('🔍 Поиск ИП', 'searchIP')
+          .addSeparator()
+          .addItem('📊 Статистика ИП', 'showIPStatistics')
+          .addItem('📋 Все ИП', 'showEnforcementProceedings')
+        )
         .addItem('📅 Расписание заседаний', 'showCourtSchedule')
       )
       .addSeparator()
@@ -797,4 +811,28 @@ function showFinancialSummary() {
 
 function importFromTimeTracking() {
   return FinancialManager.importFromTimeTracking();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ ENFORCEMENTPROCEEDINGS
+// ============================================
+
+function addEnforcementProceeding() {
+  return EnforcementProceedings.addEnforcementProceeding();
+}
+
+function updateIPStatus() {
+  return EnforcementProceedings.updateIPStatus();
+}
+
+function showIPStatistics() {
+  return EnforcementProceedings.showIPStatistics();
+}
+
+function searchIP() {
+  return EnforcementProceedings.searchIP();
+}
+
+function showEnforcementProceedings() {
+  return EnforcementProceedings.showEnforcementProceedings();
 }
