@@ -698,54 +698,21 @@ var LegalWorkflowManager = (function() {
    * Показать учёт времени работы
    */
   function showTimeTracking() {
-    if (!checkPermission('view_cases')) return;
-
-    const ui = SpreadsheetApp.getUi();
-
-    ui.alert(
-      '⏱️ Учёт времени работы',
-      'Функция в разработке.\n\n' +
-      'Планируется:\n' +
-      '• Учёт времени по делам\n' +
-      '• Отчёты по биллингу\n' +
-      '• Расчёт стоимости услуг\n' +
-      '• Экспорт в 1С',
-      ui.ButtonSet.OK
-    );
+    return TimeTracker.showTimeTracking();
   }
 
   /**
    * Мой учёт времени (для юриста)
    */
   function showMyTimeTracking() {
-    const ui = SpreadsheetApp.getUi();
-
-    ui.alert(
-      '⏱️ Мой учёт времени',
-      'Функция в разработке.\n\n' +
-      'Здесь будет отображаться:\n' +
-      '• Ваши затраченные часы\n' +
-      '• Разбивка по делам\n' +
-      '• Статистика за период',
-      ui.ButtonSet.OK
-    );
+    return TimeTracker.showMyTimeTracking();
   }
 
   /**
    * Добавить время работы по делу
    */
   function addTimeEntry() {
-    const ui = SpreadsheetApp.getUi();
-
-    ui.alert(
-      '➕ Добавить время',
-      'Функция в разработке.\n\n' +
-      'Позволит быстро добавить:\n' +
-      '• Время работы\n' +
-      '• Описание работы\n' +
-      '• Дело',
-      ui.ButtonSet.OK
-    );
+    return TimeTracker.addTimeEntry();
   }
 
   // ============================================

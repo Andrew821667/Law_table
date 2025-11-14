@@ -100,7 +100,16 @@ function createMenuForRole(ui, role) {
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
         .addItem('👥 База клиентов', 'showClientsDatabase')
         .addItem('💵 Финансовый учёт', 'showFinancialReport')
-        .addItem('⏱️ Учёт времени работы', 'showTimeTracking')
+        .addSeparator()
+        .addSubMenu(ui.createMenu('⏱️ Учёт времени')
+          .addItem('📊 Общий учёт времени', 'showTimeTracking')
+          .addItem('📈 Детальная статистика', 'showDetailedTimeStatistics')
+          .addSeparator()
+          .addItem('✅ Утвердить записи', 'approveTimeEntries')
+          .addItem('🔄 Пересчитать стоимость', 'recalculateTimeCosts')
+          .addSeparator()
+          .addItem('📤 Экспорт в CSV', 'exportTimeToCSV')
+        )
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('⚙️ Обработка и синхронизация')
@@ -163,7 +172,16 @@ function createMenuForRole(ui, role) {
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
         .addItem('👥 База клиентов', 'showClientsDatabase')
         .addItem('💵 Финансовый учёт', 'showFinancialReport')
-        .addItem('⏱️ Учёт времени работы', 'showTimeTracking')
+        .addSeparator()
+        .addSubMenu(ui.createMenu('⏱️ Учёт времени')
+          .addItem('📊 Общий учёт времени', 'showTimeTracking')
+          .addItem('📈 Детальная статистика', 'showDetailedTimeStatistics')
+          .addSeparator()
+          .addItem('✅ Утвердить записи', 'approveTimeEntries')
+          .addItem('🔄 Пересчитать стоимость', 'recalculateTimeCosts')
+          .addSeparator()
+          .addItem('📤 Экспорт в CSV', 'exportTimeToCSV')
+        )
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('⚙️ Обработка и синхронизация')
@@ -678,4 +696,24 @@ function showDeadlinesReport() {
 
 function showMyDeadlinesReport() {
   return LegalWorkflowManager.showMyDeadlinesReport();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ TIMETRACKER
+// ============================================
+
+function showDetailedTimeStatistics() {
+  return TimeTracker.showDetailedStatistics();
+}
+
+function approveTimeEntries() {
+  return TimeTracker.approveTimeEntries();
+}
+
+function recalculateTimeCosts() {
+  return TimeTracker.recalculateCosts();
+}
+
+function exportTimeToCSV() {
+  return TimeTracker.exportTimeToCSV();
 }
