@@ -134,7 +134,7 @@ function createMenuForRole(ui, role) {
   // ==============================================
   else if (role === 'LAWYER') {
     menu
-      .addItem('📊 Обработать мои дела', 'processMyC ases')
+      .addItem('📊 Обработать мои дела', 'processMyCases')
       .addItem('📅 Синхронизировать календарь', 'syncAllToCalendar')
       .addItem('📧 Проверить мои дедлайны', 'checkMyDeadlines')
       .addSeparator()
