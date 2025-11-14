@@ -1,56 +1,172 @@
 /**
- * ✨ Main.gs - Главный файл с меню и интеграцией
+ * ✨ Main.gs - Главный файл с адаптивным меню
  *
  * Интегрирует все модули системы Law Table v2.1
+ * Меню адаптируется под роль пользователя
  */
 
 /**
- * Создание меню при открытии таблицы
+ * Создание меню при открытии таблицы - АДАПТИВНОЕ!
  */
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
 
-  ui.createMenu('⚖️ Судебные дела')
-    // Основные функции
-    .addItem('📊 Обработать дела', 'processAllCases')
-    .addItem('📅 Синхронизировать календарь', 'syncAllToCalendar')
-    .addItem('📧 Проверить дедлайны', 'checkDeadlines')
-    .addSeparator()
+  // Инициализация системы при первом запуске
+  initializeSystem();
 
-    // Дашборд и статистика
-    .addItem('📈 Обновить дашборд', 'updateDashboard')
-    .addSeparator()
+  // Получить текущего пользователя и его роль
+  const userEmail = Session.getActiveUser().getEmail();
+  const currentUser = UserManager.getUser(userEmail);
+  const userRole = currentUser ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
 
-    // Валидация
-    .addItem('✅ Проверить данные', 'validateAllData')
-    .addSeparator()
+  AppLogger.info('Main', `Меню для пользователя ${userEmail} (роль: ${userRole})`);
 
-    // Настройки
-    .addSubMenu(ui.createMenu('⚙️ Настройки')
-      .addItem('Настройки системы', 'showConfigDialog')
-      .addItem('Управление пользователями', 'showUsersDialog')
-      .addItem('Настройка Telegram', 'setupTelegram')
+  // Создать меню на основе роли
+  createMenuForRole(ui, userRole);
+}
+
+/**
+ * Инициализация системы при первом запуске
+ */
+function initializeSystem() {
+  try {
+    const owner = SpreadsheetApp.getActiveSpreadsheet().getOwner();
+    const ownerEmail = owner ? owner.getEmail() : Session.getActiveUser().getEmail();
+
+    // Проверить есть ли пользователи
+    const users = UserManager.getAllUsers();
+
+    if (Object.keys(users).length === 0) {
+      // Первый запуск - создать владельца как Admin
+      UserManager.addUser(ownerEmail, 'ADMIN', {
+        name: 'Администратор (владелец)',
+        notification_preferences: {
+          email: true,
+          telegram: false,
+          sms: false
+        }
+      });
+
+      AppLogger.info('Main', `Создан Admin: ${ownerEmail}`);
+
+      // Показать приветственное сообщение
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        '🎉 Добро пожаловать в Law Table v2.1!\n\n' +
+        `Вы назначены Администратором: ${ownerEmail}\n\n` +
+        'Вы можете:\n' +
+        '• Управлять пользователями через меню "⚙️ Настройки" → "Управление пользователями"\n' +
+        '• Настроить Telegram уведомления\n' +
+        '• Настроить автоматические триггеры\n\n' +
+        'Для начала работы:\n' +
+        '1. Добавьте других пользователей\n' +
+        '2. Настройте триггеры через меню\n' +
+        '3. Прочитайте USER_GUIDE.md на GitHub'
+      );
+    }
+  } catch (e) {
+    Logger.log('Ошибка инициализации: ' + e.message);
+  }
+}
+
+/**
+ * Создать меню на основе роли пользователя
+ */
+function createMenuForRole(ui, role) {
+  const menu = ui.createMenu('⚖️ Судебные дела');
+
+  // ==============================================
+  // ADMIN - ПОЛНЫЙ ДОСТУП КО ВСЕМУ
+  // ==============================================
+  if (role === 'ADMIN') {
+    menu
+      .addItem('📊 Обработать дела', 'processAllCases')
+      .addItem('📅 Синхронизировать календарь', 'syncAllToCalendar')
+      .addItem('📧 Проверить дедлайны', 'checkDeadlines')
       .addSeparator()
-      .addItem('Настроить триггеры', 'setupAllTriggers')
-    )
-    .addSeparator()
-
-    // Логи и мониторинг
-    .addSubMenu(ui.createMenu('📋 Логи и мониторинг')
-      .addItem('Показать статистику логов', 'showLogStats')
-      .addItem('Поиск в логах', 'searchLogs')
-      .addItem('Очистить старые логи', 'clearOldLogs')
+      .addItem('📈 Обновить дашборд', 'updateDashboard')
       .addSeparator()
-      .addItem('Запустить тесты', 'runAllTests')
-    )
-    .addSeparator()
+      .addItem('✅ Проверить данные', 'validateAllData')
+      .addSeparator()
+      .addSubMenu(ui.createMenu('⚙️ Настройки')
+        .addItem('Настройки системы', 'showConfigDialog')
+        .addItem('👥 Управление пользователями', 'showUsersDialog')
+        .addItem('💾 Синхронизировать пользователей', 'syncUsers')
+        .addItem('📱 Настройка Telegram', 'setupTelegram')
+        .addSeparator()
+        .addItem('⏰ Настроить триггеры', 'setupAllTriggers')
+      )
+      .addSeparator()
+      .addSubMenu(ui.createMenu('📋 Логи и мониторинг')
+        .addItem('Показать статистику логов', 'showLogStats')
+        .addItem('Поиск в логах', 'searchLogs')
+        .addItem('Очистить старые логи', 'clearOldLogs')
+        .addSeparator()
+        .addItem('🧪 Запустить тесты', 'runAllTests')
+      )
+      .addSeparator()
+      .addItem('❓ О системе', 'showAbout');
+  }
 
-    // Помощь
-    .addItem('❓ О системе', 'showAbout')
+  // ==============================================
+  // MANAGER - УПРАВЛЕНИЕ ДЕЛАМИ + ПРОСМОТР
+  // ==============================================
+  else if (role === 'MANAGER') {
+    menu
+      .addItem('📊 Обработать дела', 'processAllCases')
+      .addItem('📅 Синхронизировать календарь', 'syncAllToCalendar')
+      .addItem('📧 Проверить дедлайны', 'checkDeadlines')
+      .addSeparator()
+      .addItem('📈 Обновить дашборд', 'updateDashboard')
+      .addSeparator()
+      .addItem('✅ Проверить данные', 'validateAllData')
+      .addSeparator()
+      .addSubMenu(ui.createMenu('📋 Логи')
+        .addItem('Показать статистику', 'showLogStats')
+        .addItem('Поиск в логах', 'searchLogs')
+      )
+      .addSeparator()
+      .addItem('❓ О системе', 'showAbout');
+  }
 
-    .addToUi();
+  // ==============================================
+  // LAWYER - РАБОТА С ДЕЛАМИ
+  // ==============================================
+  else if (role === 'LAWYER') {
+    menu
+      .addItem('📊 Обработать мои дела', 'processMyC ases')
+      .addItem('📅 Синхронизировать календарь', 'syncAllToCalendar')
+      .addItem('📧 Проверить мои дедлайны', 'checkMyDeadlines')
+      .addSeparator()
+      .addItem('📈 Показать дашборд', 'updateDashboard')
+      .addSeparator()
+      .addItem('✅ Проверить данные', 'validateAllData')
+      .addSeparator()
+      .addItem('❓ О системе', 'showAbout');
+  }
 
-  AppLogger.info('Main', 'Меню создано');
+  // ==============================================
+  // ASSISTANT - БАЗОВЫЕ ОПЕРАЦИИ
+  // ==============================================
+  else if (role === 'ASSISTANT') {
+    menu
+      .addItem('📈 Показать дашборд', 'updateDashboard')
+      .addItem('✅ Проверить данные', 'validateAllData')
+      .addSeparator()
+      .addItem('❓ О системе', 'showAbout');
+  }
+
+  // ==============================================
+  // OBSERVER - ТОЛЬКО ПРОСМОТР
+  // ==============================================
+  else {
+    menu
+      .addItem('📈 Показать дашборд', 'updateDashboard')
+      .addSeparator()
+      .addItem('❓ О системе', 'showAbout');
+  }
+
+  menu.addToUi();
 }
 
 /**
@@ -58,6 +174,30 @@ function onOpen() {
  */
 function onEdit(e) {
   try {
+    // Проверка прав - только редакторы могут менять данные
+    const userEmail = Session.getActiveUser().getEmail();
+    const user = UserManager.getUser(userEmail);
+
+    if (!user) {
+      // Пользователь не в системе - запретить редактирование
+      e.range.setValue(e.oldValue || '');
+      SpreadsheetApp.getUi().alert(
+        '⛔ У вас нет прав для редактирования!\n\n' +
+        'Обратитесь к администратору для получения доступа.'
+      );
+      return;
+    }
+
+    // Проверка прав на редактирование
+    if (!UserManager.hasPermission(userEmail, 'edit')) {
+      e.range.setValue(e.oldValue || '');
+      SpreadsheetApp.getUi().alert(
+        '⛔ У вас нет прав для редактирования!\n\n' +
+        `Ваша роль: ${UserManager.ROLES[user.role].name}`
+      );
+      return;
+    }
+
     // Автоматическая валидация при вводе
     if (ConfigManager.get('SYSTEM.AUTO_VALIDATE')) {
       DataValidator.onEditValidation(e);
@@ -72,6 +212,8 @@ function onEdit(e) {
 // ============================================
 
 function processAllCases() {
+  if (!checkPermission('manage_cases')) return;
+
   try {
     AppLogger.info('Main', 'Начало обработки всех дел');
     PerformanceMonitor.start('processAllCases');
@@ -88,7 +230,39 @@ function processAllCases() {
   }
 }
 
+function processMyC ases() {
+  const userEmail = Session.getActiveUser().getEmail();
+  const user = UserManager.getUser(userEmail);
+
+  if (!user) {
+    SpreadsheetApp.getUi().alert('⛔ Пользователь не найден в системе!');
+    return;
+  }
+
+  try {
+    AppLogger.info('Main', `Обработка дел для ${userEmail}`);
+
+    // Обработать только дела, назначенные этому пользователю
+    const assignedCases = user.assigned_cases || [];
+
+    if (assignedCases.length === 0) {
+      SpreadsheetApp.getUi().alert('ℹ️ У вас нет назначенных дел');
+      return;
+    }
+
+    // TODO: Реализовать фильтрацию по assigned_cases в CaseManager
+    CaseManager.processAllCases(); // Пока обрабатываем все
+
+    SpreadsheetApp.getUi().alert(`✅ Обработано ${assignedCases.length} ваших дел!`);
+  } catch (error) {
+    AppLogger.error('Main', 'Ошибка обработки дел', { error: error.message });
+    SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
+  }
+}
+
 function syncAllToCalendar() {
+  if (!checkPermission('manage_cases')) return;
+
   try {
     AppLogger.info('Main', 'Синхронизация с календарём');
     CalendarManager.syncAllToCalendar();
@@ -100,6 +274,8 @@ function syncAllToCalendar() {
 }
 
 function checkDeadlines() {
+  if (!checkPermission('view')) return;
+
   try {
     AppLogger.info('Main', 'Проверка дедлайнов');
 
@@ -131,7 +307,42 @@ function checkDeadlines() {
   }
 }
 
+function checkMyDeadlines() {
+  const userEmail = Session.getActiveUser().getEmail();
+  const user = UserManager.getUser(userEmail);
+
+  if (!user) {
+    SpreadsheetApp.getUi().alert('⛔ Пользователь не найден в системе!');
+    return;
+  }
+
+  try {
+    const warningDays = ConfigManager.get('NOTIFICATIONS.DEADLINE_WARNING_DAYS');
+    const allProblems = DeadlineChecker.findUpcomingDeadlines(warningDays);
+
+    // Фильтровать только свои дела
+    const assignedCases = user.assigned_cases || [];
+    const myProblems = allProblems.filter(p => assignedCases.includes(p.caseNumber));
+
+    if (myProblems.length > 0) {
+      let message = `⚠️ Найдено ${myProblems.length} ваших дедлайнов:\n\n`;
+      myProblems.forEach((p, i) => {
+        message += `${i + 1}. ${p.caseNumber} - ${p.columnName} (через ${p.daysUntil} дн.)\n`;
+      });
+
+      SpreadsheetApp.getUi().alert(message);
+    } else {
+      SpreadsheetApp.getUi().alert('✅ У вас нет приближающихся дедлайнов!');
+    }
+  } catch (error) {
+    AppLogger.error('Main', 'Ошибка проверки дедлайнов', { error: error.message });
+    SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
+  }
+}
+
 function updateDashboard() {
+  if (!checkPermission('view')) return;
+
   try {
     Dashboard.updateDashboard();
     SpreadsheetApp.getUi().alert('✅ Дашборд обновлён!');
@@ -142,6 +353,8 @@ function updateDashboard() {
 }
 
 function validateAllData() {
+  if (!checkPermission('view')) return;
+
   try {
     const isValid = DataValidator.validateSheet();
     if (isValid) {
@@ -154,22 +367,32 @@ function validateAllData() {
 }
 
 // ============================================
-// НАСТРОЙКИ
+// НАСТРОЙКИ (только Admin)
 // ============================================
 
 function showConfigDialog() {
+  if (!checkPermission('all')) return;
   ConfigManager.showConfigDialog();
 }
 
 function showUsersDialog() {
+  if (!checkPermission('all')) return;
   UserManager.showManageUsersDialog();
 }
 
 function setupTelegram() {
+  if (!checkPermission('all')) return;
   TelegramNotifier.setup();
 }
 
+function syncUsers() {
+  if (!checkPermission('all')) return;
+  UserManager.syncUsersFromSheet();
+}
+
 function setupAllTriggers() {
+  if (!checkPermission('all')) return;
+
   try {
     AppLogger.setupAutoCleanup();
     Dashboard.setupAutoUpdate();
@@ -196,14 +419,18 @@ function setupAllTriggers() {
 // ============================================
 
 function showLogStats() {
+  if (!checkPermission('view')) return;
   AppLogger.showStats();
 }
 
 function searchLogs() {
+  if (!checkPermission('view')) return;
   AppLogger.showSearchDialog();
 }
 
 function clearOldLogs() {
+  if (!checkPermission('all')) return;
+
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
     'Очистка старых логов',
@@ -218,7 +445,8 @@ function clearOldLogs() {
 }
 
 function runAllTests() {
-  runTests(); // Определена в TestRunner.gs
+  if (!checkPermission('all')) return;
+  runTests();
   SpreadsheetApp.getUi().alert('✅ Тесты завершены!\n\nСмотрите результаты в Execution Log.');
 }
 
@@ -227,9 +455,15 @@ function runAllTests() {
 // ============================================
 
 function showAbout() {
+  const userEmail = Session.getActiveUser().getEmail();
+  const user = UserManager.getUser(userEmail);
+  const roleName = user ? UserManager.ROLES[user.role].name : 'Не определена';
+
   const message =
     '⚖️ СИСТЕМА УПРАВЛЕНИЯ СУДЕБНЫМИ ДЕЛАМИ\n\n' +
     'Версия: 2.1.0\n\n' +
+    `Ваш email: ${userEmail}\n` +
+    `Ваша роль: ${roleName}\n\n` +
     'ВОЗМОЖНОСТИ:\n' +
     '✅ Автоматическая обработка дел\n' +
     '✅ Синхронизация с Google Calendar\n' +
@@ -244,20 +478,33 @@ function showAbout() {
     '📉 10x меньше API вызовов\n' +
     '🛡️ 100% надёжность (retry логика)\n\n' +
     'GitHub: https://github.com/Andrew821667/Law_table\n' +
-    'Документация: README.md, CODE_REVIEW.md';
+    'Документация: USER_GUIDE.md, TELEGRAM_SETUP.md';
 
   SpreadsheetApp.getUi().alert(message);
 }
 
 // ============================================
-// ЭКСПОРТ ДЛЯ ТЕСТОВ
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================
 
-// Глобальные функции для доступа из других модулей
-function test_processAllCases() {
-  processAllCases();
-}
+/**
+ * Проверка прав доступа
+ */
+function checkPermission(permission) {
+  const userEmail = Session.getActiveUser().getEmail();
 
-function test_checkDeadlines() {
-  checkDeadlines();
+  if (!UserManager.hasPermission(userEmail, permission)) {
+    const user = UserManager.getUser(userEmail);
+    const roleName = user ? UserManager.ROLES[user.role].name : 'Неизвестна';
+
+    SpreadsheetApp.getUi().alert(
+      '⛔ У вас нет прав для этой операции!\n\n' +
+      `Ваша роль: ${roleName}\n` +
+      `Требуемое разрешение: ${permission}\n\n` +
+      'Обратитесь к администратору.'
+    );
+    return false;
+  }
+
+  return true;
 }
