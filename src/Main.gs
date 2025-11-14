@@ -159,6 +159,11 @@ function createMenuForRole(ui, role) {
         .addSeparator()
         .addItem('📊 Статистика по юристам', 'showLawyersStatistics')
         .addItem('⏱️ Отчёт по срокам', 'showDeadlinesReport')
+        .addSeparator()
+        .addSubMenu(ui.createMenu('📈 Расширенная аналитика')
+          .addItem('📊 Генерировать отчёт', 'generateComprehensiveReport')
+          .addItem('📤 Экспорт аналитики', 'exportAnalyticsReport')
+        )
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('📥 Импорт/Экспорт')
@@ -1017,4 +1022,16 @@ function quickActions() {
 
 function taskScheduler() {
   return WorkflowAutomation.taskScheduler();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ ADVANCEDANALYTICS
+// ============================================
+
+function generateComprehensiveReport() {
+  return AdvancedAnalytics.generateComprehensiveReport();
+}
+
+function exportAnalyticsReport() {
+  return AdvancedAnalytics.exportAnalyticsReport();
 }
