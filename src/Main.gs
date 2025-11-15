@@ -200,6 +200,8 @@ function createMenuForRole(ui, role) {
             .addSeparator()
             .addItem('🔑 Создать код привязки', 'createTelegramLinkCode')
             .addItem('📋 Показать коды привязки', 'showTelegramLinkCodes')
+            .addSeparator()
+            .addItem('🔍 Диагностика бота', 'checkTelegramBotStatus')
           )
         )
         .addSeparator()
@@ -1026,6 +1028,10 @@ function createTelegramLinkCode() {
 
 function showTelegramLinkCodes() {
   return TelegramBot.showLinkCodes();
+}
+
+function checkTelegramBotStatus() {
+  return TelegramBot.checkBotStatus();
 }
 
 // ============================================

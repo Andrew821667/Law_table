@@ -878,18 +878,132 @@ var TelegramBot = (function() {
         return;
       }
 
-      let text = 'Активные коды привязки:\n\n';
-      codes.forEach(item => {
-        text += `Код: ${item.code}\n`;
-        text += `Email: ${item.email}\n`;
-        text += `Создан: ${new Date(item.created).toLocaleString('ru-RU')}\n\n`;
+      let message = `📋 Активные коды привязки (${codes.length}):\n\n`;
+      codes.forEach((c, i) => {
+        message += `${i + 1}. Код: ${c.code}\n   Email: ${c.email}\n   Создан: ${new Date(c.created).toLocaleString('ru-RU')}\n\n`;
       });
 
-      ui.alert('🔗 Коды привязки', text, ui.ButtonSet.OK);
+      ui.alert('📋 Коды привязки', message, ui.ButtonSet.OK);
 
     } catch (error) {
       AppLogger.error('TelegramBot', 'Ошибка показа кодов', { error: error.message });
       SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
+    }
+  }
+
+  /**
+   * Диагностика бота - проверить настройки и соединение
+   */
+  function checkBotStatus() {
+    try {
+      const ui = SpreadsheetApp.getUi();
+      const props = PropertiesService.getScriptProperties();
+
+      let report = '🔍 ДИАГНОСТИКА TELEGRAM BOT\n';
+      report += '═══════════════════════════════\n\n';
+
+      // 1. Проверка токена
+      const token = props.getProperty(BOT_TOKEN_KEY);
+      if (!token) {
+        report += '❌ Bot Token НЕ НАСТРОЕН\n';
+        report += '   → Настройте через меню:\n';
+        report += '   Настройки → Telegram Bot → Настройка Telegram\n\n';
+        ui.alert('🔍 Диагностика', report, ui.ButtonSet.OK);
+        return;
+      }
+
+      report += '✅ Bot Token: ' + token.substring(0, 10) + '...\n\n';
+
+      // 2. Проверка webhook URL
+      const webhookUrl = props.getProperty(WEBHOOK_URL_KEY);
+      if (!webhookUrl) {
+        report += '❌ Webhook URL НЕ НАСТРОЕН\n';
+        report += '   → Настройте через меню:\n';
+        report += '   Настройки → Telegram Bot → Настроить Webhook\n\n';
+        ui.alert('🔍 Диагностика', report, ui.ButtonSet.OK);
+        return;
+      }
+
+      report += '✅ Webhook URL:\n   ' + webhookUrl + '\n\n';
+
+      // 3. Проверка Bot Token через API
+      try {
+        const apiUrl = `https://api.telegram.org/bot${token}/getMe`;
+        const response = UrlFetchApp.fetch(apiUrl, { muteHttpExceptions: true });
+        const result = JSON.parse(response.getContentText());
+
+        if (result.ok) {
+          report += '✅ Бот активен:\n';
+          report += `   • Имя: @${result.result.username}\n`;
+          report += `   • ID: ${result.result.id}\n\n`;
+        } else {
+          report += '❌ Неверный Bot Token!\n';
+          report += `   Ошибка: ${result.description}\n\n`;
+          ui.alert('🔍 Диагностика', report, ui.ButtonSet.OK);
+          return;
+        }
+      } catch (e) {
+        report += '❌ Ошибка подключения к Telegram API\n';
+        report += `   ${e.message}\n\n`;
+        ui.alert('🔍 Диагностика', report, ui.ButtonSet.OK);
+        return;
+      }
+
+      // 4. Проверка webhook info
+      try {
+        const webhookInfoUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
+        const response = UrlFetchApp.fetch(webhookInfoUrl, { muteHttpExceptions: true });
+        const result = JSON.parse(response.getContentText());
+
+        if (result.ok) {
+          const info = result.result;
+
+          if (info.url) {
+            report += '✅ Webhook зарегистрирован в Telegram:\n';
+            report += `   • URL: ${info.url}\n`;
+
+            if (info.url !== webhookUrl) {
+              report += '   ⚠️ ВНИМАНИЕ: URL не совпадает с сохранённым!\n';
+              report += '   → Повторите настройку webhook\n';
+            }
+
+            report += `   • Ожидает обновлений: ${info.pending_update_count}\n`;
+
+            if (info.last_error_message) {
+              report += `   ⚠️ Последняя ошибка:\n`;
+              report += `   ${info.last_error_message}\n`;
+              report += `   Время: ${new Date(info.last_error_date * 1000).toLocaleString('ru-RU')}\n`;
+            }
+          } else {
+            report += '❌ Webhook НЕ зарегистрирован в Telegram!\n';
+            report += '   → Настройте webhook через меню\n';
+          }
+        }
+      } catch (e) {
+        report += '⚠️ Не удалось проверить webhook info\n';
+      }
+
+      report += '\n═══════════════════════════════\n';
+      report += '💡 РЕКОМЕНДАЦИИ:\n\n';
+
+      if (webhookUrl && token) {
+        report += '1. Проверьте, развёрнуто ли веб-приложение:\n';
+        report += '   Расширения → Apps Script → Разверните →\n';
+        report += '   Управление развёртываниями\n\n';
+
+        report += '2. Убедитесь, что доступ: "Все"\n\n';
+
+        report += '3. Попробуйте отправить боту: /start\n\n';
+
+        report += '4. Проверьте логи:\n';
+        report += '   Меню → Логи → Показать последние логи\n';
+      }
+
+      ui.alert('🔍 Диагностика Telegram Bot', report, ui.ButtonSet.OK);
+
+    } catch (error) {
+      AppLogger.error('TelegramBot', 'Ошибка диагностики', { error: error.message });
+      SpreadsheetApp.getUi().alert('❌ Ошибка диагностики:\n\n' + error.message);
     }
   }
 
@@ -899,6 +1013,7 @@ var TelegramBot = (function() {
     setupWebhook: setupWebhook,
     generateLinkCode: generateLinkCode,
     showLinkCodes: showLinkCodes,
+    checkBotStatus: checkBotStatus,
     sendMessage: sendMessage,
     COMMANDS: COMMANDS
   };
