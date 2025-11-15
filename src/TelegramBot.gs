@@ -71,6 +71,12 @@ var TelegramBot = (function() {
   function sendMessage(chatId, text, parseMode = 'HTML', replyMarkup = null) {
     try {
       const token = getBotToken();
+
+      if (!token) {
+        AppLogger.error('TelegramBot', 'Bot Token не настроен');
+        return false;
+      }
+
       const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
       const payload = {
@@ -90,19 +96,35 @@ var TelegramBot = (function() {
         muteHttpExceptions: true
       };
 
+      AppLogger.info('TelegramBot', 'Отправка сообщения', {
+        chatId: chatId,
+        textLength: text.length
+      });
+
       const response = UrlFetchApp.fetch(url, options);
       const result = JSON.parse(response.getContentText());
 
       if (!result.ok) {
+        AppLogger.error('TelegramBot', 'Telegram API вернул ошибку', {
+          chatId: chatId,
+          error: result.description,
+          error_code: result.error_code
+        });
         throw new Error(result.description);
       }
+
+      AppLogger.info('TelegramBot', 'Сообщение успешно отправлено', {
+        chatId: chatId,
+        message_id: result.result.message_id
+      });
 
       return true;
 
     } catch (error) {
       AppLogger.error('TelegramBot', 'Ошибка отправки сообщения', {
         chatId: chatId,
-        error: error.message
+        error: error.message,
+        stack: error.stack
       });
       return false;
     }
@@ -159,10 +181,17 @@ var TelegramBot = (function() {
     const command = parts[0].toLowerCase();
     const args = parts.slice(1);
 
+    AppLogger.info('TelegramBot', 'Обработка команды', {
+      chatId: chatId,
+      command: command,
+      argsCount: args.length
+    });
+
     // Найти пользователя по chat_id
     const user = findUserByChatId(chatId);
 
     if (!user && command !== COMMANDS.LINK && command !== COMMANDS.START) {
+      AppLogger.warn('TelegramBot', 'Пользователь не привязан', { chatId: chatId, command: command });
       sendMessage(
         chatId,
         '❌ Ваш аккаунт Telegram не привязан к системе.\n\n' +
@@ -173,6 +202,7 @@ var TelegramBot = (function() {
 
     switch (command) {
       case COMMANDS.START:
+        AppLogger.info('TelegramBot', 'Вызов handleStartCommand');
         handleStartCommand(chatId, message);
         break;
 
