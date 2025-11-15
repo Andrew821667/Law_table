@@ -434,24 +434,30 @@ var AppLogger = (function() {
       return;
     }
 
-    // Получить последние N строк (но не меньше 2, т.к. строка 1 - заголовок)
-    const startRow = Math.max(2, lastRow - limit + 1);
+    // Активировать лист с логами
+    sheet.activate();
+    SpreadsheetApp.setActiveSheet(sheet);
+
+    // Прокрутить к последним записям
+    const lastCell = sheet.getRange(lastRow, 1);
+    sheet.setActiveRange(lastCell);
+    SpreadsheetApp.setActiveRange(lastCell);
+
+    // Показать краткую сводку
+    const startRow = Math.max(2, lastRow - Math.min(limit, 10) + 1);
     const numRows = lastRow - startRow + 1;
+    const recentData = sheet.getRange(startRow, 1, numRows, 5).getValues();
 
-    const data = sheet.getRange(startRow, 1, numRows, 5).getValues();
+    let summary = `📋 Лист "Логи" открыт. Последние ${numRows} записей:\n\n`;
 
-    // Форматировать логи
-    let logsText = `📋 ПОСЛЕДНИЕ ${numRows} ЗАПИСЕЙ ЛОГОВ\n`;
-    logsText += '═══════════════════════════════════════════\n\n';
-
-    data.reverse().forEach((row, index) => {
+    recentData.reverse().forEach((row) => {
       const timestamp = row[0];
       const level = row[1];
       const module = row[2];
       const message = row[3];
 
       const timeStr = timestamp instanceof Date
-        ? Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'dd.MM HH:mm:ss')
+        ? Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'dd.MM HH:mm')
         : timestamp;
 
       const levelEmoji = {
@@ -461,21 +467,12 @@ var AppLogger = (function() {
         'ERROR': '❌'
       }[level] || '📝';
 
-      logsText += `${levelEmoji} [${timeStr}] ${module}\n`;
-      logsText += `   ${message}\n\n`;
+      summary += `${levelEmoji} [${timeStr}] ${module}: ${message}\n`;
     });
 
-    logsText += '═══════════════════════════════════════════\n';
-    logsText += `Всего логов в системе: ${lastRow - 1}`;
+    summary += `\nВсего записей: ${lastRow - 1}`;
 
-    // Показать в модальном окне
-    const htmlOutput = HtmlService.createHtmlOutput(
-      `<pre style="font-family: 'Courier New', monospace; font-size: 11px; white-space: pre-wrap; padding: 10px;">${logsText}</pre>`
-    )
-      .setWidth(700)
-      .setHeight(600);
-
-    ui.showModalDialog(htmlOutput, `📋 Последние ${numRows} записей логов`);
+    ui.alert('📋 Логи системы', summary, ui.ButtonSet.OK);
   }
 
   // Экспорт публичных методов
