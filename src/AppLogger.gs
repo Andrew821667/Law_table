@@ -420,7 +420,7 @@ var AppLogger = (function() {
    */
   function showRecentLogs(limit = 50) {
     const ui = SpreadsheetApp.getUi();
-    const sheet = getOrCreateLogSheet();
+    const sheet = getLogSheet();
 
     if (!sheet) {
       ui.alert('❌ Лист логов не найден');
