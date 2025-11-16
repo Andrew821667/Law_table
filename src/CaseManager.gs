@@ -105,7 +105,7 @@ var CaseManager = (function() {
   }
 
   /**
-   * 🔥 УЛУЧШЕНО: Проверка существования ссылок на папки БЕЗ лишних вызовов
+   * ✅ УЛУЧШЕНО Issue #23: Проверка существования и валидности ссылок на папки
    * @param {Array} row - Строка данных
    * @return {boolean} true если ссылки уже есть
    */
@@ -121,6 +121,67 @@ var CaseManager = (function() {
     }
 
     return false;
+  }
+
+  /**
+   * ✅ НОВОЕ Issue #23: Верификация доступности ссылки на Google Drive
+   * @param {string} driveUrl - URL на Google Drive
+   * @return {boolean} true если ссылка доступна
+   */
+  function verifyDriveLink(driveUrl) {
+    if (!driveUrl || !driveUrl.includes('drive.google.com')) {
+      return false;
+    }
+
+    try {
+      // Извлекаем ID папки из URL
+      const folderId = extractFolderIdFromUrl(driveUrl);
+      if (!folderId) {
+        Logger.log(`⚠️ Не удалось извлечь ID из URL: ${driveUrl}`);
+        return false;
+      }
+
+      // Пытаемся получить доступ к папке
+      const folder = DriveApp.getFolderById(folderId);
+
+      // Проверяем что папка существует и доступна
+      if (folder && folder.getName()) {
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      // Ошибка доступа - папка удалена или нет прав
+      Logger.log(`❌ Ошибка проверки ссылки ${driveUrl}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * ✅ НОВОЕ: Извлечение ID папки из URL
+   * @param {string} url - URL Google Drive
+   * @return {string|null} ID папки или null
+   */
+  function extractFolderIdFromUrl(url) {
+    if (!url) return null;
+
+    // Поддерживаем разные форматы URL:
+    // https://drive.google.com/drive/folders/FOLDER_ID
+    // https://drive.google.com/open?id=FOLDER_ID
+
+    const patterns = [
+      /\/folders\/([a-zA-Z0-9_-]+)/,
+      /[?&]id=([a-zA-Z0-9_-]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -247,7 +308,21 @@ var CaseManager = (function() {
       }
     }
 
-    Logger.log(`✅ Ссылки применены`);
+    // ✅ ИСПРАВЛЕНО Issue #16: Инвалидация кэша после модификации
+    invalidateCache(sheet.getName());
+
+    Logger.log(`✅ Ссылки применены, кэш инвалидирован`);
+  }
+
+  /**
+   * ✅ НОВОЕ: Инвалидация кэша для конкретного листа
+   * @param {string} sheetName - Название листа
+   */
+  function invalidateCache(sheetName) {
+    if (sheetName && cache.sheets[sheetName]) {
+      delete cache.sheets[sheetName];
+      Logger.log(`🔄 Кэш для листа "${sheetName}" инвалидирован`);
+    }
   }
 
   /**
@@ -271,10 +346,20 @@ var CaseManager = (function() {
 
     // Обрабатываем каждый лист из конфигурации
     for (const sheetName of CONFIG.ACTIVE_SHEETS) {
-      const sheet = ss.getSheetByName(sheetName);
+      let sheet;
+
+      // ✅ ИСПРАВЛЕНО Issue #27: Безопасное получение листа с обработкой ошибок
+      try {
+        sheet = ss.getSheetByName(sheetName);
+      } catch (error) {
+        Logger.log(`❌ Ошибка доступа к листу "${sheetName}": ${error.message}`);
+        AppLogger.error('CaseManager', `Ошибка доступа к листу ${sheetName}`, { error: error.message });
+        continue;
+      }
 
       if (!sheet) {
-        Logger.log(`⚠️ Лист "${sheetName}" не найден, пропускаем`);
+        Logger.log(`⚠️ Лист "${sheetName}" не найден или был удален, пропускаем`);
+        AppLogger.warn('CaseManager', `Лист "${sheetName}" не найден`);
         continue;
       }
 
@@ -370,8 +455,10 @@ var CaseManager = (function() {
     getCaseData: getCaseData,
     buildCaseFolderName: buildCaseFolderName,
     hasExistingFolderLinks: hasExistingFolderLinks,
+    verifyDriveLink: verifyDriveLink,  // ✅ НОВОЕ Issue #23
     processAllCases: processAllCases,
     processSingleCase: processSingleCase,
-    clearCache: clearCache
+    clearCache: clearCache,
+    invalidateCache: invalidateCache
   };
 })();

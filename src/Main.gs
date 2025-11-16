@@ -30,7 +30,14 @@ function onOpen() {
  */
 function initializeSystem() {
   try {
-    const owner = SpreadsheetApp.getActiveSpreadsheet().getOwner();
+    // ✅ ИСПРАВЛЕНО Issue #27: Безопасная работа с spreadsheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      Logger.log('❌ Не удалось получить активную таблицу');
+      return;
+    }
+
+    const owner = ss.getOwner();
     const ownerEmail = owner ? owner.getEmail() : Session.getActiveUser().getEmail();
 
     // Проверить есть ли пользователи
