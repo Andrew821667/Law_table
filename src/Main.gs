@@ -17,7 +17,9 @@ function onOpen() {
   // Получить текущего пользователя и его роль
   const userEmail = Session.getActiveUser().getEmail();
   const currentUser = UserManager.getUser(userEmail);
-  const userRole = currentUser ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
+
+  // ✅ ИСПРАВЛЕНО Issue #20: Явная проверка на null/undefined
+  const userRole = (currentUser && currentUser.role) ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
 
   AppLogger.info('Main', `Меню для пользователя ${userEmail} (роль: ${userRole})`);
 
@@ -72,7 +74,27 @@ function initializeSystem() {
       );
     }
   } catch (e) {
-    Logger.log('Ошибка инициализации: ' + e.message);
+    // ✅ ИСПРАВЛЕНО Issue #6: Улучшенная обработка ошибок с уведомлением
+    Logger.log('❌ Ошибка инициализации: ' + e.message);
+    AppLogger.error('Main', 'Критическая ошибка инициализации', {
+      error: e.message,
+      stack: e.stack
+    });
+
+    // Показываем уведомление пользователю только если это серьезная ошибка
+    try {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        '⚠️ Ошибка инициализации',
+        `Произошла ошибка при запуске системы:\n${e.message}\n\n` +
+        'Система продолжит работу, но некоторые функции могут быть недоступны.\n' +
+        'Обратитесь к администратору.',
+        ui.ButtonSet.OK
+      );
+    } catch (uiError) {
+      // Если даже UI недоступен - просто логируем
+      Logger.log('❌ Невозможно показать уведомление: ' + uiError.message);
+    }
   }
 }
 

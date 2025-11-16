@@ -46,12 +46,13 @@ var CalendarManager = (function() {
 
     let calendar;
 
-    if (!CONFIG.CALENDAR.USE_SEPARATE_CALENDAR) {
+    // ✅ ИСПРАВЛЕНО Issue #12: Использование CONFIG для имени календаря
+    if (!CONFIG.CALENDAR.USE_SEPARATE) {
       // Используем календарь по умолчанию
       calendar = CalendarApp.getDefaultCalendar();
       Logger.log('✅ Используется календарь по умолчанию');
     } else {
-      const calendarName = CONFIG.CALENDAR.CALENDAR_NAME;
+      const calendarName = CONFIG.CALENDAR.NAME;
 
       try {
         // Ищем существующий календарь
