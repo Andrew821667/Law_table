@@ -339,37 +339,73 @@ var FinancialManager = (function() {
       return;
     }
 
-    // Шаг 2: Клиент (попытка найти автоматически)
+    // Шаг 2: Клиент - ✅ ИСПРАВЛЕНО: Показываем список клиентов для выбора
     let clientId = '';
     let clientName = '';
 
-    // Попытка найти клиента через ClientDatabase
+    // Получить список всех клиентов
+    let clientsList = [];
     if (typeof ClientDatabase !== 'undefined') {
-      const clientSheet = ClientDatabase.getOrCreateSheet();
-      const clientData = clientSheet.getDataRange().getValues();
-
-      for (let i = 1; i < clientData.length; i++) {
-        const row = clientData[i];
-        if (row[0]) {  // Если есть ID клиента
-          clientId = row[0];
-          clientName = row[1];
-          break;  // Берём первого для упрощения
-        }
+      try {
+        clientsList = ClientDatabase.getAllClients();
+      } catch (e) {
+        Logger.log(`⚠️ Ошибка получения списка клиентов: ${e.message}`);
       }
+    }
+
+    let clientMessage = 'Введите ID клиента';
+    if (clientsList.length > 0) {
+      clientMessage += ' или выберите из списка:\n\n';
+      // Показываем первых 10 клиентов
+      const displayClients = clientsList.slice(0, 10);
+      clientMessage += displayClients.map((c, i) =>
+        `${i + 1}. ${c.id} - ${c.name} (${c.type})`
+      ).join('\n');
+
+      if (clientsList.length > 10) {
+        clientMessage += `\n\n...и ещё ${clientsList.length - 10} клиентов`;
+      }
+
+      clientMessage += '\n\nВведите ID клиента:';
+    } else {
+      clientMessage += ':\n\n(База клиентов пуста. Добавьте клиента через меню "База клиентов")';
     }
 
     const clientResponse = ui.prompt(
       '💰 Добавить гонорар - Шаг 2/5',
-      `ID клиента (или Enter для пропуска):\n${clientId ? `Найден: ${clientName} (${clientId})` : ''}`,
+      clientMessage,
       ui.ButtonSet.OK_CANCEL
     );
 
     if (clientResponse.getSelectedButton() !== ui.Button.OK) return;
 
     const inputClientId = clientResponse.getResponseText().trim();
+
+    // ✅ ИСПРАВЛЕНО: Валидация клиента
     if (inputClientId) {
-      clientId = inputClientId;
-      clientName = 'Клиент ' + clientId;  // Упрощённо
+      if (typeof ClientDatabase !== 'undefined') {
+        const client = ClientDatabase.getClientById(inputClientId);
+        if (client) {
+          clientId = client.id;
+          clientName = client.name;
+        } else {
+          ui.alert(
+            '❌ Клиент не найден',
+            `Клиент с ID "${inputClientId}" не найден в базе.\n\n` +
+            'Добавьте клиента через меню "База клиентов" → "Добавить клиента"',
+            ui.ButtonSet.OK
+          );
+          return;
+        }
+      } else {
+        // Если ClientDatabase недоступен, используем введенный ID
+        clientId = inputClientId;
+        clientName = 'Клиент ' + clientId;
+      }
+    } else {
+      // Клиент не указан - можно продолжить без клиента
+      clientId = '';
+      clientName = 'Не указан';
     }
 
     // Шаг 3: Тип услуги
@@ -609,23 +645,150 @@ var FinancialManager = (function() {
   // ============================================
 
   /**
-   * Создать счёт на оплату
+   * ✅ ИСПРАВЛЕНО Issue #2: Создать счёт на оплату
    */
   function createInvoice() {
     if (!checkPermission('manage_cases')) return;
 
     const ui = SpreadsheetApp.getUi();
+    const sheet = getOrCreateInvoicesSheet();
+
+    // Шаг 1: Выбор клиента
+    let clientId = '';
+    let clientName = '';
+    let clientsList = [];
+
+    if (typeof ClientDatabase !== 'undefined') {
+      try {
+        clientsList = ClientDatabase.getAllClients();
+      } catch (e) {
+        Logger.log(`⚠️ Ошибка получения списка клиентов: ${e.message}`);
+      }
+    }
+
+    let clientMessage = 'Введите ID клиента для счета';
+    if (clientsList.length > 0) {
+      clientMessage += ':\n\n';
+      const displayClients = clientsList.slice(0, 10);
+      clientMessage += displayClients.map((c, i) =>
+        `${i + 1}. ${c.id} - ${c.name}`
+      ).join('\n');
+      if (clientsList.length > 10) {
+        clientMessage += `\n\n...и ещё ${clientsList.length - 10} клиентов`;
+      }
+      clientMessage += '\n\nВведите ID:';
+    }
+
+    const clientResponse = ui.prompt(
+      '📄 Создание счёта - Шаг 1/4',
+      clientMessage,
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (clientResponse.getSelectedButton() !== ui.Button.OK) return;
+
+    const inputClientId = clientResponse.getResponseText().trim();
+    if (!inputClientId) {
+      ui.alert('❌ ID клиента не может быть пустым');
+      return;
+    }
+
+    // Валидация клиента
+    if (typeof ClientDatabase !== 'undefined') {
+      const client = ClientDatabase.getClientById(inputClientId);
+      if (client) {
+        clientId = client.id;
+        clientName = client.name;
+      } else {
+        ui.alert('❌ Клиент не найден', `Клиент с ID "${inputClientId}" не найден в базе.`, ui.ButtonSet.OK);
+        return;
+      }
+    } else {
+      clientId = inputClientId;
+      clientName = 'Клиент ' + clientId;
+    }
+
+    // Шаг 2: Номер дела (опционально)
+    const caseResponse = ui.prompt(
+      '📄 Создание счёта - Шаг 2/4',
+      'Введите номер дела (или оставьте пустым):',
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (caseResponse.getSelectedButton() !== ui.Button.OK) return;
+
+    const caseNumber = caseResponse.getResponseText().trim();
+
+    // Шаг 3: Сумма
+    const amountResponse = ui.prompt(
+      '📄 Создание счёта - Шаг 3/4',
+      'Введите сумму счета (без НДС) в рублях:',
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (amountResponse.getSelectedButton() !== ui.Button.OK) return;
+
+    const amount = parseFloat(amountResponse.getResponseText().replace(/\s/g, '').replace(',', '.'));
+
+    if (isNaN(amount) || amount <= 0) {
+      ui.alert('❌ Неверная сумма');
+      return;
+    }
+
+    // Шаг 4: Описание услуг
+    const descResponse = ui.prompt(
+      '📄 Создание счёта - Шаг 4/4',
+      'Введите описание услуг:',
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (descResponse.getSelectedButton() !== ui.Button.OK) return;
+
+    const description = descResponse.getResponseText().trim() || 'Юридические услуги';
+
+    // Генерация номера счета
+    const lastRow = sheet.getLastRow();
+    const invoiceNumber = `СЧ-${new Date().getFullYear()}-${String(lastRow).padStart(4, '0')}`;
+
+    // Расчет НДС и итого
+    const vat = amount * 0.20;
+    const totalWithVat = amount + vat;
+
+    // Добавление записи
+    const now = new Date();
+
+    sheet.appendRow([
+      invoiceNumber,
+      now,
+      clientId,
+      clientName,
+      caseNumber,
+      description,
+      amount,
+      vat,
+      totalWithVat,
+      'Не оплачен',
+      '',
+      ''
+    ]);
+
+    // Форматирование
+    const newRow = sheet.getLastRow();
+    sheet.getRange(newRow, 2).setNumberFormat('dd.MM.yyyy');
+    sheet.getRange(newRow, 7, 1, 3).setNumberFormat('#,##0 ₽');
 
     ui.alert(
-      '📄 Создание счёта',
-      'Функция в разработке.\n\n' +
-      'Будет доступно:\n' +
-      '• Генерация номера счёта\n' +
-      '• Автозаполнение из гонораров\n' +
-      '• Экспорт в PDF\n' +
-      '• Отправка клиенту по email',
+      '✅ Счёт создан!',
+      `Номер счета: ${invoiceNumber}\n` +
+      `Клиент: ${clientName}\n` +
+      `Сумма без НДС: ${amount.toFixed(2)} ₽\n` +
+      `НДС 20%: ${vat.toFixed(2)} ₽\n` +
+      `Итого: ${totalWithVat.toFixed(2)} ₽\n\n` +
+      `Счет добавлен в лист "${INVOICES_SHEET_NAME}"`,
       ui.ButtonSet.OK
     );
+
+    AppLogger.info('FinancialManager', `Создан счет ${invoiceNumber} на сумму ${totalWithVat.toFixed(2)} ₽`);
   }
 
   // ============================================

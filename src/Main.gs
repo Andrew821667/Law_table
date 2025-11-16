@@ -17,7 +17,9 @@ function onOpen() {
   // Получить текущего пользователя и его роль
   const userEmail = Session.getActiveUser().getEmail();
   const currentUser = UserManager.getUser(userEmail);
-  const userRole = currentUser ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
+
+  // ✅ ИСПРАВЛЕНО Issue #20: Явная проверка на null/undefined
+  const userRole = (currentUser && currentUser.role) ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
 
   AppLogger.info('Main', `Меню для пользователя ${userEmail} (роль: ${userRole})`);
 
@@ -30,7 +32,14 @@ function onOpen() {
  */
 function initializeSystem() {
   try {
-    const owner = SpreadsheetApp.getActiveSpreadsheet().getOwner();
+    // ✅ ИСПРАВЛЕНО Issue #27: Безопасная работа с spreadsheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      Logger.log('❌ Не удалось получить активную таблицу');
+      return;
+    }
+
+    const owner = ss.getOwner();
     const ownerEmail = owner ? owner.getEmail() : Session.getActiveUser().getEmail();
 
     // Проверить есть ли пользователи
@@ -65,7 +74,27 @@ function initializeSystem() {
       );
     }
   } catch (e) {
-    Logger.log('Ошибка инициализации: ' + e.message);
+    // ✅ ИСПРАВЛЕНО Issue #6: Улучшенная обработка ошибок с уведомлением
+    Logger.log('❌ Ошибка инициализации: ' + e.message);
+    AppLogger.error('Main', 'Критическая ошибка инициализации', {
+      error: e.message,
+      stack: e.stack
+    });
+
+    // Показываем уведомление пользователю только если это серьезная ошибка
+    try {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        '⚠️ Ошибка инициализации',
+        `Произошла ошибка при запуске системы:\n${e.message}\n\n` +
+        'Система продолжит работу, но некоторые функции могут быть недоступны.\n' +
+        'Обратитесь к администратору.',
+        ui.ButtonSet.OK
+      );
+    } catch (uiError) {
+      // Если даже UI недоступен - просто логируем
+      Logger.log('❌ Невозможно показать уведомление: ' + uiError.message);
+    }
   }
 }
 
@@ -377,10 +406,10 @@ function processMyCases() {
       return;
     }
 
-    // TODO: Реализовать фильтрацию по assigned_cases в CaseManager
-    CaseManager.processAllCases(); // Пока обрабатываем все
+    // ✅ ИСПРАВЛЕНО: Фильтрация по назначенным делам (RBAC)
+    CaseManager.processAllCases(assignedCases);
 
-    SpreadsheetApp.getUi().alert(`✅ Обработано ${assignedCases.length} ваших дел!`);
+    SpreadsheetApp.getUi().alert(`✅ Обработано ваших назначенных дел!`);
   } catch (error) {
     AppLogger.error('Main', 'Ошибка обработки дел', { error: error.message });
     SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);

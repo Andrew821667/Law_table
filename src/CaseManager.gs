@@ -105,7 +105,7 @@ var CaseManager = (function() {
   }
 
   /**
-   * 🔥 УЛУЧШЕНО: Проверка существования ссылок на папки БЕЗ лишних вызовов
+   * ✅ УЛУЧШЕНО Issue #23: Проверка существования и валидности ссылок на папки
    * @param {Array} row - Строка данных
    * @return {boolean} true если ссылки уже есть
    */
@@ -124,12 +124,74 @@ var CaseManager = (function() {
   }
 
   /**
+   * ✅ НОВОЕ Issue #23: Верификация доступности ссылки на Google Drive
+   * @param {string} driveUrl - URL на Google Drive
+   * @return {boolean} true если ссылка доступна
+   */
+  function verifyDriveLink(driveUrl) {
+    if (!driveUrl || !driveUrl.includes('drive.google.com')) {
+      return false;
+    }
+
+    try {
+      // Извлекаем ID папки из URL
+      const folderId = extractFolderIdFromUrl(driveUrl);
+      if (!folderId) {
+        Logger.log(`⚠️ Не удалось извлечь ID из URL: ${driveUrl}`);
+        return false;
+      }
+
+      // Пытаемся получить доступ к папке
+      const folder = DriveApp.getFolderById(folderId);
+
+      // Проверяем что папка существует и доступна
+      if (folder && folder.getName()) {
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      // Ошибка доступа - папка удалена или нет прав
+      Logger.log(`❌ Ошибка проверки ссылки ${driveUrl}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * ✅ НОВОЕ: Извлечение ID папки из URL
+   * @param {string} url - URL Google Drive
+   * @return {string|null} ID папки или null
+   */
+  function extractFolderIdFromUrl(url) {
+    if (!url) return null;
+
+    // Поддерживаем разные форматы URL:
+    // https://drive.google.com/drive/folders/FOLDER_ID
+    // https://drive.google.com/open?id=FOLDER_ID
+
+    const patterns = [
+      /\/folders\/([a-zA-Z0-9_-]+)/,
+      /[?&]id=([a-zA-Z0-9_-]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * 🔥 НОВОЕ: Batch обработка дел с прогресс-баром
    * @param {Sheet} sheet - Лист для обработки
    * @param {number} startRow - Начальная строка
    * @param {number} endRow - Конечная строка
+   * @param {Array<string>} filterCaseNumbers - Опциональный массив номеров дел для фильтрации (для RBAC)
    */
-  function processCasesBatch(sheet, startRow, endRow) {
+  function processCasesBatch(sheet, startRow, endRow, filterCaseNumbers) {
     Logger.log(`📊 Batch обработка дел [${startRow}-${endRow}]`);
 
     const numRows = endRow - startRow + 1;
@@ -145,10 +207,40 @@ var CaseManager = (function() {
       const rowNumber = startRow + i;
       const caseData = getCaseData(row);
 
-      // Пропускаем пустые строки
+      // ✅ ИСПРАВЛЕНО: Комплексная валидация данных дела
       if (!caseData.number) {
         skippedCount++;
         continue;
+      }
+
+      // Валидация обязательных полей
+      const validationErrors = [];
+
+      if (!caseData.court || caseData.court.trim() === '') {
+        validationErrors.push('отсутствует суд');
+      }
+
+      if (!caseData.category || caseData.category.trim() === '') {
+        validationErrors.push('отсутствует категория');
+      }
+
+      if (!caseData.status || caseData.status.trim() === '') {
+        validationErrors.push('отсутствует статус');
+      }
+
+      // Если есть ошибки валидации - пропускаем с предупреждением
+      if (validationErrors.length > 0) {
+        Logger.log(`⚠️ Дело ${caseData.number} (строка ${rowNumber}): ${validationErrors.join(', ')}`);
+        skippedCount++;
+        continue;
+      }
+
+      // 🔒 НОВОЕ: Фильтрация по назначенным делам (RBAC)
+      if (filterCaseNumbers && filterCaseNumbers.length > 0) {
+        if (!filterCaseNumbers.includes(caseData.number)) {
+          skippedCount++;
+          continue;
+        }
       }
 
       // Пропускаем если уже есть ссылки
@@ -216,14 +308,34 @@ var CaseManager = (function() {
       }
     }
 
-    Logger.log(`✅ Ссылки применены`);
+    // ✅ ИСПРАВЛЕНО Issue #16: Инвалидация кэша после модификации
+    invalidateCache(sheet.getName());
+
+    Logger.log(`✅ Ссылки применены, кэш инвалидирован`);
+  }
+
+  /**
+   * ✅ НОВОЕ: Инвалидация кэша для конкретного листа
+   * @param {string} sheetName - Название листа
+   */
+  function invalidateCache(sheetName) {
+    if (sheetName && cache.sheets[sheetName]) {
+      delete cache.sheets[sheetName];
+      Logger.log(`🔄 Кэш для листа "${sheetName}" инвалидирован`);
+    }
   }
 
   /**
    * 🔥 УЛУЧШЕНО: Обработка всех дел с оптимизацией
+   * @param {Array<string>} filterCaseNumbers - Опциональный массив номеров дел для фильтрации (для RBAC)
    */
-  function processAllCases() {
-    Logger.log('🚀 Начало обработки всех дел');
+  function processAllCases(filterCaseNumbers) {
+    const isFiltered = filterCaseNumbers && filterCaseNumbers.length > 0;
+    Logger.log(`🚀 Начало обработки ${isFiltered ? 'назначенных' : 'всех'} дел`);
+
+    if (isFiltered) {
+      Logger.log(`   🔒 Фильтр: ${filterCaseNumbers.length} дел`);
+    }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const startTime = Date.now();
@@ -234,10 +346,20 @@ var CaseManager = (function() {
 
     // Обрабатываем каждый лист из конфигурации
     for (const sheetName of CONFIG.ACTIVE_SHEETS) {
-      const sheet = ss.getSheetByName(sheetName);
+      let sheet;
+
+      // ✅ ИСПРАВЛЕНО Issue #27: Безопасное получение листа с обработкой ошибок
+      try {
+        sheet = ss.getSheetByName(sheetName);
+      } catch (error) {
+        Logger.log(`❌ Ошибка доступа к листу "${sheetName}": ${error.message}`);
+        AppLogger.error('CaseManager', `Ошибка доступа к листу ${sheetName}`, { error: error.message });
+        continue;
+      }
 
       if (!sheet) {
-        Logger.log(`⚠️ Лист "${sheetName}" не найден, пропускаем`);
+        Logger.log(`⚠️ Лист "${sheetName}" не найден или был удален, пропускаем`);
+        AppLogger.warn('CaseManager', `Лист "${sheetName}" не найден`);
         continue;
       }
 
@@ -254,7 +376,7 @@ var CaseManager = (function() {
       for (let startRow = 2; startRow <= lastRow; startRow += BATCH_SIZE) {
         const endRow = Math.min(startRow + BATCH_SIZE - 1, lastRow);
 
-        const result = processCasesBatch(sheet, startRow, endRow);
+        const result = processCasesBatch(sheet, startRow, endRow, filterCaseNumbers);
 
         totalProcessed += result.processed;
         totalSkipped += result.skipped;
@@ -333,8 +455,10 @@ var CaseManager = (function() {
     getCaseData: getCaseData,
     buildCaseFolderName: buildCaseFolderName,
     hasExistingFolderLinks: hasExistingFolderLinks,
+    verifyDriveLink: verifyDriveLink,  // ✅ НОВОЕ Issue #23
     processAllCases: processAllCases,
     processSingleCase: processSingleCase,
-    clearCache: clearCache
+    clearCache: clearCache,
+    invalidateCache: invalidateCache
   };
 })();

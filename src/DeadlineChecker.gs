@@ -91,13 +91,28 @@ var DeadlineChecker = (function() {
 
       Logger.log(`   📋 Проверка листа: ${sheetName}`);
 
-      // 🔥 НОВОЕ: Batch получение всех данных
-      const numCols = sheet.getLastColumn();
-      const allData = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
-
-      // 🔥 НОВОЕ: Получаем столбец статусов одним запросом
+      // ✅ ИСПРАВЛЕНО Issue #29: Читаем только необходимые колонки
       const statusCol = CONFIG.DATA_COLUMNS.STATUS - 1;
       const caseNumberCol = CONFIG.DATA_COLUMNS.CASE_NUMBER - 1;
+
+      // Определяем какие колонки нужно читать
+      const columnsToRead = new Set([
+        CONFIG.DATA_COLUMNS.CASE_NUMBER,
+        CONFIG.DATA_COLUMNS.STATUS
+      ]);
+
+      // Добавляем колонки с датами
+      CONFIG.DATE_COLUMNS.forEach(dateCol => {
+        columnsToRead.add(dateCol.column);
+      });
+
+      // Определяем максимальную колонку для чтения
+      const maxCol = Math.max(...columnsToRead);
+
+      // Читаем только до максимальной нужной колонки вместо всех
+      const allData = sheet.getRange(2, 1, lastRow - 1, maxCol).getValues();
+
+      Logger.log(`   ⚡ Оптимизация: читаем ${maxCol} колонок вместо ${sheet.getLastColumn()}`);
 
       for (let i = 0; i < allData.length; i++) {
         const row = allData[i];

@@ -55,11 +55,17 @@ var ErrorHandler = (function() {
   };
 
   /**
+   * ✅ ИСПРАВЛЕНО Issue #24: Документация возвращаемых типов
    * 🔥 ОСНОВНАЯ ФУНКЦИЯ: Выполнение с retry логикой
+   *
    * @param {Function} fn - Функция для выполнения
    * @param {string} description - Описание операции
    * @param {Object} options - Опции retry
-   * @return {*} Результат выполнения или null при ошибке
+   * @param {number} [options.maxRetries] - Максимум попыток
+   * @param {number} [options.initialDelay] - Начальная задержка (мс)
+   * @param {Function} [options.onError] - Callback при ошибке
+   * @param {boolean} [options.throwOnFailure] - Бросить исключение при неудаче
+   * @return {*|null} Результат выполнения функции или null при неудаче
    */
   function retry(fn, description, options = {}) {
     const maxRetries = options.maxRetries || RETRY_CONFIG.MAX_RETRIES;
