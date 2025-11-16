@@ -128,8 +128,9 @@ var CaseManager = (function() {
    * @param {Sheet} sheet - Лист для обработки
    * @param {number} startRow - Начальная строка
    * @param {number} endRow - Конечная строка
+   * @param {Array<string>} filterCaseNumbers - Опциональный массив номеров дел для фильтрации (для RBAC)
    */
-  function processCasesBatch(sheet, startRow, endRow) {
+  function processCasesBatch(sheet, startRow, endRow, filterCaseNumbers) {
     Logger.log(`📊 Batch обработка дел [${startRow}-${endRow}]`);
 
     const numRows = endRow - startRow + 1;
@@ -145,10 +146,40 @@ var CaseManager = (function() {
       const rowNumber = startRow + i;
       const caseData = getCaseData(row);
 
-      // Пропускаем пустые строки
+      // ✅ ИСПРАВЛЕНО: Комплексная валидация данных дела
       if (!caseData.number) {
         skippedCount++;
         continue;
+      }
+
+      // Валидация обязательных полей
+      const validationErrors = [];
+
+      if (!caseData.court || caseData.court.trim() === '') {
+        validationErrors.push('отсутствует суд');
+      }
+
+      if (!caseData.category || caseData.category.trim() === '') {
+        validationErrors.push('отсутствует категория');
+      }
+
+      if (!caseData.status || caseData.status.trim() === '') {
+        validationErrors.push('отсутствует статус');
+      }
+
+      // Если есть ошибки валидации - пропускаем с предупреждением
+      if (validationErrors.length > 0) {
+        Logger.log(`⚠️ Дело ${caseData.number} (строка ${rowNumber}): ${validationErrors.join(', ')}`);
+        skippedCount++;
+        continue;
+      }
+
+      // 🔒 НОВОЕ: Фильтрация по назначенным делам (RBAC)
+      if (filterCaseNumbers && filterCaseNumbers.length > 0) {
+        if (!filterCaseNumbers.includes(caseData.number)) {
+          skippedCount++;
+          continue;
+        }
       }
 
       // Пропускаем если уже есть ссылки
@@ -221,9 +252,15 @@ var CaseManager = (function() {
 
   /**
    * 🔥 УЛУЧШЕНО: Обработка всех дел с оптимизацией
+   * @param {Array<string>} filterCaseNumbers - Опциональный массив номеров дел для фильтрации (для RBAC)
    */
-  function processAllCases() {
-    Logger.log('🚀 Начало обработки всех дел');
+  function processAllCases(filterCaseNumbers) {
+    const isFiltered = filterCaseNumbers && filterCaseNumbers.length > 0;
+    Logger.log(`🚀 Начало обработки ${isFiltered ? 'назначенных' : 'всех'} дел`);
+
+    if (isFiltered) {
+      Logger.log(`   🔒 Фильтр: ${filterCaseNumbers.length} дел`);
+    }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const startTime = Date.now();
@@ -254,7 +291,7 @@ var CaseManager = (function() {
       for (let startRow = 2; startRow <= lastRow; startRow += BATCH_SIZE) {
         const endRow = Math.min(startRow + BATCH_SIZE - 1, lastRow);
 
-        const result = processCasesBatch(sheet, startRow, endRow);
+        const result = processCasesBatch(sheet, startRow, endRow, filterCaseNumbers);
 
         totalProcessed += result.processed;
         totalSkipped += result.skipped;

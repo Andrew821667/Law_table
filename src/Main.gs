@@ -377,10 +377,10 @@ function processMyCases() {
       return;
     }
 
-    // TODO: Реализовать фильтрацию по assigned_cases в CaseManager
-    CaseManager.processAllCases(); // Пока обрабатываем все
+    // ✅ ИСПРАВЛЕНО: Фильтрация по назначенным делам (RBAC)
+    CaseManager.processAllCases(assignedCases);
 
-    SpreadsheetApp.getUi().alert(`✅ Обработано ${assignedCases.length} ваших дел!`);
+    SpreadsheetApp.getUi().alert(`✅ Обработано ваших назначенных дел!`);
   } catch (error) {
     AppLogger.error('Main', 'Ошибка обработки дел', { error: error.message });
     SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);

@@ -115,6 +115,36 @@ var ClientDatabase = (function() {
   }
 
   // ============================================
+  // ВАЛИДАЦИЯ
+  // ============================================
+
+  /**
+   * ✅ НОВОЕ: Валидация формата телефона
+   * @param {string} phone - Телефон для проверки
+   * @return {boolean} true если валидный или пустой
+   */
+  function isValidPhone(phone) {
+    if (!phone || phone.trim() === '') return true; // Пустой телефон допустим
+
+    // Разрешаем различные форматы:
+    // +7 999 123-45-67, +7(999)123-45-67, 89991234567, +79991234567
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,20}$/;
+    return phoneRegex.test(phone);
+  }
+
+  /**
+   * ✅ НОВОЕ: Валидация формата email
+   * @param {string} email - Email для проверки
+   * @return {boolean} true если валидный или пустой
+   */
+  function isValidEmail(email) {
+    if (!email || email.trim() === '') return true; // Пустой email допустим
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  // ============================================
   // ДОБАВЛЕНИЕ КЛИЕНТА
   // ============================================
 
@@ -241,6 +271,30 @@ var ClientDatabase = (function() {
     const contactParts = contactText.split(',');
     const phone = contactParts[0] ? contactParts[0].trim() : '';
     const email = contactParts[1] ? contactParts[1].trim() : '';
+
+    // ✅ ИСПРАВЛЕНО: Валидация телефона и email
+    if (!isValidPhone(phone)) {
+      ui.alert(
+        '❌ Неверный формат телефона',
+        `Телефон "${phone}" имеет неверный формат.\n\n` +
+        'Примеры правильного формата:\n' +
+        '+7 999 123-45-67\n' +
+        '+7(999)123-45-67\n' +
+        '89991234567',
+        ui.ButtonSet.OK
+      );
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      ui.alert(
+        '❌ Неверный формат email',
+        `Email "${email}" имеет неверный формат.\n\n` +
+        'Пример: client@example.com',
+        ui.ButtonSet.OK
+      );
+      return;
+    }
 
     // Шаг 5: Адрес
     const addressResponse = ui.prompt(
@@ -698,6 +752,62 @@ var ClientDatabase = (function() {
   }
 
   // ============================================
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // ============================================
+
+  /**
+   * ✅ НОВОЕ: Получить список всех клиентов
+   * @return {Array<Object>} Массив клиентов с id и name
+   */
+  function getAllClients() {
+    const sheet = getOrCreateSheet();
+    const data = sheet.getDataRange().getValues();
+    const clients = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0]) {  // Если есть ID клиента
+        clients.push({
+          id: row[0],
+          name: row[1] || 'Без имени',
+          type: row[2] || '',
+          status: row[13] || 'Активный'
+        });
+      }
+    }
+
+    return clients;
+  }
+
+  /**
+   * ✅ НОВОЕ: Найти клиента по ID
+   * @param {string} clientId - ID клиента
+   * @return {Object|null} Данные клиента или null
+   */
+  function getClientById(clientId) {
+    const sheet = getOrCreateSheet();
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[0] === clientId) {
+        return {
+          id: row[0],
+          name: row[1] || 'Без имени',
+          type: row[2] || '',
+          inn: row[3] || '',
+          phone: row[4] || '',
+          email: row[5] || '',
+          address: row[6] || '',
+          status: row[13] || 'Активный'
+        };
+      }
+    }
+
+    return null;
+  }
+
+  // ============================================
   // ЭКСПОРТ
   // ============================================
 
@@ -710,6 +820,8 @@ var ClientDatabase = (function() {
     linkClientToCase: linkClientToCase,
     showClientCases: showClientCases,
     updateAllClientStatistics: updateAllClientStatistics,
-    getOrCreateSheet: getOrCreateSheet
+    getOrCreateSheet: getOrCreateSheet,
+    getAllClients: getAllClients,
+    getClientById: getClientById
   };
 })();

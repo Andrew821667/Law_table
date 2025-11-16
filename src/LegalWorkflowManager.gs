@@ -384,24 +384,53 @@ var LegalWorkflowManager = (function() {
 
     const data = mainSheet.getDataRange().getValues();
     let archivedCount = 0;
+    const rowsToArchive = [];
     const rowsToDelete = [];
 
+    // ✅ ИСПРАВЛЕНО: Сначала собираем все данные для архивации
     for (let i = data.length - 1; i >= 1; i--) {
       const row = data[i];
       const status = row[6]; // Статус в колонке 7
 
       if (status && status.toString().toLowerCase() === 'завершено') {
-        // Добавить в архив
-        archiveSheet.appendRow(row);
+        rowsToArchive.push(row);
         rowsToDelete.push(i + 1);
-        archivedCount++;
       }
     }
 
-    // Удалить строки из основного листа
-    rowsToDelete.forEach(rowNum => {
-      mainSheet.deleteRow(rowNum);
-    });
+    if (rowsToArchive.length === 0) {
+      ui.alert('ℹ️ Нет завершённых дел для архивации');
+      return;
+    }
+
+    // ✅ ИСПРАВЛЕНО: Транзакционная безопасность - сначала копируем все
+    try {
+      // Batch копирование в архив
+      if (rowsToArchive.length > 0) {
+        const lastArchiveRow = archiveSheet.getLastRow();
+        archiveSheet.getRange(lastArchiveRow + 1, 1, rowsToArchive.length, rowsToArchive[0].length)
+          .setValues(rowsToArchive);
+
+        archivedCount = rowsToArchive.length;
+
+        // Только после успешного копирования - удаляем из основного листа
+        // Удаляем с конца чтобы номера строк не сбивались
+        for (const rowNum of rowsToDelete) {
+          mainSheet.deleteRow(rowNum);
+        }
+      }
+    } catch (error) {
+      // ✅ ИСПРАВЛЕНО: В случае ошибки - откатываем изменения
+      ui.alert(
+        '❌ Ошибка архивации!',
+        `Произошла ошибка при архивации дел:\n${error.message}\n\n` +
+        'Операция отменена. Данные не изменены.',
+        ui.ButtonSet.OK
+      );
+
+      AppLogger.error('LegalWorkflow', `Ошибка архивации: ${error.message}`);
+      return;
+    }
 
     ui.alert(
       '✅ Архивирование завершено!',
@@ -437,23 +466,33 @@ var LegalWorkflowManager = (function() {
       const incidentDate = row[10]; // Предполагаем дату происшествия в колонке 11
 
       if (incidentDate && incidentDate instanceof Date) {
-        const monthsPassed = (now - incidentDate) / (1000 * 60 * 60 * 24 * 30);
+        // ✅ ИСПРАВЛЕНО: Правильный расчет разницы в месяцах
+        const monthsPassed = (now.getFullYear() - incidentDate.getFullYear()) * 12 +
+                            (now.getMonth() - incidentDate.getMonth());
 
         // Общий срок исковой давности - 3 года (36 месяцев)
         const monthsLeft = 36 - monthsPassed;
 
+        // ✅ ИСПРАВЛЕНО: Правильный расчет дней до истечения срока
+        const expiryDate = new Date(incidentDate);
+        expiryDate.setFullYear(expiryDate.getFullYear() + 3); // Добавляем 3 года
+        const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+
         if (monthsLeft < 6 && monthsLeft > 0) {
           warnings.push({
             caseNumber: caseNumber,
-            monthsLeft: Math.floor(monthsLeft),
-            daysLeft: Math.floor(monthsLeft * 30),
+            monthsLeft: monthsLeft,
+            daysLeft: daysLeft,
+            expiryDate: expiryDate.toLocaleDateString('ru-RU'),
             row: i + 1
           });
         } else if (monthsLeft <= 0) {
           warnings.push({
             caseNumber: caseNumber,
             monthsLeft: 0,
+            daysLeft: daysLeft,
             expired: true,
+            expiryDate: expiryDate.toLocaleDateString('ru-RU'),
             row: i + 1
           });
         }

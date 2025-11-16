@@ -339,37 +339,73 @@ var FinancialManager = (function() {
       return;
     }
 
-    // Шаг 2: Клиент (попытка найти автоматически)
+    // Шаг 2: Клиент - ✅ ИСПРАВЛЕНО: Показываем список клиентов для выбора
     let clientId = '';
     let clientName = '';
 
-    // Попытка найти клиента через ClientDatabase
+    // Получить список всех клиентов
+    let clientsList = [];
     if (typeof ClientDatabase !== 'undefined') {
-      const clientSheet = ClientDatabase.getOrCreateSheet();
-      const clientData = clientSheet.getDataRange().getValues();
-
-      for (let i = 1; i < clientData.length; i++) {
-        const row = clientData[i];
-        if (row[0]) {  // Если есть ID клиента
-          clientId = row[0];
-          clientName = row[1];
-          break;  // Берём первого для упрощения
-        }
+      try {
+        clientsList = ClientDatabase.getAllClients();
+      } catch (e) {
+        Logger.log(`⚠️ Ошибка получения списка клиентов: ${e.message}`);
       }
+    }
+
+    let clientMessage = 'Введите ID клиента';
+    if (clientsList.length > 0) {
+      clientMessage += ' или выберите из списка:\n\n';
+      // Показываем первых 10 клиентов
+      const displayClients = clientsList.slice(0, 10);
+      clientMessage += displayClients.map((c, i) =>
+        `${i + 1}. ${c.id} - ${c.name} (${c.type})`
+      ).join('\n');
+
+      if (clientsList.length > 10) {
+        clientMessage += `\n\n...и ещё ${clientsList.length - 10} клиентов`;
+      }
+
+      clientMessage += '\n\nВведите ID клиента:';
+    } else {
+      clientMessage += ':\n\n(База клиентов пуста. Добавьте клиента через меню "База клиентов")';
     }
 
     const clientResponse = ui.prompt(
       '💰 Добавить гонорар - Шаг 2/5',
-      `ID клиента (или Enter для пропуска):\n${clientId ? `Найден: ${clientName} (${clientId})` : ''}`,
+      clientMessage,
       ui.ButtonSet.OK_CANCEL
     );
 
     if (clientResponse.getSelectedButton() !== ui.Button.OK) return;
 
     const inputClientId = clientResponse.getResponseText().trim();
+
+    // ✅ ИСПРАВЛЕНО: Валидация клиента
     if (inputClientId) {
-      clientId = inputClientId;
-      clientName = 'Клиент ' + clientId;  // Упрощённо
+      if (typeof ClientDatabase !== 'undefined') {
+        const client = ClientDatabase.getClientById(inputClientId);
+        if (client) {
+          clientId = client.id;
+          clientName = client.name;
+        } else {
+          ui.alert(
+            '❌ Клиент не найден',
+            `Клиент с ID "${inputClientId}" не найден в базе.\n\n` +
+            'Добавьте клиента через меню "База клиентов" → "Добавить клиента"',
+            ui.ButtonSet.OK
+          );
+          return;
+        }
+      } else {
+        // Если ClientDatabase недоступен, используем введенный ID
+        clientId = inputClientId;
+        clientName = 'Клиент ' + clientId;
+      }
+    } else {
+      // Клиент не указан - можно продолжить без клиента
+      clientId = '';
+      clientName = 'Не указан';
     }
 
     // Шаг 3: Тип услуги

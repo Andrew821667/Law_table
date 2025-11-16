@@ -13,13 +13,8 @@ var TimeTracker = (function() {
 
   const SHEET_NAME = '⏱️ Учёт времени';
 
-  // Стандартные ставки (можно настроить)
-  const DEFAULT_RATES = {
-    'ADMIN': 5000,      // руб/час
-    'MANAGER': 4000,
-    'LAWYER': 3000,
-    'ASSISTANT': 1000
-  };
+  // ✅ ИСПРАВЛЕНО Issue #11: Тарифы теперь берутся из CONFIG
+  // (см. Config.gs)
 
   // ============================================
   // ИНИЦИАЛИЗАЦИЯ ЛИСТА
@@ -175,7 +170,7 @@ var TimeTracker = (function() {
     const description = descResponse.getResponseText().trim() || 'Работа по делу';
 
     // Шаг 4: Ставка
-    const defaultRate = DEFAULT_RATES[user.role] || 3000;
+    const defaultRate = CONFIG.DEFAULT_RATES[user.role] || 3000;
 
     const rateResponse = ui.prompt(
       '⏱️ Добавить время работы - Шаг 4/4',
