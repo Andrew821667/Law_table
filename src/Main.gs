@@ -183,7 +183,12 @@ function createMenuForRole(ui, role) {
         .addItem('Настройки системы', 'showConfigDialog')
         .addItem('👥 Управление пользователями', 'showUsersDialog')
         .addItem('💾 Синхронизировать пользователей', 'syncUsers')
-        .addItem('📱 Настройка Telegram', 'setupTelegram')
+        .addSeparator()
+        .addSubMenu(ui.createMenu('📱 Telegram')
+          .addItem('🔧 Настройка Bot Token', 'setupTelegram')
+          .addItem('🌐 Настроить Webhook', 'setupTelegramWebhook')
+          .addItem('ℹ️ Информация о Webhook', 'showWebhookInfo')
+        )
         .addSeparator()
         .addItem('⏰ Настроить триггеры', 'setupAllTriggers')
       )
@@ -554,6 +559,36 @@ function showUsersDialog() {
 function setupTelegram() {
   if (!checkPermission('all')) return;
   TelegramNotifier.setup();
+}
+
+function setupTelegramWebhook() {
+  if (!checkPermission('all')) return;
+  TelegramBot.setupWebhook();
+}
+
+function showWebhookInfo() {
+  if (!checkPermission('all')) return;
+  const info = TelegramBot.getWebhookInfo();
+
+  if (info && info.result) {
+    const result = info.result;
+    const ui = SpreadsheetApp.getUi();
+
+    let message = '📱 *Информация о Telegram Webhook*\n\n';
+    message += `URL: ${result.url || 'Не настроен'}\n`;
+    message += `Ожидающих обновлений: ${result.pending_update_count || 0}\n`;
+
+    if (result.last_error_date) {
+      const errorDate = new Date(result.last_error_date * 1000);
+      message += `\n⚠️ Последняя ошибка:\n`;
+      message += `Дата: ${errorDate.toLocaleString('ru-RU')}\n`;
+      message += `Сообщение: ${result.last_error_message || 'Неизвестно'}`;
+    }
+
+    ui.alert('📱 Webhook информация', message, ui.ButtonSet.OK);
+  } else {
+    SpreadsheetApp.getUi().alert('❌ Не удалось получить информацию о webhook');
+  }
 }
 
 function syncUsers() {
