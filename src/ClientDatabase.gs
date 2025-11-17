@@ -756,8 +756,13 @@ var ClientDatabase = (function() {
   // ============================================
 
   /**
-   * ✅ НОВОЕ: Получить список всех клиентов
-   * @return {Array<Object>} Массив клиентов с id и name
+   * ✅ ИСПРАВЛЕНО Issue #31: JSDoc документация
+   * ✅ ИСПРАВЛЕНО Issue #26: Всегда возвращает массив (не null)
+   *
+   * Получить список всех клиентов из базы.
+   *
+   * @return {Array<Object>} Массив объектов клиентов: [{id, name, type, status}]
+   *                         Пустой массив [], если клиентов нет
    */
   function getAllClients() {
     const sheet = getOrCreateSheet();
@@ -780,11 +785,21 @@ var ClientDatabase = (function() {
   }
 
   /**
-   * ✅ НОВОЕ: Найти клиента по ID
-   * @param {string} clientId - ID клиента
-   * @return {Object|null} Данные клиента или null
+   * ✅ ИСПРАВЛЕНО Issue #31: JSDoc документация
+   * ✅ ИСПРАВЛЕНО Issue #21: Валидация типа параметра
+   *
+   * Найти клиента по ID в базе данных.
+   *
+   * @param {string} clientId - ID клиента для поиска
+   * @return {Object|null} Объект с данными клиента {id, name, type, inn, phone, email, address, status} или null если не найден
    */
   function getClientById(clientId) {
+    // ✅ ИСПРАВЛЕНО Issue #21: Валидация типа
+    if (!clientId || typeof clientId !== 'string') {
+      Logger.log('⚠️ getClientById: некорректный ID клиента');
+      return null;
+    }
+
     const sheet = getOrCreateSheet();
     const data = sheet.getDataRange().getValues();
 
