@@ -141,32 +141,6 @@ var TelegramBot = (function() {
       return;
     }
 
-    // Обработка кнопок Reply Keyboard
-    if (text === '📋 Меню' || text === '/menu') {
-      sendMainMenu(chatId, user);
-      return;
-    }
-
-    if (text === '📅 Заседания') {
-      showUpcomingHearingsInline(chatId, null, user);
-      return;
-    }
-
-    if (text === '📊 Статистика') {
-      showStatistics(chatId, user);
-      return;
-    }
-
-    if (text === '⚙️ Настройки') {
-      showUserSettings(chatId, user);
-      return;
-    }
-
-    if (text === '🔧 Ячейки') {
-      showAdvancedMenu(chatId, null, user);
-      return;
-    }
-
     // Проверяем есть ли активное состояние диалога
     const state = getUserState(chatId);
     if (state) {
@@ -402,17 +376,8 @@ var TelegramBot = (function() {
       `📅 Ближайших заседаний: ${getUpcomingHearingsCount()}\n\n` +
       `Выберите действие:`;
 
-    // Добавляем постоянную кнопку меню внизу (Reply Keyboard)
-    const replyKeyboard = {
-      keyboard: [
-        [{ text: '📋 Меню' }, { text: '📅 Заседания' }, { text: '📊 Статистика' }],
-        [{ text: '🔧 Ячейки' }, { text: '⚙️ Настройки' }]
-      ],
-      resize_keyboard: true,
-      persistent: true
-    };
-
-    sendMessageWithReplyKeyboard(chatId, message, keyboard, replyKeyboard);
+    // Отправляем только одно сообщение с inline кнопками
+    sendMessage(chatId, message, keyboard);
   }
 
   /**
