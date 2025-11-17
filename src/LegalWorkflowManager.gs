@@ -565,6 +565,8 @@ var LegalWorkflowManager = (function() {
           caseNumber: caseNumber,
           date: hearingDate,
           court: row[4] || 'Не указан',
+          plaintiff: row[6] || 'Не указан',      // Столбец G - Истец
+          defendant: row[7] || 'Не указан',      // Столбец H - Ответчик
           daysUntil: daysUntil,
           row: i + 1
         });
@@ -582,8 +584,8 @@ var LegalWorkflowManager = (function() {
     const message = upcoming.slice(0, 15).map((h, i) => {
       const dateStr = Utilities.formatDate(h.date, Session.getScriptTimeZone(), 'dd.MM.yyyy');
       const urgency = h.daysUntil <= 7 ? '🔴' : h.daysUntil <= 14 ? '🟡' : '🟢';
-      return `${urgency} ${dateStr} (через ${h.daysUntil} дн.) - ${h.caseNumber}`;
-    }).join('\n');
+      return `${urgency} ${dateStr} (через ${h.daysUntil} дн.)\n    Дело: ${h.caseNumber}\n    ${h.plaintiff} vs ${h.defendant}`;
+    }).join('\n\n');
 
     ui.alert(
       '📅 Расписание заседаний',
@@ -632,6 +634,8 @@ var LegalWorkflowManager = (function() {
           caseNumber: caseNumber,
           date: hearingDate,
           court: row[4] || 'Не указан',
+          plaintiff: row[6] || 'Не указан',      // Столбец G - Истец
+          defendant: row[7] || 'Не указан',      // Столбец H - Ответчик
           daysUntil: daysUntil
         });
       }
@@ -647,7 +651,7 @@ var LegalWorkflowManager = (function() {
     const message = myHearings.slice(0, 15).map(h => {
       const dateStr = Utilities.formatDate(h.date, Session.getScriptTimeZone(), 'dd.MM.yyyy');
       const urgency = h.daysUntil <= 7 ? '🔴' : h.daysUntil <= 14 ? '🟡' : '🟢';
-      return `${urgency} ${dateStr} (через ${h.daysUntil} дн.) - ${h.caseNumber}\n    ${h.court}`;
+      return `${urgency} ${dateStr} (через ${h.daysUntil} дн.)\n    Дело: ${h.caseNumber}\n    ${h.plaintiff} vs ${h.defendant}\n    Суд: ${h.court}`;
     }).join('\n\n');
 
     ui.alert(
