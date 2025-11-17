@@ -129,6 +129,9 @@ function createMenuForRole(ui, role) {
         .addSeparator()
         .addItem('⚙️ Настройка графика уведомлений', 'configureHearingNotifications')
         .addItem('ℹ️ Текущий график уведомлений', 'showHearingNotificationSchedule')
+        .addSeparator()
+        .addItem('🔔 Настроить уведомление по делу', 'setupCaseCustomNotification')
+        .addItem('📋 Список кастомных уведомлений', 'showCaseCustomNotifications')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
@@ -221,6 +224,9 @@ function createMenuForRole(ui, role) {
         .addSeparator()
         .addItem('⚙️ Настройка графика уведомлений', 'configureHearingNotifications')
         .addItem('ℹ️ Текущий график уведомлений', 'showHearingNotificationSchedule')
+        .addSeparator()
+        .addItem('🔔 Настроить уведомление по делу', 'setupCaseCustomNotification')
+        .addItem('📋 Список кастомных уведомлений', 'showCaseCustomNotifications')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
@@ -854,4 +860,12 @@ function configureHearingNotifications() {
 
 function showHearingNotificationSchedule() {
   return HearingNotifier.showCurrentSchedule();
+}
+
+function setupCaseCustomNotification() {
+  return HearingNotifier.setupCustomCaseNotification();
+}
+
+function showCaseCustomNotifications() {
+  return HearingNotifier.showCustomNotifications();
 }
