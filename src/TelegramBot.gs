@@ -162,6 +162,11 @@ var TelegramBot = (function() {
       return;
     }
 
+    if (text === '🔧 Ячейки') {
+      showAdvancedMenu(chatId, null, user);
+      return;
+    }
+
     // Проверяем есть ли активное состояние диалога
     const state = getUserState(chatId);
     if (state) {
@@ -321,6 +326,22 @@ var TelegramBot = (function() {
           sendAboutMessage(chatId);
           break;
 
+        case 'read_cell':
+          startReadCell(chatId, user);
+          break;
+
+        case 'write_cell':
+          startWriteCell(chatId, user);
+          break;
+
+        case 'read_range':
+          startReadRange(chatId, user);
+          break;
+
+        case 'advanced_menu':
+          showAdvancedMenu(chatId, messageId, user);
+          break;
+
         default:
           answerCallbackQuery(callbackQuery.id, 'Неизвестная команда');
       }
@@ -364,6 +385,9 @@ var TelegramBot = (function() {
           { text: '⚙️ Настройки', callback_data: 'user_settings' }
         ],
         [
+          { text: '🔧 Работа с ячейками', callback_data: 'advanced_menu' }
+        ],
+        [
           { text: '📖 Помощь', callback_data: 'help' },
           { text: 'ℹ️ О системе', callback_data: 'about' }
         ]
@@ -381,8 +405,8 @@ var TelegramBot = (function() {
     // Добавляем постоянную кнопку меню внизу (Reply Keyboard)
     const replyKeyboard = {
       keyboard: [
-        [{ text: '📋 Меню' }, { text: '📅 Заседания' }],
-        [{ text: '📊 Статистика' }, { text: '⚙️ Настройки' }]
+        [{ text: '📋 Меню' }, { text: '📅 Заседания' }, { text: '📊 Статистика' }],
+        [{ text: '🔧 Ячейки' }, { text: '⚙️ Настройки' }]
       ],
       resize_keyboard: true,
       persistent: true
@@ -915,6 +939,22 @@ var TelegramBot = (function() {
 
       case 'add_case':
         handleAddCaseInput(chatId, text, state, user);
+        break;
+
+      case 'read_cell':
+        handleReadCellInput(chatId, text, user);
+        break;
+
+      case 'write_cell':
+        handleWriteCellInput(chatId, text, state, user);
+        break;
+
+      case 'read_range':
+        handleReadRangeInput(chatId, text, user);
+        break;
+
+      case 'search_case':
+        handleSearchCaseInput(chatId, text, user);
         break;
 
       default:
@@ -1756,6 +1796,231 @@ var TelegramBot = (function() {
     };
 
     sendMessage(chatId, message, keyboard);
+  }
+
+  /**
+   * Обработать ввод для чтения ячейки
+   */
+  function handleReadCellInput(chatId, text, user) {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const range = ss.getRange(text);
+      const value = range.getValue();
+
+      clearUserState(chatId);
+
+      const message =
+        `📖 *Значение ячейки ${text}*\n\n` +
+        `Значение: \`${value || '(пусто)'}\`\n` +
+        `Тип: ${typeof value}\n` +
+        `Лист: ${range.getSheet().getName()}`;
+
+      sendMessage(chatId, message);
+    } catch (e) {
+      sendMessage(chatId, `❌ Ошибка чтения ячейки: ${e.message}\n\nПопробуйте еще раз или /cancel`);
+    }
+  }
+
+  /**
+   * Обработать ввод для записи в ячейку
+   */
+  function handleWriteCellInput(chatId, text, state, user) {
+    if (state.step === 'address') {
+      // Сохраняем адрес, запрашиваем значение
+      setUserState(chatId, {
+        action: 'write_cell',
+        step: 'value',
+        address: text
+      });
+
+      sendMessage(chatId,
+        `✏️ *Запись в ячейку ${text}*\n\n` +
+        `Шаг 2/2: Введите новое значение:\n\n` +
+        `Или /cancel для отмены`
+      );
+    } else if (state.step === 'value') {
+      // Записываем значение
+      try {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const range = ss.getRange(state.address);
+        range.setValue(text);
+
+        clearUserState(chatId);
+
+        const message =
+          `✅ *Ячейка обновлена!*\n\n` +
+          `Ячейка: ${state.address}\n` +
+          `Новое значение: ${text}\n` +
+          `Лист: ${range.getSheet().getName()}`;
+
+        sendMessage(chatId, message);
+
+        AppLogger.info('TelegramBot', 'Ячейка обновлена', {
+          user: user.email,
+          address: state.address,
+          value: text
+        });
+      } catch (e) {
+        clearUserState(chatId);
+        sendMessage(chatId, `❌ Ошибка записи: ${e.message}`);
+      }
+    }
+  }
+
+  /**
+   * Обработать ввод для чтения диапазона
+   */
+  function handleReadRangeInput(chatId, text, user) {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const range = ss.getRange(text);
+      const values = range.getValues();
+
+      clearUserState(chatId);
+
+      // Форматируем таблицу
+      let table = `📋 *Диапазон ${text}*\n\n`;
+      table += `Размер: ${values.length} строк × ${values[0].length} столбцов\n\n`;
+
+      if (values.length * values[0].length <= 20) {
+        // Если небольшой диапазон - показываем все
+        table += '```\n';
+        values.forEach((row, i) => {
+          table += row.map(cell => String(cell || '-').substring(0, 15)).join(' | ') + '\n';
+        });
+        table += '```';
+      } else {
+        // Если большой - показываем первые 5 строк
+        table += '```\n';
+        values.slice(0, 5).forEach((row, i) => {
+          table += row.map(cell => String(cell || '-').substring(0, 15)).join(' | ') + '\n';
+        });
+        table += '...\n```\n';
+        table += `\n(Показаны первые 5 из ${values.length} строк)`;
+      }
+
+      sendMessage(chatId, table);
+    } catch (e) {
+      sendMessage(chatId, `❌ Ошибка чтения диапазона: ${e.message}\n\nПопробуйте еще раз или /cancel`);
+    }
+  }
+
+  /**
+   * Обработать ввод для поиска дела
+   */
+  function handleSearchCaseInput(chatId, text, user) {
+    try {
+      const caseData = findCaseByCaseNumber(text);
+
+      clearUserState(chatId);
+
+      if (!caseData) {
+        sendMessage(chatId, `❌ Дело "${text}" не найдено`);
+        return;
+      }
+
+      // Показываем детали дела
+      showCaseDetails(chatId, null, text, user);
+    } catch (e) {
+      clearUserState(chatId);
+      sendMessage(chatId, `❌ Ошибка поиска: ${e.message}`);
+    }
+  }
+
+  /**
+   * Показать меню работы с ячейками
+   */
+  function showAdvancedMenu(chatId, messageId, user) {
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '📖 Прочитать ячейку', callback_data: 'read_cell' },
+          { text: '✏️ Записать в ячейку', callback_data: 'write_cell' }
+        ],
+        [
+          { text: '📋 Прочитать диапазон', callback_data: 'read_range' }
+        ],
+        [
+          { text: '« Назад в меню', callback_data: 'back_main' }
+        ]
+      ]
+    };
+
+    const message =
+      `🔧 *Работа с ячейками*\n\n` +
+      `Вы можете напрямую читать и изменять любые ячейки таблицы.\n\n` +
+      `Используйте стандартную нотацию:\n` +
+      `• A1 - одна ячейка\n` +
+      `• A1:B5 - диапазон\n` +
+      `• Sheet1!A1 - ячейка на конкретном листе`;
+
+    if (messageId) {
+      editMessage(chatId, messageId, message, keyboard);
+    } else {
+      sendMessage(chatId, message, keyboard);
+    }
+  }
+
+  /**
+   * Начать чтение ячейки
+   */
+  function startReadCell(chatId, user) {
+    setUserState(chatId, {
+      action: 'read_cell'
+    });
+
+    sendMessage(chatId,
+      `📖 *Чтение ячейки*\n\n` +
+      `Введите адрес ячейки для чтения:\n\n` +
+      `Примеры:\n` +
+      `• A1\n` +
+      `• B5\n` +
+      `• Sheet1!C10\n\n` +
+      `Или /cancel для отмены`
+    );
+  }
+
+  /**
+   * Начать запись в ячейку
+   */
+  function startWriteCell(chatId, user) {
+    if (!checkPermission(user, 'edit_cases')) {
+      sendMessage(chatId, '❌ У вас нет прав на редактирование');
+      return;
+    }
+
+    setUserState(chatId, {
+      action: 'write_cell',
+      step: 'address'
+    });
+
+    sendMessage(chatId,
+      `✏️ *Запись в ячейку*\n\n` +
+      `Шаг 1/2: Введите адрес ячейки:\n\n` +
+      `Примеры:\n` +
+      `• A1\n` +
+      `• B5\n` +
+      `• Sheet1!C10\n\n` +
+      `Или /cancel для отмены`
+    );
+  }
+
+  /**
+   * Начать чтение диапазона
+   */
+  function startReadRange(chatId, user) {
+    setUserState(chatId, {
+      action: 'read_range'
+    });
+
+    sendMessage(chatId,
+      `📋 *Чтение диапазона*\n\n` +
+      `Введите диапазон ячеек:\n\n` +
+      `Примеры:\n` +
+      `• A1:B5\n` +
+      `• Sheet1!A1:D10\n\n` +
+      `Или /cancel для отмены`
+    );
   }
 
   // ============================================
