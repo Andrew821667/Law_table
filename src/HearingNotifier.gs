@@ -82,7 +82,14 @@ var HearingNotifier = (function() {
             court: row[4] || 'Не указан',
             plaintiff: row[6] || 'Не указан',
             defendant: row[7] || 'Не указан',
-            assignedLawyer: row[5] || '',
+            priority: row[5] || '',            // Столбец F - Приоритет
+            columnR: row[17] || '',            // Столбец R
+            columnS: row[18] || '',            // Столбец S
+            columnT: row[19] || '',            // Столбец T
+            columnU: row[20] || '',            // Столбец U
+            columnV: row[21] || '',            // Столбец V
+            columnW: row[22] || '',            // Столбец W
+            columnX: row[23] || '',            // Столбец X
             daysUntil: daysUntil,
             hoursUntil: hoursUntil,
             notificationType: needsNotification
@@ -168,6 +175,42 @@ var HearingNotifier = (function() {
   }
 
   /**
+   * Формирование дополнительной информации для уведомления
+   * с учетом условной логики
+   */
+  function formatAdditionalInfo(hearing) {
+    let additionalInfo = '';
+
+    // 1. Приоритет (F) - всегда показываем если заполнен
+    if (hearing.priority) {
+      additionalInfo += `\n🔥 Приоритет: ${hearing.priority}`;
+    }
+
+    // 2. Столбец R - показываем если заполнен
+    if (hearing.columnR) {
+      additionalInfo += `\n📌 Столбец R: ${hearing.columnR}`;
+    }
+
+    // 3. Условная логика для T, V, X
+    const hasS = !!hearing.columnS;
+    const hasU = !!hearing.columnU;
+    const hasW = !!hearing.columnW;
+
+    if (hasS && !hasU && !hasW && hearing.columnT) {
+      // Если S заполнен, U и W пусты → показываем только T
+      additionalInfo += `\n📄 Столбец T: ${hearing.columnT}`;
+    } else if (hasS && hasU && !hasW && hearing.columnV) {
+      // Если S и U заполнены, W пусто → показываем только V
+      additionalInfo += `\n📄 Столбец V: ${hearing.columnV}`;
+    } else if (hasS && hasU && hasW && hearing.columnX) {
+      // Если S, U и W заполнены → показываем только X
+      additionalInfo += `\n📄 Столбец X: ${hearing.columnX}`;
+    }
+
+    return additionalInfo;
+  }
+
+  /**
    * Отправить уведомление о заседании
    */
   function sendHearingNotification(user, hearing) {
@@ -183,6 +226,9 @@ var HearingNotifier = (function() {
       timeInfo = `через ${hours} ${getHoursWord(hours)}`;
     }
 
+    // Формируем дополнительную информацию
+    const additionalInfo = formatAdditionalInfo(hearing);
+
     const message =
       `⚖️ *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
       `📅 Дата: ${dateStr}\n` +
@@ -190,7 +236,8 @@ var HearingNotifier = (function() {
       `📋 Дело: ${hearing.caseNumber}\n` +
       `🏛️ Суд: ${hearing.court}\n\n` +
       `👤 Истец: ${hearing.plaintiff}\n` +
-      `👤 Ответчик: ${hearing.defendant}`;
+      `👤 Ответчик: ${hearing.defendant}` +
+      additionalInfo;
 
     TelegramNotifier.sendToUser(user, message, 'Markdown');
   }
@@ -257,7 +304,14 @@ var HearingNotifier = (function() {
               court: row[4] || 'Не указан',
               plaintiff: row[6] || 'Не указан',
               defendant: row[7] || 'Не указан',
-              assignedLawyer: row[5] || '',
+              priority: row[5] || '',            // Столбец F - Приоритет
+              columnR: row[17] || '',            // Столбец R
+              columnS: row[18] || '',            // Столбец S
+              columnT: row[19] || '',            // Столбец T
+              columnU: row[20] || '',            // Столбец U
+              columnV: row[21] || '',            // Столбец V
+              columnW: row[22] || '',            // Столбец W
+              columnX: row[23] || '',            // Столбец X
               daysUntil: daysUntil,
               notificationType: 'manual'
             });
@@ -658,6 +712,14 @@ var HearingNotifier = (function() {
           court: row[4] || 'Не указан',
           plaintiff: row[6] || 'Не указан',
           defendant: row[7] || 'Не указан',
+          priority: row[5] || '',            // Столбец F - Приоритет
+          columnR: row[17] || '',            // Столбец R
+          columnS: row[18] || '',            // Столбец S
+          columnT: row[19] || '',            // Столбец T
+          columnU: row[20] || '',            // Столбец U
+          columnV: row[21] || '',            // Столбец V
+          columnW: row[22] || '',            // Столбец W
+          columnX: row[23] || '',            // Столбец X
           rowIndex: i + 1
         });
       }
@@ -884,6 +946,14 @@ var HearingNotifier = (function() {
       court: caseData.court,
       plaintiff: caseData.plaintiff,
       defendant: caseData.defendant,
+      priority: caseData.priority || '',
+      columnR: caseData.columnR || '',
+      columnS: caseData.columnS || '',
+      columnT: caseData.columnT || '',
+      columnU: caseData.columnU || '',
+      columnV: caseData.columnV || '',
+      columnW: caseData.columnW || '',
+      columnX: caseData.columnX || '',
       hearingDate: caseData.date.toISOString(),
       notificationDate: notificationDate.toISOString(),
       created: new Date().toISOString()
@@ -937,14 +1007,27 @@ var HearingNotifier = (function() {
             const hearingDate = new Date(data.hearingDate);
             const dateStr = Utilities.formatDate(hearingDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
 
+            // Формируем дополнительную информацию
+            const additionalInfo = formatAdditionalInfo({
+              priority: data.priority || '',
+              columnR: data.columnR || '',
+              columnS: data.columnS || '',
+              columnT: data.columnT || '',
+              columnU: data.columnU || '',
+              columnV: data.columnV || '',
+              columnW: data.columnW || '',
+              columnX: data.columnX || ''
+            });
+
             const message =
               `🔔 *КАСТОМНОЕ НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
               `📅 Дата заседания: ${dateStr}\n\n` +
               `📋 Дело: ${data.caseNumber}\n` +
               `🏛️ Суд: ${data.court}\n\n` +
               `👤 Истец: ${data.plaintiff}\n` +
-              `👤 Ответчик: ${data.defendant}\n\n` +
-              `Это кастомное уведомление, настроенное специально для этого дела.`;
+              `👤 Ответчик: ${data.defendant}` +
+              additionalInfo +
+              `\n\nЭто кастомное уведомление, настроенное специально для этого дела.`;
 
             // Отправляем всем пользователям с Telegram
             const users = UserManager.getAllUsers();
