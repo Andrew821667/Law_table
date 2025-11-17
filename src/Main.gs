@@ -123,7 +123,12 @@ function createMenuForRole(ui, role) {
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
         .addItem('⏰ Контроль сроков исковой давности', 'checkStatuteOfLimitations')
         .addItem('⚖️ Исполнительные производства', 'manageEnforcementProceedings')
+        .addSeparator()
         .addItem('📅 Расписание заседаний', 'showCourtSchedule')
+        .addItem('📱 Отправить уведомления сейчас', 'sendManualHearingNotifications')
+        .addSeparator()
+        .addItem('⚙️ Настройка графика уведомлений', 'configureHearingNotifications')
+        .addItem('ℹ️ Текущий график уведомлений', 'showHearingNotificationSchedule')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
@@ -210,7 +215,12 @@ function createMenuForRole(ui, role) {
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
         .addItem('⏰ Контроль сроков исковой давности', 'checkStatuteOfLimitations')
         .addItem('⚖️ Исполнительные производства', 'manageEnforcementProceedings')
+        .addSeparator()
         .addItem('📅 Расписание заседаний', 'showCourtSchedule')
+        .addItem('📱 Отправить уведомления сейчас', 'sendManualHearingNotifications')
+        .addSeparator()
+        .addItem('⚙️ Настройка графика уведомлений', 'configureHearingNotifications')
+        .addItem('ℹ️ Текущий график уведомлений', 'showHearingNotificationSchedule')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
@@ -553,13 +563,15 @@ function setupAllTriggers() {
     Dashboard.setupAutoUpdate();
     TelegramNotifier.setupDailyDigest();
     ReminderManager.setupDailyCheck();
+    HearingNotifier.setupHearingNotificationTrigger();
 
     SpreadsheetApp.getUi().alert(
       '✅ Все триггеры настроены:\n\n' +
       '- Автоочистка логов (ежедневно в 3:00)\n' +
       '- Обновление дашборда (каждый час)\n' +
       '- Telegram дайджест (ежедневно в 9:00)\n' +
-      '- Проверка напоминаний (ежедневно в 8:00)'
+      '- Проверка напоминаний (ежедневно в 8:00)\n' +
+      '- Уведомления о заседаниях (каждый час)'
     );
 
     AppLogger.info('Main', 'Все триггеры настроены');
@@ -826,4 +838,20 @@ function showFinancialSummary() {
 
 function importFromTimeTracking() {
   return FinancialManager.importFromTimeTracking();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ HEARINGNOTIFIER
+// ============================================
+
+function sendManualHearingNotifications() {
+  return HearingNotifier.sendManualNotifications();
+}
+
+function configureHearingNotifications() {
+  return HearingNotifier.configureNotificationSchedule();
+}
+
+function showHearingNotificationSchedule() {
+  return HearingNotifier.showCurrentSchedule();
 }
