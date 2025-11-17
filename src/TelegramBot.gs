@@ -141,6 +141,27 @@ var TelegramBot = (function() {
       return;
     }
 
+    // Обработка кнопок Reply Keyboard
+    if (text === '📋 Меню' || text === '/menu') {
+      sendMainMenu(chatId, user);
+      return;
+    }
+
+    if (text === '📅 Заседания') {
+      showUpcomingHearingsInline(chatId, null, user);
+      return;
+    }
+
+    if (text === '📊 Статистика') {
+      showStatistics(chatId, user);
+      return;
+    }
+
+    if (text === '⚙️ Настройки') {
+      showUserSettings(chatId, user);
+      return;
+    }
+
     // Проверяем есть ли активное состояние диалога
     const state = getUserState(chatId);
     if (state) {
@@ -276,6 +297,30 @@ var TelegramBot = (function() {
           handleEditMenu(chatId, messageId, 'main', user);
           break;
 
+        case 'search_case':
+          startSearchCase(chatId, user);
+          break;
+
+        case 'view_stats':
+          showStatistics(chatId, user);
+          break;
+
+        case 'notification_settings':
+          showNotificationSettings(chatId, user);
+          break;
+
+        case 'user_settings':
+          showUserSettings(chatId, user);
+          break;
+
+        case 'help':
+          sendHelpMessage(chatId);
+          break;
+
+        case 'about':
+          sendAboutMessage(chatId);
+          break;
+
         default:
           answerCallbackQuery(callbackQuery.id, 'Неизвестная команда');
       }
@@ -299,28 +344,51 @@ var TelegramBot = (function() {
    * Отправить главное меню
    */
   function sendMainMenu(chatId, user) {
+    // Расширенное inline меню
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
-          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
+          { text: '📋 Мои дела', callback_data: 'view_cases' },
+          { text: '📅 Заседания', callback_data: 'view_hearings' }
         ],
         [
-          { text: '➕ Добавить', callback_data: 'menu_add:main' }
+          { text: '🔍 Поиск дела', callback_data: 'search_case' },
+          { text: '📊 Статистика', callback_data: 'view_stats' }
         ],
         [
-          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
+          { text: '➕ Добавить дело', callback_data: 'add_case' },
+          { text: '✏️ Редактировать', callback_data: 'menu_edit:main' }
+        ],
+        [
+          { text: '🔔 Уведомления', callback_data: 'notification_settings' },
+          { text: '⚙️ Настройки', callback_data: 'user_settings' }
+        ],
+        [
+          { text: '📖 Помощь', callback_data: 'help' },
+          { text: 'ℹ️ О системе', callback_data: 'about' }
         ]
       ]
     };
 
     const roleText = getRoleText(user.role);
     const message =
-      `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
-      `Роль: ${roleText}\n\n` +
+      `👋 *Добро пожаловать, ${user.name || user.email}!*\n\n` +
+      `🎯 Роль: ${roleText}\n` +
+      `📊 Всего дел: ${getCasesCount()}\n` +
+      `📅 Ближайших заседаний: ${getUpcomingHearingsCount()}\n\n` +
       `Выберите действие:`;
 
-    sendMessage(chatId, message, keyboard);
+    // Добавляем постоянную кнопку меню внизу (Reply Keyboard)
+    const replyKeyboard = {
+      keyboard: [
+        [{ text: '📋 Меню' }, { text: '📅 Заседания' }],
+        [{ text: '📊 Статистика' }, { text: '⚙️ Настройки' }]
+      ],
+      resize_keyboard: true,
+      persistent: true
+    };
+
+    sendMessageWithReplyKeyboard(chatId, message, keyboard, replyKeyboard);
   }
 
   /**
@@ -1097,6 +1165,65 @@ var TelegramBot = (function() {
   }
 
   /**
+   * Отправить сообщение с inline keyboard И reply keyboard одновременно
+   */
+  function sendMessageWithReplyKeyboard(chatId, text, inlineKeyboard, replyKeyboard) {
+    const props = PropertiesService.getScriptProperties();
+    const botToken = props.getProperty(BOT_TOKEN_KEY);
+
+    if (!botToken) {
+      AppLogger.warn('TelegramBot', 'Bot token не настроен');
+      return false;
+    }
+
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    const payload = {
+      chat_id: chatId,
+      text: text,
+      parse_mode: 'Markdown',
+      reply_markup: inlineKeyboard  // Inline кнопки под сообщением
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    try {
+      // Отправляем сообщение с inline кнопками
+      const response = UrlFetchApp.fetch(url, options);
+      const result = JSON.parse(response.getContentText());
+
+      // Затем устанавливаем reply keyboard (постоянные кнопки внизу)
+      if (result.ok && replyKeyboard) {
+        const url2 = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const payload2 = {
+          chat_id: chatId,
+          text: '⌨️ Постоянное меню активировано',
+          reply_markup: replyKeyboard
+        };
+
+        UrlFetchApp.fetch(url2, {
+          method: 'post',
+          contentType: 'application/json',
+          payload: JSON.stringify(payload2),
+          muteHttpExceptions: true
+        });
+      }
+
+      return result.ok;
+    } catch (e) {
+      AppLogger.error('TelegramBot', 'Ошибка отправки сообщения', {
+        error: e.message
+      });
+      return false;
+    }
+  }
+
+  /**
    * Отправить сообщение через пользователя (использует существующий TelegramNotifier)
    */
   function sendMessageToUser(user, text, keyboard = null) {
@@ -1427,6 +1554,208 @@ var TelegramBot = (function() {
     } catch (error) {
       Logger.log(`Ошибка: ${error.message}`);
     }
+  }
+
+  // ============================================
+  // НОВЫЕ ФУНКЦИИ
+  // ============================================
+
+  /**
+   * Получить количество дел
+   */
+  function getCasesCount() {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheets()[0];
+      const lastRow = sheet.getLastRow();
+      return lastRow > 1 ? lastRow - 1 : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /**
+   * Получить количество предстоящих заседаний
+   */
+  function getUpcomingHearingsCount() {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheets()[0];
+      const data = sheet.getDataRange().getValues();
+      const now = new Date();
+
+      let count = 0;
+      for (let i = 1; i < data.length; i++) {
+        const hearingDate = data[i][16]; // Столбец Q
+        if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
+          count++;
+        }
+      }
+      return count;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /**
+   * Начать поиск дела
+   */
+  function startSearchCase(chatId, user) {
+    setUserState(chatId, {
+      action: 'search_case'
+    });
+
+    sendMessage(chatId,
+      `🔍 *Поиск дела*\n\n` +
+      `Введите номер дела для поиска\n` +
+      `Или /cancel для отмены`
+    );
+  }
+
+  /**
+   * Показать статистику
+   */
+  function showStatistics(chatId, user) {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheets()[0];
+      const data = sheet.getDataRange().getValues();
+      const now = new Date();
+
+      let total = 0;
+      let upcoming = 0;
+      let today = 0;
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0]) total++; // Есть номер дела
+
+        const hearingDate = data[i][16];
+        if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
+          upcoming++;
+
+          const isToday = hearingDate.toDateString() === now.toDateString();
+          if (isToday) today++;
+        }
+      }
+
+      const message =
+        `📊 *Статистика*\n\n` +
+        `📁 Всего дел: ${total}\n` +
+        `📅 Предстоящих заседаний: ${upcoming}\n` +
+        `🔥 Сегодня: ${today}\n\n` +
+        `👤 Ваша роль: ${getRoleText(user.role)}`;
+
+      sendMessage(chatId, message);
+    } catch (e) {
+      sendMessage(chatId, '❌ Ошибка получения статистики');
+    }
+  }
+
+  /**
+   * Показать настройки уведомлений
+   */
+  function showNotificationSettings(chatId, user) {
+    const enabled = user.notification_preferences?.telegram || false;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: enabled ? '🔕 Отключить уведомления' : '🔔 Включить уведомления',
+            callback_data: `toggle_notifications:${!enabled}`
+          }
+        ],
+        [
+          { text: '« Назад', callback_data: 'back_main' }
+        ]
+      ]
+    };
+
+    const message =
+      `🔔 *Настройки уведомлений*\n\n` +
+      `Статус: ${enabled ? '✅ Включены' : '❌ Выключены'}\n\n` +
+      `Вы получаете уведомления о:\n` +
+      `• Предстоящих заседаниях\n` +
+      `• Изменениях в делах\n` +
+      `• Важных событиях`;
+
+    sendMessage(chatId, message, keyboard);
+  }
+
+  /**
+   * Показать настройки пользователя
+   */
+  function showUserSettings(chatId, user) {
+    const message =
+      `⚙️ *Настройки профиля*\n\n` +
+      `👤 Имя: ${user.name || user.email}\n` +
+      `📧 Email: ${user.email}\n` +
+      `🎯 Роль: ${getRoleText(user.role)}\n` +
+      `💬 Telegram ID: ${user.telegram_chat_id}\n\n` +
+      `Для изменения настроек обратитесь к администратору.`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '« Назад', callback_data: 'back_main' }]
+      ]
+    };
+
+    sendMessage(chatId, message, keyboard);
+  }
+
+  /**
+   * Отправить сообщение помощи
+   */
+  function sendHelpMessage(chatId) {
+    const message =
+      `📖 *Помощь*\n\n` +
+      `*Команды:*\n` +
+      `/start - Главное меню\n` +
+      `/menu - Показать меню\n` +
+      `/help - Эта справка\n\n` +
+      `*Возможности:*\n` +
+      `📋 Просмотр дел и заседаний\n` +
+      `✏️ Редактирование данных\n` +
+      `➕ Добавление новых дел\n` +
+      `🔍 Поиск по номеру дела\n` +
+      `📊 Статистика\n` +
+      `🔔 Уведомления о заседаниях\n\n` +
+      `*Кнопки под сообщениями:*\n` +
+      `Нажимайте на серые кнопки для быстрого доступа к функциям`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '« В меню', callback_data: 'back_main' }]
+      ]
+    };
+
+    sendMessage(chatId, message, keyboard);
+  }
+
+  /**
+   * Отправить информацию о системе
+   */
+  function sendAboutMessage(chatId) {
+    const message =
+      `ℹ️ *О системе*\n\n` +
+      `⚖️ Law Table Management System\n` +
+      `Версия: 2.0\n\n` +
+      `Система управления судебными делами с интеграцией Telegram.\n\n` +
+      `*Возможности:*\n` +
+      `• Управление делами\n` +
+      `• Напоминания о заседаниях\n` +
+      `• Интеграция с Google Calendar\n` +
+      `• Статистика и отчеты\n` +
+      `• Управление через Telegram\n\n` +
+      `Разработано с использованием Google Apps Script и Telegram Bot API`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: '« В меню', callback_data: 'back_main' }]
+      ]
+    };
+
+    sendMessage(chatId, message, keyboard);
   }
 
   // ============================================
