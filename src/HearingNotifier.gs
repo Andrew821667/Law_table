@@ -231,8 +231,8 @@ var HearingNotifier = (function() {
 
     const message =
       `⚖️ *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
-      `📅 Дата: ${dateStr}\n` +
-      `⏰ ${timeInfo}\n\n` +
+      `📅 Дата: *${dateStr}*\n` +
+      `⏰ *${timeInfo}*\n\n` +
       `📋 Дело: ${hearing.caseNumber}\n` +
       `🏛️ Суд: ${hearing.court}\n\n` +
       `👤 Истец: ${hearing.plaintiff}\n` +
