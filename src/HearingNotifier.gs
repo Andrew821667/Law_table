@@ -239,7 +239,23 @@ var HearingNotifier = (function() {
       `👤 Ответчик: ${hearing.defendant}` +
       additionalInfo;
 
-    TelegramNotifier.sendToUser(user, message, 'Markdown');
+    // Создаем интерактивные кнопки
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '📅 Добавить в календарь', callback_data: `add_to_calendar:${hearing.caseNumber}` }
+        ],
+        [
+          { text: '📋 Открыть дело', callback_data: `view_case:${hearing.caseNumber}` },
+          { text: '🔄 Перенести', callback_data: `reschedule_hearing:${hearing.caseNumber}` }
+        ],
+        [
+          { text: '✅ Подтвердить участие', callback_data: `confirm_attendance:${hearing.caseNumber}` }
+        ]
+      ]
+    };
+
+    TelegramNotifier.sendToUser(user, message, 'Markdown', keyboard);
   }
 
   /**

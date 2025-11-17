@@ -252,6 +252,14 @@ var TelegramBot = (function() {
           startRescheduleHearing(chatId, parts[1], user);
           break;
 
+        case 'add_to_calendar':
+          handleAddToCalendar(chatId, parts[1], user, callbackQuery.id);
+          break;
+
+        case 'confirm_attendance':
+          handleConfirmAttendance(chatId, parts[1], user, callbackQuery.id);
+          break;
+
         case 'add_case':
           startAddCase(chatId, user);
           break;
@@ -700,6 +708,98 @@ var TelegramBot = (function() {
       `Например: 15.12.2024 14:30\n` +
       `Или /cancel для отмены`
     );
+  }
+
+  /**
+   * Добавить событие в Google Calendar
+   */
+  function handleAddToCalendar(chatId, caseNumber, user, callbackQueryId) {
+    try {
+      // Получаем данные о заседании
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheets()[0];
+      const data = sheet.getDataRange().getValues();
+
+      let hearing = null;
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] == caseNumber) {
+          hearing = {
+            caseNumber: data[i][0],
+            date: data[i][16], // Столбец Q
+            court: data[i][4] || 'Не указан',
+            plaintiff: data[i][6] || '',
+            defendant: data[i][7] || ''
+          };
+          break;
+        }
+      }
+
+      if (!hearing || !hearing.date) {
+        answerCallbackQuery(callbackQueryId, 'Заседание не найдено');
+        return;
+      }
+
+      // Создаем событие в календаре
+      const calendar = CalendarApp.getDefaultCalendar();
+      const eventTitle = `⚖️ Заседание: ${caseNumber}`;
+      const eventDescription =
+        `Дело: ${caseNumber}\n` +
+        `Суд: ${hearing.court}\n` +
+        `Истец: ${hearing.plaintiff}\n` +
+        `Ответчик: ${hearing.defendant}`;
+
+      const event = calendar.createEvent(
+        eventTitle,
+        hearing.date,
+        new Date(hearing.date.getTime() + 2 * 60 * 60 * 1000), // +2 часа
+        {
+          description: eventDescription,
+          location: hearing.court
+        }
+      );
+
+      answerCallbackQuery(callbackQueryId, '✅ Добавлено в календарь!');
+      sendMessage(chatId,
+        `✅ *Событие добавлено в календарь*\n\n` +
+        `📅 ${Utilities.formatDate(hearing.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}\n` +
+        `📋 Дело: ${caseNumber}`
+      );
+
+    } catch (error) {
+      AppLogger.error('TelegramBot', 'Ошибка добавления в календарь', {
+        error: error.message,
+        caseNumber: caseNumber
+      });
+      answerCallbackQuery(callbackQueryId, '❌ Ошибка добавления');
+    }
+  }
+
+  /**
+   * Подтвердить участие в заседании
+   */
+  function handleConfirmAttendance(chatId, caseNumber, user, callbackQueryId) {
+    try {
+      // Можно добавить логику сохранения подтверждения
+      // Например, в отдельный столбец таблицы или PropertiesService
+
+      answerCallbackQuery(callbackQueryId, '✅ Участие подтверждено!');
+      sendMessage(chatId,
+        `✅ *Участие подтверждено*\n\n` +
+        `📋 Дело: ${caseNumber}\n\n` +
+        `Вы будете участвовать в заседании.`
+      );
+
+      AppLogger.info('TelegramBot', 'Подтверждено участие', {
+        user: user.email,
+        caseNumber: caseNumber
+      });
+
+    } catch (error) {
+      AppLogger.error('TelegramBot', 'Ошибка подтверждения участия', {
+        error: error.message
+      });
+      answerCallbackQuery(callbackQueryId, '❌ Ошибка');
+    }
   }
 
   // ============================================

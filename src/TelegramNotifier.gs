@@ -16,7 +16,7 @@ var TelegramNotifier = (function() {
   /**
    * Отправить сообщение конкретному пользователю
    */
-  function sendToUser(user, text, parseMode = 'HTML') {
+  function sendToUser(user, text, parseMode = 'HTML', keyboard = null) {
     if (!user.telegram_chat_id) return false;
     if (!user.notification_preferences.telegram) return false;
 
@@ -35,6 +35,11 @@ var TelegramNotifier = (function() {
       text: text,
       parse_mode: parseMode
     };
+
+    // Добавляем клавиатуру если передана
+    if (keyboard) {
+      payload.reply_markup = keyboard;
+    }
 
     const options = {
       method: 'post',
