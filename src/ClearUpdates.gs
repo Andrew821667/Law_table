@@ -1,5 +1,6 @@
 /**
  * Очистить очередь pending updates в Telegram
+ * (работает с активным webhook)
  */
 function clearPendingUpdates() {
   const props = PropertiesService.getScriptProperties();
@@ -10,30 +11,48 @@ function clearPendingUpdates() {
     return;
   }
 
+  const deploymentId = 'AKfycbzV05Eus2PUPJFKsrN_Mo_x2aIqi2jdQatfW0hwGld7mFheahbOnkJa7mcGih5Y-74M';
+  const webAppUrl = `https://script.google.com/macros/s/${deploymentId}/exec`;
+
   try {
-    // Получаем все pending updates
-    const url = `https://api.telegram.org/bot${token}/getUpdates`;
-    const response = UrlFetchApp.fetch(url);
-    const data = JSON.parse(response.getContentText());
+    // Шаг 1: Удаляем webhook
+    const deleteUrl = `https://api.telegram.org/bot${token}/deleteWebhook?drop_pending_updates=true`;
+    const deleteResponse = UrlFetchApp.fetch(deleteUrl);
+    const deleteData = JSON.parse(deleteResponse.getContentText());
 
-    if (data.ok && data.result && data.result.length > 0) {
-      // Находим максимальный update_id
-      const maxUpdateId = Math.max(...data.result.map(u => u.update_id));
-
-      // Очищаем все updates до maxUpdateId + 1
-      const clearUrl = `https://api.telegram.org/bot${token}/getUpdates?offset=${maxUpdateId + 1}`;
-      UrlFetchApp.fetch(clearUrl);
-
-      SpreadsheetApp.getUi().alert(
-        '✅ Очередь очищена!',
-        `Удалено ${data.result.length} старых сообщений.\n\nТеперь отправьте /start боту заново.`,
-        SpreadsheetApp.getUi().ButtonSet.OK
-      );
-
-      Logger.log(`Очищено ${data.result.length} updates`);
-    } else {
-      SpreadsheetApp.getUi().alert('ℹ️ Очередь пуста', 'Нет pending updates', SpreadsheetApp.getUi().ButtonSet.OK);
+    if (!deleteData.ok) {
+      throw new Error('Не удалось удалить webhook: ' + deleteData.description);
     }
+
+    Logger.log('Webhook удалён, pending updates очищены');
+
+    // Шаг 2: Устанавливаем webhook обратно
+    const setUrl = `https://api.telegram.org/bot${token}/setWebhook`;
+    const payload = {
+      url: webAppUrl,
+      allowed_updates: ['message', 'callback_query'],
+      drop_pending_updates: true
+    };
+
+    const setResponse = UrlFetchApp.fetch(setUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload)
+    });
+
+    const setData = JSON.parse(setResponse.getContentText());
+
+    if (!setData.ok) {
+      throw new Error('Не удалось установить webhook: ' + setData.description);
+    }
+
+    Logger.log('Webhook установлен обратно');
+
+    SpreadsheetApp.getUi().alert(
+      '✅ Очередь очищена!',
+      'Все старые сообщения удалены.\n\nWebhook переустановлен.\n\nТеперь отправьте /start боту заново.',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
 
   } catch (e) {
     Logger.log('❌ Ошибка: ' + e.message);
