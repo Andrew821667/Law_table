@@ -405,7 +405,7 @@ var LegalWorkflowManager = (function() {
 
     // ✅ ИСПРАВЛЕНО: Транзакционная безопасность - сначала копируем все
     try {
-      // Batch копирование в архив
+      // Пакетное копирование в архив
       if (rowsToArchive.length > 0) {
         const lastArchiveRow = archiveSheet.getLastRow();
         archiveSheet.getRange(lastArchiveRow + 1, 1, rowsToArchive.length, rowsToArchive[0].length)
