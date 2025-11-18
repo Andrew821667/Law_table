@@ -10,173 +10,168 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--tg-theme-bg-color, #ffffff);
       color: var(--tg-theme-text-color, #000000);
-      padding: 0;
-      margin: 0;
-      overflow-x: hidden;
+      overflow: hidden;
+      height: 100vh;
     }
 
-    .header {
-      position: sticky;
-      top: 0;
-      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      z-index: 100;
-    }
-
-    .search-box {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid var(--tg-theme-hint-color, #ccc);
-      border-radius: 12px;
-      font-size: 16px;
-      background: var(--tg-theme-bg-color, #fff);
-      color: var(--tg-theme-text-color, #000);
-    }
-
-    .search-box:focus {
-      outline: none;
-      border-color: var(--tg-theme-button-color, #3390ec);
-    }
-
-    .stats {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-    }
-
-    .stat-card {
-      flex-shrink: 0;
-      background: var(--tg-theme-button-color, #3390ec);
-      color: var(--tg-theme-button-text-color, #fff);
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-
-    .stat-card strong {
-      display: block;
-      font-size: 20px;
-      margin-top: 4px;
-    }
-
-    .cases-container {
+    /* ГЛАВНАЯ СТРАНИЦА - СПИСОК ДЕЛ */
+    #mainView {
+      height: 100vh;
+      overflow-y: auto;
       padding: 16px;
     }
 
-    .case-card {
+    .case-row {
       background: var(--tg-theme-secondary-bg-color, #f5f5f5);
-      border-radius: 16px;
+      border-radius: 12px;
       padding: 16px;
       margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      transition: all 0.2s;
       cursor: pointer;
+      transition: transform 0.2s;
+      border-left: 4px solid var(--tg-theme-button-color, #3390ec);
     }
 
-    .case-card:active {
+    .case-row:active {
       transform: scale(0.98);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-
-    .case-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      margin-bottom: 12px;
     }
 
     .case-number {
       font-size: 18px;
       font-weight: 600;
+      margin-bottom: 8px;
       color: var(--tg-theme-text-color, #000);
     }
 
-    .case-status {
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .status-new { background: #E3F2FD; color: #1976D2; }
-    .status-active { background: #FFF3E0; color: #F57C00; }
-    .status-closed { background: #E8F5E9; color: #388E3C; }
-
     .case-parties {
-      margin: 12px 0;
-      padding: 12px;
-      background: var(--tg-theme-bg-color, #fff);
-      border-radius: 12px;
-    }
-
-    .party {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 6px 0;
       font-size: 14px;
-    }
-
-    .party-icon {
-      font-size: 16px;
-    }
-
-    .case-info {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .info-item {
-      font-size: 13px;
       color: var(--tg-theme-hint-color, #666);
     }
 
-    .info-item strong {
-      display: block;
+    .party-label {
+      font-weight: 500;
       color: var(--tg-theme-text-color, #000);
-      margin-top: 2px;
     }
 
-    .priority-high {
-      border-left: 4px solid #f44336;
+    /* СТРАНИЦА ДЕЛА - КАРТОЧКИ ЯЧЕЕК */
+    #detailView {
+      display: none;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
     }
 
-    .priority-medium {
-      border-left: 4px solid #ff9800;
-    }
-
-    .priority-low {
-      border-left: 4px solid #4caf50;
-    }
-
-    .hearing-badge {
-      display: inline-flex;
+    .back-button {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--tg-theme-button-color, #3390ec);
+      color: var(--tg-theme-button-text-color, #fff);
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 24px;
+      display: flex;
       align-items: center;
-      gap: 4px;
-      background: #fff3cd;
-      color: #856404;
-      padding: 4px 8px;
-      border-radius: 8px;
-      font-size: 12px;
-      margin-top: 8px;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .back-button:active {
+      transform: scale(0.95);
+    }
+
+    .cell-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px 20px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.3s ease-out;
+    }
+
+    .cell-card {
+      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      border-radius: 24px;
+      padding: 32px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .cell-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--tg-theme-hint-color, #666);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .cell-value {
+      font-size: 20px;
+      color: var(--tg-theme-text-color, #000);
+      line-height: 1.5;
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-wrap: break-word;
+    }
+
+    .cell-navigation {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--tg-theme-hint-color, #666);
+      font-size: 13px;
+    }
+
+    .cell-position {
+      font-weight: 500;
+    }
+
+    .swipe-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .swipe-hint.show {
+      opacity: 1;
     }
 
     .loading {
-      text-align: center;
-      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-size: 16px;
       color: var(--tg-theme-hint-color, #666);
     }
 
@@ -194,64 +189,61 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
-    .error {
-      text-align: center;
-      padding: 40px 20px;
-      color: #f44336;
-    }
-
-    .no-cases {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--tg-theme-hint-color, #666);
-    }
-
-    .no-cases-icon {
-      font-size: 64px;
-      margin-bottom: 16px;
-      opacity: 0.3;
-    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <input type="text" id="searchBox" class="search-box" placeholder="🔍 Поиск по номеру дела, клиенту...">
-    <div class="stats">
-      <div class="stat-card">
-        <div>Всего дел</div>
-        <strong id="totalCases">0</strong>
-      </div>
-      <div class="stat-card">
-        <div>Активные</div>
-        <strong id="activeCases">0</strong>
-      </div>
-      <div class="stat-card">
-        <div>Заседания</div>
-        <strong id="upcomingHearings">0</strong>
+  <!-- Главная страница - список дел -->
+  <div id="mainView">
+    <div class="loading">
+      <div>
+        <div class="spinner"></div>
+        <div>Загрузка дел...</div>
       </div>
     </div>
   </div>
 
-  <div id="casesContainer" class="cases-container">
-    <div class="loading">
-      <div class="spinner"></div>
-      <div>Загрузка дел...</div>
-    </div>
+  <!-- Страница дела - карточки ячеек -->
+  <div id="detailView">
+    <button class="back-button" id="backBtn">←</button>
+    <div id="cellsContainer"></div>
+    <div class="swipe-hint" id="swipeHint">← Свайп для навигации →</div>
   </div>
 
   <script>
-    let allCases = [];
     const tg = window.Telegram.WebApp;
-
-    // Инициализация Telegram Web App
     tg.ready();
     tg.expand();
+
+    let allCases = [];
+    let currentCaseIndex = 0;
+    let currentCellIndex = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    // Названия полей
+    const FIELD_NAMES = [
+      'Номер дела',
+      'Имя клиента',
+      'Тип дела',
+      'Статус',
+      'Суд',
+      'Приоритет',
+      'Истец',
+      'Ответчик',
+      'Сумма иска',
+      'Дата подачи',
+      'Дата происшествия',
+      'Категория дела',
+      'Назначенный юрист',
+      'Описание',
+      'Заметки',
+      'Ссылка на документы',
+      'Дата заседания'
+    ];
 
     // Загрузка данных
     async function loadCases() {
       try {
-        // Используем URL API с правильным добавлением параметров
         const url = new URL(window.location.href);
         url.searchParams.set('action', 'getCases');
         const response = await fetch(url.toString());
@@ -259,8 +251,7 @@
 
         if (data.success) {
           allCases = data.cases;
-          updateStats();
-          renderCases(allCases);
+          renderMainView();
         } else {
           showError(data.error || 'Ошибка загрузки данных');
         }
@@ -270,147 +261,185 @@
       }
     }
 
-    // Обновление статистики
-    function updateStats() {
-      document.getElementById('totalCases').textContent = allCases.length;
+    // Отрисовка главной страницы
+    function renderMainView() {
+      const mainView = document.getElementById('mainView');
 
-      const activeCases = allCases.filter(c =>
-        c.status && c.status.toLowerCase().includes('активн')
-      ).length;
-      document.getElementById('activeCases').textContent = activeCases;
-
-      const now = new Date();
-      const upcomingHearings = allCases.filter(c => {
-        if (!c.hearingDate) return false;
-        const hearingDate = new Date(c.hearingDate);
-        return hearingDate > now;
-      }).length;
-      document.getElementById('upcomingHearings').textContent = upcomingHearings;
-    }
-
-    // Отображение дел
-    function renderCases(cases) {
-      const container = document.getElementById('casesContainer');
-
-      if (!cases || cases.length === 0) {
-        container.innerHTML = `
-          <div class="no-cases">
-            <div class="no-cases-icon">📋</div>
-            <div>Дела не найдены</div>
-          </div>
-        `;
+      if (!allCases || allCases.length === 0) {
+        mainView.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">Дела не найдены</div>';
         return;
       }
 
-      container.innerHTML = cases.map(caseItem => {
-        const statusClass = getStatusClass(caseItem.status);
-        const priorityClass = getPriorityClass(caseItem.priority);
+      let html = '';
+      allCases.forEach((caseItem, index) => {
+        html += `
+          <div class="case-row" onclick="openCase(${index})">
+            <div class="case-number">${caseItem.caseNumber || 'Без номера'}</div>
+            <div class="case-parties">
+              <div><span class="party-label">Истец:</span> ${caseItem.plaintiff || 'Не указан'}</div>
+              <div><span class="party-label">Ответчик:</span> ${caseItem.defendant || 'Не указан'}</div>
+            </div>
+          </div>
+        `;
+      });
 
-        let hearingBadge = '';
-        if (caseItem.hearingDate) {
-          const hearingDate = new Date(caseItem.hearingDate);
-          const daysUntil = Math.ceil((hearingDate - new Date()) / (1000 * 60 * 60 * 24));
+      mainView.innerHTML = html;
+    }
 
-          if (daysUntil >= 0 && daysUntil <= 7) {
-            hearingBadge = `
-              <div class="hearing-badge">
-                📅 Заседание через ${daysUntil} дн.
-              </div>
-            `;
+    // Открыть дело
+    function openCase(index) {
+      currentCaseIndex = index;
+      currentCellIndex = 0;
+
+      document.getElementById('mainView').style.display = 'none';
+      document.getElementById('detailView').style.display = 'block';
+
+      renderCaseCells();
+      showSwipeHint();
+    }
+
+    // Отрисовка ячеек дела
+    function renderCaseCells() {
+      const container = document.getElementById('cellsContainer');
+      const caseData = allCases[currentCaseIndex];
+
+      // Получаем все поля дела как массив
+      const fields = [
+        caseData.caseNumber,
+        caseData.clientName,
+        caseData.caseType,
+        caseData.status,
+        caseData.court,
+        caseData.priority,
+        caseData.plaintiff,
+        caseData.defendant,
+        caseData.claimAmount,
+        formatDate(caseData.filingDate),
+        formatDate(caseData.incidentDate),
+        caseData.caseCategory,
+        caseData.assignedLawyer,
+        caseData.description,
+        caseData.notes,
+        caseData.documentsLink,
+        formatDate(caseData.hearingDate)
+      ];
+
+      // Отрисовываем текущую ячейку
+      container.innerHTML = `
+        <div class="cell-container" style="transform: translateX(0)">
+          <div class="cell-card">
+            <div class="cell-label">${FIELD_NAMES[currentCellIndex]}</div>
+            <div class="cell-value">${fields[currentCellIndex] || 'Не указано'}</div>
+            <div class="cell-navigation">
+              <span>Столбец ${currentCellIndex + 1} из ${fields.length}</span>
+              <span class="cell-position">Дело ${currentCaseIndex + 1} из ${allCases.length}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Навигация по ячейкам
+    function navigateCell(direction) {
+      const caseData = allCases[currentCaseIndex];
+      const totalCells = 17; // Количество полей
+
+      if (direction === 'left' && currentCellIndex > 0) {
+        currentCellIndex--;
+        renderCaseCells();
+      } else if (direction === 'right' && currentCellIndex < totalCells - 1) {
+        currentCellIndex++;
+        renderCaseCells();
+      }
+    }
+
+    // Навигация по делам
+    function navigateCase(direction) {
+      if (direction === 'up' && currentCaseIndex > 0) {
+        currentCaseIndex--;
+        currentCellIndex = 0;
+        renderCaseCells();
+      } else if (direction === 'down' && currentCaseIndex < allCases.length - 1) {
+        currentCaseIndex++;
+        currentCellIndex = 0;
+        renderCaseCells();
+      }
+    }
+
+    // Обработка свайпов
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (document.getElementById('detailView').style.display === 'none') return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+
+      // Определяем направление свайпа
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Горизонтальный свайп (по ячейкам)
+        if (Math.abs(diffX) > 50) {
+          if (diffX > 0) {
+            navigateCell('right');
+          } else {
+            navigateCell('left');
           }
         }
-
-        return `
-          <div class="case-card ${priorityClass}" onclick="openCase('${caseItem.caseNumber}')">
-            <div class="case-header">
-              <div class="case-number">${caseItem.caseNumber || 'Без номера'}</div>
-              <div class="case-status ${statusClass}">${caseItem.status || 'Новое'}</div>
-            </div>
-
-            <div class="case-parties">
-              <div class="party">
-                <span class="party-icon">👤</span>
-                <strong>Истец:</strong> ${caseItem.plaintiff || 'Не указан'}
-              </div>
-              <div class="party">
-                <span class="party-icon">👥</span>
-                <strong>Ответчик:</strong> ${caseItem.defendant || 'Не указан'}
-              </div>
-            </div>
-
-            <div class="case-info">
-              <div class="info-item">
-                <div>Клиент</div>
-                <strong>${caseItem.clientName || 'Не указан'}</strong>
-              </div>
-              <div class="info-item">
-                <div>Суд</div>
-                <strong>${caseItem.court || 'Не указан'}</strong>
-              </div>
-              <div class="info-item">
-                <div>Тип дела</div>
-                <strong>${caseItem.caseType || 'Не указан'}</strong>
-              </div>
-              <div class="info-item">
-                <div>Юрист</div>
-                <strong>${caseItem.assignedLawyer || 'Не назначен'}</strong>
-              </div>
-            </div>
-
-            ${hearingBadge}
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Поиск
-    document.getElementById('searchBox').addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase();
-
-      if (!query) {
-        renderCases(allCases);
-        return;
+      } else {
+        // Вертикальный свайп (по делам)
+        if (Math.abs(diffY) > 50) {
+          if (diffY > 0) {
+            navigateCase('down');
+          } else {
+            navigateCase('up');
+          }
+        }
       }
+    }, { passive: true });
 
-      const filtered = allCases.filter(c =>
-        (c.caseNumber && c.caseNumber.toLowerCase().includes(query)) ||
-        (c.clientName && c.clientName.toLowerCase().includes(query)) ||
-        (c.plaintiff && c.plaintiff.toLowerCase().includes(query)) ||
-        (c.defendant && c.defendant.toLowerCase().includes(query)) ||
-        (c.court && c.court.toLowerCase().includes(query))
-      );
-
-      renderCases(filtered);
+    // Кнопка назад
+    document.getElementById('backBtn').addEventListener('click', () => {
+      document.getElementById('detailView').style.display = 'none';
+      document.getElementById('mainView').style.display = 'block';
     });
 
-    // Открытие дела
-    function openCase(caseNumber) {
-      tg.showAlert(`Дело: ${caseNumber}\n\nФункция детального просмотра в разработке`);
+    // Подсказка по свайпу
+    function showSwipeHint() {
+      const hint = document.getElementById('swipeHint');
+      hint.classList.add('show');
+      setTimeout(() => {
+        hint.classList.remove('show');
+      }, 3000);
     }
 
-    // Вспомогательные функции
-    function getStatusClass(status) {
-      if (!status) return 'status-new';
-      const s = status.toLowerCase();
-      if (s.includes('новое') || s.includes('открыт')) return 'status-new';
-      if (s.includes('активн') || s.includes('рассмотр')) return 'status-active';
-      if (s.includes('закрыт') || s.includes('завершен')) return 'status-closed';
-      return 'status-new';
+    // Форматирование даты
+    function formatDate(dateStr) {
+      if (!dateStr) return null;
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return dateStr;
+      }
     }
 
-    function getPriorityClass(priority) {
-      if (!priority) return '';
-      const p = priority.toLowerCase();
-      if (p.includes('высок')) return 'priority-high';
-      if (p.includes('средн')) return 'priority-medium';
-      if (p.includes('низк')) return 'priority-low';
-      return '';
-    }
-
+    // Ошибка
     function showError(message) {
-      document.getElementById('casesContainer').innerHTML = `
-        <div class="error">
-          <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+      document.getElementById('mainView').innerHTML = `
+        <div style="text-align:center;padding:40px;color:#f44336;">
+          <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
           <div>${message}</div>
         </div>
       `;

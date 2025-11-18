@@ -317,8 +317,8 @@ var TelegramBot = (function() {
    * Отправить главное меню
    */
   function sendMainMenu(chatId, user) {
-    // Получаем Web App URL из скрипта
-    const webAppUrl = ScriptApp.getService().getUrl();
+    // ВАЖНО: используем правильный Web App deployment URL
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec';
 
     const keyboard = {
       inline_keyboard: [
@@ -343,8 +343,8 @@ var TelegramBot = (function() {
    * Редактировать сообщение на главное меню
    */
   function editMainMenu(chatId, messageId, user) {
-    // Получаем Web App URL из скрипта
-    const webAppUrl = ScriptApp.getService().getUrl();
+    // ВАЖНО: используем правильный Web App deployment URL
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec';
 
     const keyboard = {
       inline_keyboard: [
