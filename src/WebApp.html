@@ -251,7 +251,10 @@
     // Загрузка данных
     async function loadCases() {
       try {
-        const response = await fetch(window.location.href + '?action=getCases');
+        // Используем URL API с правильным добавлением параметров
+        const url = new URL(window.location.href);
+        url.searchParams.set('action', 'getCases');
+        const response = await fetch(url.toString());
         const data = await response.json();
 
         if (data.success) {
