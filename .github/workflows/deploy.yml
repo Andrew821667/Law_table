@@ -1,103 +1,41 @@
-name: Deploy to Production
+name: Deploy to Apps Script
 
 on:
   push:
-    branches: [ main ]
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      version_description:
-        description: 'Version description'
-        required: false
-        default: 'Manual deployment'
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - '.clasp.json'
 
 jobs:
   deploy:
-    name: Deploy to Google Apps Script
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '18'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install clasp globally
+      - name: Install clasp
         run: npm install -g @google/clasp
 
-      - name: Configure clasp credentials
+      - name: Create clasprc.json
         run: |
           echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
-          echo "✅ Clasp credentials configured"
 
-      - name: Verify clasp configuration
-        run: |
-          if [ ! -f .clasp.json ]; then
-            echo "❌ Error: .clasp.json not found"
-            exit 1
-          fi
-          cat .clasp.json
-          echo "✅ Clasp configuration verified"
-
-      - name: Push to Google Apps Script
-        run: |
-          echo "📤 Pushing code to Google Apps Script..."
-          clasp push --force
-          echo "✅ Code pushed successfully"
-
-      - name: Create new version
-        id: create_version
-        run: |
-          VERSION_DESC="${{ github.event.inputs.version_description || github.event.head_commit.message || 'Automated deployment' }}"
-          echo "Creating version: $VERSION_DESC"
-          clasp version "$VERSION_DESC" || echo "Version creation skipped"
-          echo "version_created=true" >> $GITHUB_OUTPUT
+      - name: Push to Apps Script
+        run: clasp push --force
 
       - name: Deploy
-        if: steps.create_version.outputs.version_created == 'true'
         run: |
-          echo "🚀 Deploying to Google Apps Script..."
-
-          # Check if DEPLOYMENT_ID exists
-          if [ -n "${{ secrets.DEPLOYMENT_ID }}" ]; then
-            echo "Updating existing deployment..."
-            clasp deploy --deploymentId "${{ secrets.DEPLOYMENT_ID }}" \
-              --description "Deployed from GitHub Actions - $(date +'%Y-%m-%d %H:%M:%S')"
+          DEPLOYMENT_ID="${{ secrets.DEPLOYMENT_ID }}"
+          if [ -n "$DEPLOYMENT_ID" ]; then
+            clasp deploy -i "$DEPLOYMENT_ID" -d "Auto deploy from GitHub - $(date)"
           else
-            echo "Creating new deployment..."
-            clasp deploy --description "Deployed from GitHub Actions - $(date +'%Y-%m-%d %H:%M:%S')"
+            echo "DEPLOYMENT_ID not set, skipping deployment"
           fi
-
-          echo "✅ Deployment completed successfully"
-
-      - name: Get deployment info
-        if: success()
-        run: |
-          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Time**: $(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📝 **Latest Commit**: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Common issues:" >> $GITHUB_STEP_SUMMARY
-          echo "- Invalid CLASPRC_JSON secret" >> $GITHUB_STEP_SUMMARY
-          echo "- Missing permissions on Script" >> $GITHUB_STEP_SUMMARY
-          echo "- Syntax errors in code" >> $GITHUB_STEP_SUMMARY
