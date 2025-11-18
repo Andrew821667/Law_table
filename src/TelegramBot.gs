@@ -85,10 +85,29 @@ var TelegramBot = (function() {
    */
   function doPost(e) {
     try {
+      if (!e || !e.postData || !e.postData.contents) {
+        return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
       const update = JSON.parse(e.postData.contents);
+      const updateId = update.update_id;
+
+      // Проверяем не обрабатывали ли мы уже этот update
+      const props = PropertiesService.getScriptProperties();
+      const lastUpdateId = parseInt(props.getProperty('LAST_UPDATE_ID') || '0');
+
+      if (updateId <= lastUpdateId) {
+        // Уже обработан, пропускаем
+        return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Сохраняем текущий update_id
+      props.setProperty('LAST_UPDATE_ID', updateId.toString());
 
       AppLogger.info('TelegramBot', 'Получен update', {
-        update_id: update.update_id
+        update_id: updateId
       });
 
       // Обработка обычного сообщения
@@ -101,6 +120,7 @@ var TelegramBot = (function() {
         handleCallbackQuery(update.callback_query);
       }
 
+      // ВСЕГДА возвращаем успех
       return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
 
@@ -110,7 +130,8 @@ var TelegramBot = (function() {
         stack: error.stack
       });
 
-      return ContentService.createTextOutput(JSON.stringify({ ok: false }))
+      // ДАЖЕ при ошибке возвращаем ok:true чтобы Telegram не повторял
+      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
