@@ -1,41 +1,17 @@
 {
-  "name": "legal-ai-sheets-scripts",
+  "name": "law-table-telegram-bot",
   "version": "1.0.0",
-  "description": "Google Apps Script для автоматизации работы с таблицами Legal AI",
-  "main": "src/Code.gs",
+  "description": "Telegram бот для управления судебными делами на Vercel",
+  "main": "api/webhook.js",
   "scripts": {
-    "lint": "eslint 'src/**/*.gs'",
-    "lint:fix": "eslint 'src/**/*.gs' --fix",
-    "format": "prettier --write 'src/**/*.gs'",
-    "format:check": "prettier --check 'src/**/*.gs'",
-    "pull": "clasp pull",
-    "push": "clasp push",
-    "push:force": "clasp push --force",
-    "deploy": "clasp push && clasp deploy",
-    "watch": "clasp push --watch",
-    "open": "clasp open",
-    "logs": "clasp logs",
-    "version": "clasp version",
-    "setup": "npm install && clasp login"
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
   },
-  "keywords": [
-    "google-apps-script",
-    "google-sheets",
-    "automation",
-    "legal-ai"
-  ],
-  "author": "Andrew Popov <a.popov.gv@gmail.com>",
-  "license": "MIT",
-  "devDependencies": {
-    "@google/clasp": "^2.4.2",
-    "@types/google-apps-script": "^1.0.83",
-    "eslint": "^8.57.0",
-    "eslint-config-google": "^0.14.0",
-    "eslint-plugin-googleappsscript": "^1.0.4",
-    "prettier": "^3.1.0"
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "node-fetch": "^2.7.0"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=18"
   }
 }
