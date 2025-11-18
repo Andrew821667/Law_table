@@ -4,6 +4,8 @@
  * ЕДИНСТВЕННЫЙ обработчик всех HTTP запросов
  * - doGet: Mini App интерфейс + API для данных
  * - doPost: Telegram webhook
+ *
+ * Auto-deploy enabled via GitHub Actions
  */
 
 /**
