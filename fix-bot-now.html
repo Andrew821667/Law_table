@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔧 Исправить бота</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    p {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+      width: 100%;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    .button:active {
+      transform: translateY(0);
+    }
+
+    .button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .status.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      display: block;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top: 2px solid #0c5460;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Исправить Telegram бота</h1>
+    <p>Нажмите кнопку ниже, чтобы автоматически настроить webhook и сбросить состояние бота.</p>
+
+    <button class="button" id="fixButton" onclick="fixBot()">
+      🔧 Исправить бота
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    async function fixBot() {
+      const button = document.getElementById('fixButton');
+      const status = document.getElementById('status');
+
+      button.disabled = true;
+      status.className = 'status loading';
+      status.innerHTML = '<span class="spinner"></span>Настраиваем бота...';
+
+      try {
+        const url = 'https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec?action=resetBot';
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+          status.className = 'status success';
+          status.innerHTML = '✅ Успешно!<br><br>' +
+            'Бот настроен и готов к работе.<br>' +
+            'Теперь отправьте /start боту в Telegram!';
+        } else {
+          throw new Error(data.message || 'Неизвестная ошибка');
+        }
+
+      } catch (error) {
+        status.className = 'status error';
+        status.innerHTML = '❌ Ошибка: ' + error.message + '<br><br>' +
+          'Попробуйте обновить страницу и повторить,<br>' +
+          'или создайте PR и смержите в main.';
+        button.disabled = false;
+      }
+    }
+
+    // Автоматический запуск при загрузке страницы
+    window.addEventListener('load', () => {
+      const auto = new URLSearchParams(window.location.search).get('auto');
+      if (auto === '1') {
+        fixBot();
+      }
+    });
+  </script>
+</body>
+</html>
