@@ -1,31 +1,30 @@
 /**
- * WebAppHandler.gs
+ * MainHandler.gs
  *
- * Обработчик для Telegram Mini App
- * Отдает HTML интерфейс и предоставляет API для получения данных
+ * ЕДИНСТВЕННЫЙ обработчик всех HTTP запросов
+ * - doGet: Mini App интерфейс + API для данных
+ * - doPost: Telegram webhook
  */
 
 /**
- * Обработчик GET запросов (открытие Web App)
+ * Обработчик GET запросов (Mini App)
  */
 function doGet(e) {
   try {
-    // Если это запрос данных
+    // API endpoint для получения списка дел
     if (e.parameter.action === 'getCases') {
       return handleGetCases(e);
     }
 
-    // Отдаем HTML интерфейс
+    // Отдаем HTML интерфейс Mini App
     const template = HtmlService.createHtmlOutputFromFile('WebApp');
     template.setTitle('Судебные дела');
-
-    // Для Mini App не нужны sandbox ограничения
     template.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     return template;
 
   } catch (error) {
-    AppLogger.error('WebAppHandler', 'Ошибка doGet', {
+    AppLogger.error('MainHandler', 'Ошибка doGet', {
       error: error.message,
       stack: error.stack
     });
@@ -40,7 +39,14 @@ function doGet(e) {
 }
 
 /**
- * Получить список дел для отображения в интерфейсе
+ * Обработчик POST запросов (Telegram webhook)
+ */
+function doPost(e) {
+  return TelegramBot.doPost(e);
+}
+
+/**
+ * Получить список дел для Mini App
  */
 function handleGetCases(e) {
   try {
@@ -110,7 +116,7 @@ function handleGetCases(e) {
       return new Date(a.hearingDate) - new Date(b.hearingDate);
     });
 
-    AppLogger.info('WebAppHandler', 'Отдано дел', {
+    AppLogger.info('MainHandler', 'Отдано дел', {
       count: cases.length
     });
 
@@ -123,7 +129,7 @@ function handleGetCases(e) {
     ).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
-    AppLogger.error('WebAppHandler', 'Ошибка получения дел', {
+    AppLogger.error('MainHandler', 'Ошибка получения дел', {
       error: error.message
     });
 
