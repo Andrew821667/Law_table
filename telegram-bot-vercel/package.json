@@ -1,0 +1,17 @@
+{
+  "name": "law-table-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram бот для управления судебными делами на Vercel",
+  "main": "api/webhook.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
