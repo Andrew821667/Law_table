@@ -1356,8 +1356,3 @@ var TelegramBot = (function() {
   };
 
 })();
-
-// Глобальная функция для webhook
-function doPost(e) {
-  return TelegramBot.doPost(e);
-}
