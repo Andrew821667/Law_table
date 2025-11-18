@@ -13,8 +13,11 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 // ID таблицы Google Sheets
 const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
 
-// GID листа "Судебные дела" (по умолчанию 0 - первый лист)
-const SHEET_GID = process.env.SHEET_GID || '0';
+// Название листа
+const SHEET_NAME = process.env.SHEET_NAME || 'Судебные дела';
+
+// Google API ключ (опционально - для таблиц с ограниченным доступом)
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 /**
  * Главный обработчик webhook
@@ -148,25 +151,20 @@ async function showUpcomingHearings(bot, chatId, messageId) {
   try {
     const fetch = require('node-fetch');
 
-    // Публичный CSV export из Google Sheets
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+    let cases;
 
-    console.log('[Sheets] Запрос к:', csvUrl);
-
-    const response = await fetch(csvUrl);
-
-    if (!response.ok) {
-      throw new Error(`Таблица недоступна (${response.status}). Нужно сделать таблицу публичной для чтения.`);
+    // Пробуем Google Sheets API v4 (работает с "Anyone with link")
+    if (GOOGLE_API_KEY) {
+      console.log('[Sheets] Используем Google Sheets API v4');
+      cases = await fetchViaAPI();
+    } else {
+      // Fallback на CSV export (требует полной публичности)
+      console.log('[Sheets] Используем CSV export');
+      cases = await fetchViaCSV();
     }
 
-    const csvText = await response.text();
-    console.log('[Sheets] Получено CSV:', csvText.substring(0, 200));
-
-    // Парсим CSV
-    const cases = parseCSVToCases(csvText);
-
     if (cases.length === 0) {
-      throw new Error('Не удалось прочитать данные из таблицы');
+      throw new Error('В таблице нет дел');
     }
 
     console.log('[Sheets] Прочитано дел:', cases.length);
@@ -246,6 +244,86 @@ async function showUpcomingHearings(bot, chatId, messageId) {
       }
     );
   }
+}
+
+/**
+ * Получить данные через Google Sheets API v4
+ * Работает с таблицами "Anyone with link can view"
+ */
+async function fetchViaAPI() {
+  const fetch = require('node-fetch');
+
+  const range = `${SHEET_NAME}!A:Q`; // Колонки A-Q (0-16)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_API_KEY}`;
+
+  console.log('[API] Запрос к Google Sheets API v4');
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Google Sheets API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.values || data.values.length < 2) {
+    return [];
+  }
+
+  const cases = [];
+
+  // Пропускаем заголовок (строка 0)
+  for (let i = 1; i < data.values.length; i++) {
+    const row = data.values[i];
+
+    if (!row[0]) continue; // Пропускаем пустые строки
+
+    cases.push({
+      caseNumber: row[0] || '',
+      clientName: row[1] || '',
+      caseType: row[2] || '',
+      status: row[3] || '',
+      court: row[4] || '',
+      priority: row[5] || '',
+      plaintiff: row[6] || '',
+      defendant: row[7] || '',
+      claimAmount: row[8] || '',
+      filingDate: row[9] || null,
+      incidentDate: row[10] || null,
+      caseCategory: row[11] || '',
+      assignedLawyer: row[12] || '',
+      description: row[13] || '',
+      notes: row[14] || '',
+      documentsLink: row[15] || '',
+      hearingDate: row[16] || null
+    });
+  }
+
+  return cases;
+}
+
+/**
+ * Получить данные через CSV export
+ * Требует полностью публичную таблицу
+ */
+async function fetchViaCSV() {
+  const fetch = require('node-fetch');
+
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
+
+  console.log('[CSV] Запрос к:', csvUrl);
+
+  const response = await fetch(csvUrl);
+
+  if (!response.ok) {
+    throw new Error(`Таблица недоступна (${response.status}). См. инструкцию в README.md`);
+  }
+
+  const csvText = await response.text();
+  console.log('[CSV] Получено:', csvText.substring(0, 200));
+
+  return parseCSVToCases(csvText);
 }
 
 /**
