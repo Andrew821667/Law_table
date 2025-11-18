@@ -321,16 +321,6 @@ var TelegramBot = (function() {
       inline_keyboard: [
         [
           { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
-        ],
-        [
-          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
-          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
-        ],
-        [
-          { text: '➕ Добавить', callback_data: 'menu_add:main' }
-        ],
-        [
-          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
         ]
       ]
     };
@@ -339,7 +329,7 @@ var TelegramBot = (function() {
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
       `Роль: ${roleText}\n\n` +
-      `Выберите действие:`;
+      `Нажмите кнопку ниже чтобы открыть приложение:`;
 
     sendMessage(chatId, message, keyboard);
   }
@@ -355,16 +345,6 @@ var TelegramBot = (function() {
       inline_keyboard: [
         [
           { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
-        ],
-        [
-          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
-          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
-        ],
-        [
-          { text: '➕ Добавить', callback_data: 'menu_add:main' }
-        ],
-        [
-          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
         ]
       ]
     };
@@ -373,7 +353,7 @@ var TelegramBot = (function() {
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
       `Роль: ${roleText}\n\n` +
-      `Выберите действие:`;
+      `Нажмите кнопку ниже чтобы открыть приложение:`;
 
     editMessage(chatId, messageId, message, keyboard);
   }
