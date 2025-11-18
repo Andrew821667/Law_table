@@ -321,6 +321,9 @@ var TelegramBot = (function() {
       inline_keyboard: [
         [
           { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+        ],
+        [
+          { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
         ]
       ]
     };
@@ -328,8 +331,7 @@ var TelegramBot = (function() {
     const roleText = getRoleText(user.role);
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
-      `Роль: ${roleText}\n\n` +
-      `Нажмите кнопку ниже чтобы открыть приложение:`;
+      `Роль: ${roleText}`;
 
     sendMessage(chatId, message, keyboard);
   }
@@ -345,6 +347,9 @@ var TelegramBot = (function() {
       inline_keyboard: [
         [
           { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+        ],
+        [
+          { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
         ]
       ]
     };
@@ -352,8 +357,7 @@ var TelegramBot = (function() {
     const roleText = getRoleText(user.role);
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
-      `Роль: ${roleText}\n\n` +
-      `Нажмите кнопку ниже чтобы открыть приложение:`;
+      `Роль: ${roleText}`;
 
     editMessage(chatId, messageId, message, keyboard);
   }
