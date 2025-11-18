@@ -13,6 +13,28 @@
  */
 function doGet(e) {
   try {
+    // Специальный endpoint для автоматической настройки webhook
+    if (e.parameter.action === 'setupWebhook') {
+      autoSetupWebhookOnDeploy();
+      return ContentService.createTextOutput(
+        JSON.stringify({
+          success: true,
+          message: 'Webhook настроен автоматически'
+        })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Специальный endpoint для полного сброса бота
+    if (e.parameter.action === 'resetBot') {
+      fullBotReset();
+      return ContentService.createTextOutput(
+        JSON.stringify({
+          success: true,
+          message: 'Бот полностью сброшен и настроен'
+        })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // API endpoint для получения списка дел
     if (e.parameter.action === 'getCases') {
       return handleGetCases(e);
