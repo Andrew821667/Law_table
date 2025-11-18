@@ -150,8 +150,31 @@ async function showUpcomingHearings(bot, chatId, messageId) {
   try {
     // Получаем данные из Google Sheets
     const fetch = require('node-fetch');
-    const response = await fetch(`${SHEETS_API_URL}?action=getCases`);
-    const data = await response.json();
+    const apiUrl = `${SHEETS_API_URL}?action=getCases`;
+
+    console.log('[API] Запрос к:', apiUrl);
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'TelegramBot/1.0'
+      }
+    });
+
+    console.log('[API] Status:', response.status);
+
+    // Получаем текст ответа для отладки
+    const responseText = await response.text();
+    console.log('[API] Response:', responseText.substring(0, 200));
+
+    // Пробуем распарсить JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error('API вернул не JSON: ' + responseText.substring(0, 100));
+    }
 
     if (!data.success || !data.cases) {
       throw new Error('Не удалось загрузить данные');
