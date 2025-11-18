@@ -339,9 +339,14 @@ var TelegramBot = (function() {
    * Отправить главное меню
    */
   function sendMainMenu(chatId, user) {
+    const webAppUrl = 'https://script.google.com/macros/s/AKfycbzV05Eus2PUPJFKsrN_Mo_x2aIqi2jdQatfW0hwGld7mFheahbOnkJa7mcGih5Y-74M/exec';
+
     // Расширенное inline меню
     const keyboard = {
       inline_keyboard: [
+        [
+          { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+        ],
         [
           { text: '📋 Мои дела', callback_data: 'view_cases' },
           { text: '📅 Заседания', callback_data: 'view_hearings' }

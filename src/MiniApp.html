@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Law Table</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --tg-theme-bg-color: #ffffff;
+      --tg-theme-text-color: #000000;
+      --tg-theme-hint-color: #999999;
+      --tg-theme-link-color: #2481cc;
+      --tg-theme-button-color: #2481cc;
+      --tg-theme-button-text-color: #ffffff;
+      --tg-theme-secondary-bg-color: #f0f0f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--tg-theme-text-color);
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      padding: 16px;
+      max-width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .search-box {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      font-size: 16px;
+      flex: 1;
+    }
+
+    .search-box input::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .search-icon {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 20px;
+    }
+
+    .cases-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .case-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .case-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .case-card:active {
+      transform: scale(0.98);
+    }
+
+    .case-card:hover::before {
+      opacity: 1;
+    }
+
+    .case-number {
+      font-size: 12px;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .case-parties {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .case-info {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(102, 126, 234, 0.1);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #667eea;
+    }
+
+    .detail-view {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: 1000;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      display: none;
+    }
+
+    .detail-view.active {
+      transform: translateY(0);
+      display: block;
+    }
+
+    .detail-header {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 10;
+    }
+
+    .back-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .back-btn:active {
+      transform: scale(0.9);
+    }
+
+    .detail-title {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .save-btn {
+      background: rgba(255, 255, 255, 0.9);
+      color: #667eea;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .save-btn:active {
+      transform: scale(0.95);
+    }
+
+    .detail-content {
+      padding: 16px;
+    }
+
+    .field-group {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .field-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      color: #1a1a1a;
+      background: transparent;
+      padding: 8px 0;
+      font-family: inherit;
+    }
+
+    .field-input:disabled {
+      color: #666;
+    }
+
+    textarea.field-input {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: white;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 18px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚖️ Law Table</h1>
+      <p id="stats">Загрузка...</p>
+    </div>
+
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Поиск дел...">
+    </div>
+
+    <div id="casesList" class="cases-list">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div>Загрузка дел...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="detailView" class="detail-view">
+    <div class="detail-header">
+      <button class="back-btn" onclick="closeDetail()">←</button>
+      <div class="detail-title" id="detailTitle">Детали дела</div>
+      <button class="save-btn" onclick="saveCase()">Сохранить</button>
+    </div>
+    <div class="detail-content" id="detailContent">
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // Применяем тему Telegram
+    if (tg.themeParams) {
+      document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
+      document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
+      document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
+      document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color || '#2481cc');
+      document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#2481cc');
+    }
+
+    let casesData = [];
+    let currentCase = null;
+
+    // Загрузка данных
+    async function loadCases() {
+      try {
+        const response = await google.script.run.withSuccessHandler(onCasesLoaded).getCasesForMiniApp();
+      } catch (e) {
+        console.error('Error loading cases:', e);
+        showError('Ошибка загрузки данных');
+      }
+    }
+
+    function onCasesLoaded(data) {
+      casesData = data.cases;
+      document.getElementById('stats').textContent = `Всего дел: ${data.total} | Заседаний: ${data.upcomingHearings}`;
+      renderCases(casesData);
+    }
+
+    function renderCases(cases) {
+      const container = document.getElementById('casesList');
+
+      if (cases.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-text">Дела не найдены</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = cases.map((c, i) => `
+        <div class="case-card" onclick="showDetail(${i})">
+          <div class="case-number">${c.caseNumber || 'Без номера'}</div>
+          <div class="case-parties">
+            ${c.plaintiff || 'Истец не указан'} <br>vs<br> ${c.defendant || 'Ответчик не указан'}
+          </div>
+          <div class="case-info">
+            ${c.hearingDate ? `<span class="info-badge">📅 ${formatDate(c.hearingDate)}</span>` : ''}
+            ${c.priority ? `<span class="info-badge">🔥 ${c.priority}</span>` : ''}
+            ${c.court ? `<span class="info-badge">🏛️ ${c.court}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showDetail(index) {
+      currentCase = casesData[index];
+      const detailView = document.getElementById('detailView');
+      const detailContent = document.getElementById('detailContent');
+      const detailTitle = document.getElementById('detailTitle');
+
+      detailTitle.textContent = currentCase.caseNumber || 'Дело';
+
+      // Генерируем поля для всех столбцов
+      const fields = [
+        { key: 'caseNumber', label: 'Номер дела', type: 'text' },
+        { key: 'filingDate', label: 'Дата подачи', type: 'date' },
+        { key: 'incidentDate', label: 'Дата инцидента', type: 'date' },
+        { key: 'status', label: 'Статус', type: 'text' },
+        { key: 'court', label: 'Суд', type: 'text' },
+        { key: 'priority', label: 'Приоритет', type: 'text' },
+        { key: 'plaintiff', label: 'Истец', type: 'textarea' },
+        { key: 'defendant', label: 'Ответчик', type: 'textarea' },
+        { key: 'description', label: 'Описание', type: 'textarea' },
+        { key: 'amount', label: 'Сумма иска', type: 'text' },
+        { key: 'lawyer', label: 'Юрист', type: 'text' },
+        { key: 'hearingDate', label: 'Дата заседания', type: 'datetime' },
+        { key: 'documents', label: 'Документы (ссылка)', type: 'url' },
+        { key: 'notes', label: 'Заметки', type: 'textarea' }
+      ];
+
+      detailContent.innerHTML = fields.map(field => `
+        <div class="field-group">
+          <div class="field-label">${field.label}</div>
+          ${field.type === 'textarea' ?
+            `<textarea class="field-input" id="field_${field.key}">${currentCase[field.key] || ''}</textarea>` :
+            `<input class="field-input" type="${field.type}" id="field_${field.key}" value="${currentCase[field.key] || ''}">`
+          }
+        </div>
+      `).join('');
+
+      detailView.classList.add('active');
+    }
+
+    function closeDetail() {
+      document.getElementById('detailView').classList.remove('active');
+    }
+
+    function saveCase() {
+      if (!currentCase) return;
+
+      // Собираем все измененные поля
+      const updates = {};
+      const fields = ['caseNumber', 'filingDate', 'incidentDate', 'status', 'court', 'priority',
+                      'plaintiff', 'defendant', 'description', 'amount', 'lawyer', 'hearingDate',
+                      'documents', 'notes'];
+
+      fields.forEach(key => {
+        const element = document.getElementById(`field_${key}`);
+        if (element) {
+          updates[key] = element.value;
+        }
+      });
+
+      tg.showPopup({
+        title: 'Сохранение',
+        message: 'Сохраняем изменения...',
+        buttons: []
+      });
+
+      google.script.run
+        .withSuccessHandler(() => {
+          tg.showAlert('✅ Изменения сохранены!');
+          closeDetail();
+          loadCases();
+        })
+        .withFailureHandler((e) => {
+          tg.showAlert('❌ Ошибка сохранения: ' + e.message);
+        })
+        .updateCaseFromMiniApp(currentCase.rowIndex, updates);
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // Поиск
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = casesData.filter(c =>
+        (c.caseNumber && c.caseNumber.toLowerCase().includes(query)) ||
+        (c.plaintiff && c.plaintiff.toLowerCase().includes(query)) ||
+        (c.defendant && c.defendant.toLowerCase().includes(query))
+      );
+      renderCases(filtered);
+    });
+
+    // Загружаем данные при старте
+    loadCases();
+  </script>
+</body>
+</html>
