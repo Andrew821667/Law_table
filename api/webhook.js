@@ -17,7 +17,7 @@ const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
 const SHEET_NAME = process.env.SHEET_NAME || 'Судебные дела';
 
 // Google API ключ (опционально - для таблиц с ограниченным доступом)
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyA157k12RMUz_UIbhDyuPjdj__sWpSGBZQ';
 
 /**
  * Главный обработчик webhook
