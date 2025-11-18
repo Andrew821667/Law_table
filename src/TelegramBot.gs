@@ -86,9 +86,26 @@ var TelegramBot = (function() {
   function doPost(e) {
     try {
       const update = JSON.parse(e.postData.contents);
+      const updateId = update.update_id;
 
-      AppLogger.info('TelegramBot', 'Получен update', {
-        update_id: update.update_id
+      // ЗАЩИТА ОТ ДУБЛИРОВАНИЯ: проверяем был ли уже обработан этот update
+      const props = PropertiesService.getScriptProperties();
+      const lastUpdateId = parseInt(props.getProperty('TELEGRAM_LAST_UPDATE_ID') || '0');
+
+      if (updateId <= lastUpdateId) {
+        // Этот update уже был обработан - пропускаем
+        AppLogger.info('TelegramBot', 'Update уже обработан (дубликат)', {
+          update_id: updateId,
+          last_processed: lastUpdateId
+        });
+
+        // ВАЖНО: всегда возвращаем ok:true чтобы Telegram не повторял запрос
+        return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      AppLogger.info('TelegramBot', 'Получен новый update', {
+        update_id: updateId
       });
 
       // Обработка обычного сообщения
@@ -101,6 +118,10 @@ var TelegramBot = (function() {
         handleCallbackQuery(update.callback_query);
       }
 
+      // Сохраняем ID обработанного update
+      props.setProperty('TELEGRAM_LAST_UPDATE_ID', updateId.toString());
+
+      // ВСЕГДА возвращаем ok:true чтобы Telegram не повторял запрос
       return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
 
@@ -110,7 +131,9 @@ var TelegramBot = (function() {
         stack: error.stack
       });
 
-      return ContentService.createTextOutput(JSON.stringify({ ok: false }))
+      // ВАЖНО: даже при ошибке возвращаем ok:true чтобы Telegram не повторял
+      // Ошибка уже залогирована в AppLogger
+      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
@@ -291,17 +314,13 @@ var TelegramBot = (function() {
    * Отправить главное меню
    */
   function sendMainMenu(chatId, user) {
+    // Получаем Web App URL из скрипта
+    const webAppUrl = ScriptApp.getService().getUrl();
+
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
-          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
-        ],
-        [
-          { text: '➕ Добавить', callback_data: 'menu_add:main' }
-        ],
-        [
-          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
+          { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
         ]
       ]
     };
@@ -310,7 +329,7 @@ var TelegramBot = (function() {
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
       `Роль: ${roleText}\n\n` +
-      `Выберите действие:`;
+      `Нажмите кнопку ниже чтобы открыть приложение:`;
 
     sendMessage(chatId, message, keyboard);
   }
@@ -319,17 +338,13 @@ var TelegramBot = (function() {
    * Редактировать сообщение на главное меню
    */
   function editMainMenu(chatId, messageId, user) {
+    // Получаем Web App URL из скрипта
+    const webAppUrl = ScriptApp.getService().getUrl();
+
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
-          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
-        ],
-        [
-          { text: '➕ Добавить', callback_data: 'menu_add:main' }
-        ],
-        [
-          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
+          { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
         ]
       ]
     };
@@ -338,7 +353,7 @@ var TelegramBot = (function() {
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
       `Роль: ${roleText}\n\n` +
-      `Выберите действие:`;
+      `Нажмите кнопку ниже чтобы открыть приложение:`;
 
     editMessage(chatId, messageId, message, keyboard);
   }
@@ -1341,8 +1356,3 @@ var TelegramBot = (function() {
   };
 
 })();
-
-// Глобальная функция для webhook
-function doPost(e) {
-  return TelegramBot.doPost(e);
-}
