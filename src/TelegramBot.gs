@@ -280,7 +280,10 @@ var TelegramBot = (function() {
           break;
 
         case 'back_main':
-          editMainMenu(chatId, messageId, user);
+          // Удаляем текущее сообщение и отправляем новое с web_app кнопкой
+          // (Telegram API не позволяет редактировать сообщения, добавляя web_app)
+          deleteMessage(chatId, messageId);
+          sendMainMenu(chatId, user);
           break;
 
         case 'back_view':
@@ -1063,6 +1066,41 @@ var TelegramBot = (function() {
       return result.ok;
     } catch (e) {
       AppLogger.error('TelegramBot', 'Ошибка редактирования сообщения', {
+        error: e.message
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Удалить сообщение
+   */
+  function deleteMessage(chatId, messageId) {
+    const props = PropertiesService.getScriptProperties();
+    const botToken = props.getProperty(BOT_TOKEN_KEY);
+
+    if (!botToken) return false;
+
+    const url = `https://api.telegram.org/bot${botToken}/deleteMessage`;
+
+    const payload = {
+      chat_id: chatId,
+      message_id: messageId
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    try {
+      const response = UrlFetchApp.fetch(url, options);
+      const result = JSON.parse(response.getContentText());
+      return result.ok;
+    } catch (e) {
+      AppLogger.error('TelegramBot', 'Ошибка удаления сообщения', {
         error: e.message
       });
       return false;
