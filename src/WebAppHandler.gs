@@ -137,6 +137,14 @@ function handleGetCases(e) {
 }
 
 /**
+ * Обработчик POST запросов (Telegram webhook)
+ * Делегирует обработку в TelegramBot модуль
+ */
+function doPost(e) {
+  return TelegramBot.doPost(e);
+}
+
+/**
  * Форматировать дату для JSON
  */
 function formatDateForJSON(value) {
