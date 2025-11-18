@@ -92,11 +92,26 @@ var TelegramBot = (function() {
       const props = PropertiesService.getScriptProperties();
       const lastUpdateId = parseInt(props.getProperty('TELEGRAM_LAST_UPDATE_ID') || '0');
 
-      if (updateId <= lastUpdateId) {
+      // АВТОМАТИЧЕСКИЙ СБРОС: если пропущено больше 100 updates - сбрасываем счетчик
+      // Это происходит когда бот "завис" и не обрабатывал updates
+      if (updateId - lastUpdateId > 100) {
+        AppLogger.warn('TelegramBot', 'Обнаружен большой gap в updates - автосброс', {
+          update_id: updateId,
+          last_processed: lastUpdateId,
+          gap: updateId - lastUpdateId
+        });
+
+        // Сбрасываем на текущий update_id - 1, чтобы обработать текущий
+        props.setProperty('TELEGRAM_LAST_UPDATE_ID', (updateId - 1).toString());
+      }
+
+      const currentLastUpdateId = parseInt(props.getProperty('TELEGRAM_LAST_UPDATE_ID') || '0');
+
+      if (updateId <= currentLastUpdateId) {
         // Этот update уже был обработан - пропускаем
         AppLogger.info('TelegramBot', 'Update уже обработан (дубликат)', {
           update_id: updateId,
-          last_processed: lastUpdateId
+          last_processed: currentLastUpdateId
         });
 
         // ВАЖНО: всегда возвращаем ok:true чтобы Telegram не повторял запрос
