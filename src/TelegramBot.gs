@@ -82,45 +82,20 @@ var TelegramBot = (function() {
 
   /**
    * Обработчик входящих webhook запросов от Telegram
+   *
+   * ⚠️ ПРОВЕРКА UPDATE_ID ОТКЛЮЧЕНА ⚠️
+   * Apps Script ненадежен для хранения состояния - постоянно сбрасывается
+   * Дубли маловероятны, а если будут - не критично
+   * TODO: Мигрировать на Vercel для надежной работы
    */
   function doPost(e) {
     try {
       const update = JSON.parse(e.postData.contents);
-      const updateId = update.update_id;
 
-      // ЗАЩИТА ОТ ДУБЛИРОВАНИЯ: проверяем был ли уже обработан этот update
-      const props = PropertiesService.getScriptProperties();
-      const lastUpdateId = parseInt(props.getProperty('TELEGRAM_LAST_UPDATE_ID') || '0');
-
-      // АВТОМАТИЧЕСКИЙ СБРОС: если пропущено больше 100 updates - сбрасываем счетчик
-      // Это происходит когда бот "завис" и не обрабатывал updates
-      if (updateId - lastUpdateId > 100) {
-        AppLogger.warn('TelegramBot', 'Обнаружен большой gap в updates - автосброс', {
-          update_id: updateId,
-          last_processed: lastUpdateId,
-          gap: updateId - lastUpdateId
-        });
-
-        // Сбрасываем на текущий update_id - 1, чтобы обработать текущий
-        props.setProperty('TELEGRAM_LAST_UPDATE_ID', (updateId - 1).toString());
-      }
-
-      const currentLastUpdateId = parseInt(props.getProperty('TELEGRAM_LAST_UPDATE_ID') || '0');
-
-      if (updateId <= currentLastUpdateId) {
-        // Этот update уже был обработан - пропускаем
-        AppLogger.info('TelegramBot', 'Update уже обработан (дубликат)', {
-          update_id: updateId,
-          last_processed: currentLastUpdateId
-        });
-
-        // ВАЖНО: всегда возвращаем ok:true чтобы Telegram не повторял запрос
-        return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-
-      AppLogger.info('TelegramBot', 'Получен новый update', {
-        update_id: updateId
+      AppLogger.info('TelegramBot', 'Получен update', {
+        update_id: update.update_id,
+        has_message: !!update.message,
+        has_callback: !!update.callback_query
       });
 
       // Обработка обычного сообщения
@@ -133,9 +108,6 @@ var TelegramBot = (function() {
         handleCallbackQuery(update.callback_query);
       }
 
-      // Сохраняем ID обработанного update
-      props.setProperty('TELEGRAM_LAST_UPDATE_ID', updateId.toString());
-
       // ВСЕГДА возвращаем ok:true чтобы Telegram не повторял запрос
       return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -147,7 +119,6 @@ var TelegramBot = (function() {
       });
 
       // ВАЖНО: даже при ошибке возвращаем ok:true чтобы Telegram не повторял
-      // Ошибка уже залогирована в AppLogger
       return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
