@@ -1,8 +1,8 @@
 /**
  * Telegram Bot Webhook Handler для Vercel
  *
- * Serverless function, автоматически деплоится из GitHub
- * Обрабатывает все входящие updates от Telegram
+ * ОБНОВЛЕНО: Читает данные напрямую из Google Sheets через CSV export
+ * БЕЗ ЗАВИСИМОСТИ ОТ APPS SCRIPT!
  */
 
 const TelegramBot = require('node-telegram-bot-api');
@@ -10,9 +10,11 @@ const TelegramBot = require('node-telegram-bot-api');
 // Telegram Bot Token из переменных окружения
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// URL Google Sheets API для получения данных
-const SHEETS_API_URL = process.env.SHEETS_API_URL ||
-  'https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec';
+// ID таблицы Google Sheets
+const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
+
+// GID листа "Судебные дела" (по умолчанию 0 - первый лист)
+const SHEET_GID = process.env.SHEET_GID || '0';
 
 /**
  * Главный обработчик webhook
@@ -123,13 +125,8 @@ async function handleCallbackQuery(bot, callbackQuery) {
  * Отправить главное меню
  */
 async function sendMainMenu(bot, chatId) {
-  const webAppUrl = SHEETS_API_URL;
-
   const keyboard = {
     inline_keyboard: [
-      [
-        { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
-      ],
       [
         { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
       ]
@@ -145,44 +142,38 @@ async function sendMainMenu(bot, chatId) {
 
 /**
  * Показать предстоящие заседания
+ * Читает данные напрямую из Google Sheets через CSV
  */
 async function showUpcomingHearings(bot, chatId, messageId) {
   try {
-    // Получаем данные из Google Sheets
     const fetch = require('node-fetch');
-    const apiUrl = `${SHEETS_API_URL}?action=getCases`;
 
-    console.log('[API] Запрос к:', apiUrl);
+    // Публичный CSV export из Google Sheets
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'TelegramBot/1.0'
-      }
-    });
+    console.log('[Sheets] Запрос к:', csvUrl);
 
-    console.log('[API] Status:', response.status);
+    const response = await fetch(csvUrl);
 
-    // Получаем текст ответа для отладки
-    const responseText = await response.text();
-    console.log('[API] Response:', responseText.substring(0, 200));
-
-    // Пробуем распарсить JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      throw new Error('API вернул не JSON: ' + responseText.substring(0, 100));
+    if (!response.ok) {
+      throw new Error(`Таблица недоступна (${response.status}). Нужно сделать таблицу публичной для чтения.`);
     }
 
-    if (!data.success || !data.cases) {
-      throw new Error('Не удалось загрузить данные');
+    const csvText = await response.text();
+    console.log('[Sheets] Получено CSV:', csvText.substring(0, 200));
+
+    // Парсим CSV
+    const cases = parseCSVToCases(csvText);
+
+    if (cases.length === 0) {
+      throw new Error('Не удалось прочитать данные из таблицы');
     }
+
+    console.log('[Sheets] Прочитано дел:', cases.length);
 
     // Фильтруем только дела с предстоящими заседаниями
     const now = new Date();
-    const hearings = data.cases
+    const hearings = cases
       .filter(c => c.hearingDate && new Date(c.hearingDate) > now)
       .sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate))
       .slice(0, 10);
@@ -247,7 +238,7 @@ async function showUpcomingHearings(bot, chatId, messageId) {
     };
 
     await bot.editMessageText(
-      '❌ Ошибка загрузки данных: ' + error.message,
+      '❌ Ошибка: ' + error.message,
       {
         chat_id: chatId,
         message_id: messageId,
@@ -255,4 +246,80 @@ async function showUpcomingHearings(bot, chatId, messageId) {
       }
     );
   }
+}
+
+/**
+ * Парсим CSV в массив дел
+ */
+function parseCSVToCases(csvText) {
+  const lines = csvText.split('\n');
+  const cases = [];
+
+  // Пропускаем заголовок (строка 0)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    // Простой CSV парсер
+    const cols = parseCSVLine(line);
+
+    if (!cols[0]) continue; // Пропускаем пустые строки
+
+    cases.push({
+      caseNumber: cols[0] || '',
+      clientName: cols[1] || '',
+      caseType: cols[2] || '',
+      status: cols[3] || '',
+      court: cols[4] || '',
+      priority: cols[5] || '',
+      plaintiff: cols[6] || '',
+      defendant: cols[7] || '',
+      claimAmount: cols[8] || '',
+      filingDate: cols[9] || null,
+      incidentDate: cols[10] || null,
+      caseCategory: cols[11] || '',
+      assignedLawyer: cols[12] || '',
+      description: cols[13] || '',
+      notes: cols[14] || '',
+      documentsLink: cols[15] || '',
+      hearingDate: cols[16] || null
+    });
+  }
+
+  return cases;
+}
+
+/**
+ * Простой CSV парсер для одной строки
+ * Правильно обрабатывает кавычки
+ */
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      // Двойные кавычки внутри поля
+      current += '"';
+      i++; // Пропускаем следующую кавычку
+    } else if (char === '"') {
+      // Переключаем режим кавычек
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      // Разделитель полей
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  // Добавляем последнее поле
+  result.push(current.trim());
+
+  return result;
 }
