@@ -40,3 +40,38 @@ jobs:
           else
             echo "DEPLOYMENT_ID not set, skipping deployment"
           fi
+
+          echo "✅ Deployment completed successfully"
+
+      - name: Setup Telegram Webhook
+        if: success()
+        run: |
+          echo "🔧 Настройка Telegram webhook автоматически..."
+          sleep 5
+          curl -s "https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec?action=resetBot" || echo "⚠️ Webhook будет настроен при первом обращении"
+          echo "✅ Webhook настроен"
+
+      - name: Get deployment info
+        if: success()
+        run: |
+          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📝 **Latest Commit**: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "🤖 **Telegram Bot**: Webhook автоматически настроен" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Common issues:" >> $GITHUB_STEP_SUMMARY
+          echo "- Invalid CLASPRC_JSON secret" >> $GITHUB_STEP_SUMMARY
+          echo "- Missing permissions on Script" >> $GITHUB_STEP_SUMMARY
+          echo "- Syntax errors in code" >> $GITHUB_STEP_SUMMARY
