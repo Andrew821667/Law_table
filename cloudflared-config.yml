@@ -1,0 +1,12 @@
+# Cloudflare Tunnel Configuration
+# Этот файл используется для проксирования локального сервера через Cloudflare
+
+tunnel: law-table-bot
+credentials-file: /home/user/.cloudflared/law-table-bot.json
+
+ingress:
+  # Маршрутизация всех запросов к локальному серверу на порту 3000
+  - service: http://localhost:3000
+
+  # Правило по умолчанию (обязательно)
+  - service: http_status:404

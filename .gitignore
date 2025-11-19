@@ -34,3 +34,10 @@ build/
 
 # OS
 Thumbs.db
+
+# Cloudflare Tunnel
+.cloudflared/
+*.json
+!package.json
+!package-lock.json
+!vercel.json
