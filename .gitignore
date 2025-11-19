@@ -20,14 +20,17 @@ yarn-error.log*
 *.swn
 .DS_Store
 
-# Clasp
-.clasprc.json
+# Vercel
+.vercel
+.vercel.json.bak
+*.vercel.app
 
 # Build
 dist/
 build/
 *.js.map
+.output/
+.nuxt/
 
 # OS
 Thumbs.db
-# test
