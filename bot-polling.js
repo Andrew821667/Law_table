@@ -10,6 +10,7 @@ const fetch = require('node-fetch');
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 
 // Telegram Bot Token из .env
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -23,8 +24,32 @@ if (!BOT_TOKEN) {
 const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
 const SHEET_NAME = process.env.SHEET_NAME || 'Судебные дела';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyA157k12RMUz_UIbhDyuPjdj__sWpSGBZQ';
-const BASE_URL = process.env.BASE_URL || `http://84.19.3.240:3000`;
 const PORT = process.env.PORT || 3000;
+
+/**
+ * Получить актуальный URL туннеля из логов
+ */
+function getTunnelUrl() {
+  try {
+    const logPath = path.join(__dirname, 'cloudflare-tunnel.log');
+    if (fs.existsSync(logPath)) {
+      const logs = fs.readFileSync(logPath, 'utf-8');
+      const match = logs.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/g);
+      if (match && match.length > 0) {
+        // Берем последний URL из логов
+        return match[match.length - 1];
+      }
+    }
+  } catch (error) {
+    console.error('[Tunnel] Ошибка чтения URL:', error.message);
+  }
+
+  // Fallback на .env или IP
+  return process.env.BASE_URL || `http://84.19.3.240:3000`;
+}
+
+const BASE_URL = getTunnelUrl();
+console.log(`🌐 Используем BASE_URL: ${BASE_URL}`);
 
 // ============================================
 // Express сервер для Mini App
