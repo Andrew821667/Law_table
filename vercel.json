@@ -11,5 +11,10 @@
       "src": "/api/(.*)",
       "dest": "/api/$1"
     }
-  ]
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
+    "GOOGLE_API_KEY": "@google_api_key",
+    "SHEET_NAME": "Судебные дела"
+  }
 }
