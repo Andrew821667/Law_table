@@ -2,11 +2,11 @@
   "name": "law-table-telegram-bot",
   "version": "2.0.0",
   "description": "Telegram бот для управления судебными делами - деплой на Vercel с прямым доступом к Google Sheets",
-  "main": "api/webhook.js",
+  "main": "api/bot.js",
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod",
-    "test": "node api/test.js"
+    "test": "node api/health.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
