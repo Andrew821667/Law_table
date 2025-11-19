@@ -1,11 +1,15 @@
 /**
  * Telegram Bot в режиме Polling (без webhook)
+ * + Express сервер для Mini App
  * Работает на любом сервере без необходимости SSL
  */
 
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
 
 // Telegram Bot Token из .env
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -20,6 +24,41 @@ const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
 const SHEET_NAME = process.env.SHEET_NAME || 'Судебные дела';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyA157k12RMUz_UIbhDyuPjdj__sWpSGBZQ';
 const BASE_URL = process.env.BASE_URL || `http://84.19.3.240:3000`;
+const PORT = process.env.PORT || 3000;
+
+// ============================================
+// Express сервер для Mini App
+// ============================================
+
+const app = express();
+
+app.use(bodyParser.json());
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ ok: true, message: 'Server is running', timestamp: new Date().toISOString() });
+});
+
+// API: Получить список дел
+const casesHandler = require('./api/cases.js');
+app.get('/api/cases', casesHandler);
+
+// Mini App главная страница
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'app.html'));
+});
+
+// Запуск сервера
+app.listen(PORT, () => {
+  console.log(`✅ Express сервер запущен на порту ${PORT}`);
+  console.log(`📱 Mini App: http://localhost:${PORT}/app`);
+  console.log(`💓 Health: http://localhost:${PORT}/health`);
+});
+
+// ============================================
+// Telegram Bot (Polling)
+// ============================================
 
 // Создаем бота в режиме polling
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
@@ -102,6 +141,7 @@ bot.on('message', async (msg) => {
  * Отправить главное меню
  */
 async function sendMainMenu(bot, chatId) {
+  // Web App URL из переменных окружения
   const webAppUrl = `${BASE_URL}/app`;
 
   const keyboard = {
