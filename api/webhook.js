@@ -253,8 +253,9 @@ async function showUpcomingHearings(bot, chatId, messageId) {
 async function fetchViaAPI() {
   const fetch = require('node-fetch');
 
-  const range = `${SHEET_NAME}!A:Q`; // Колонки A-Q (0-16)
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_API_KEY}`;
+  // Используем первый лист без названия (обход проблемы с кириллицей)
+  const range = `A:Q`; // Колонки A-Q (0-16)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API] Запрос к Google Sheets API v4');
 
