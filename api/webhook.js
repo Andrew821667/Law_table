@@ -128,8 +128,15 @@ async function handleCallbackQuery(bot, callbackQuery) {
  * Отправить главное меню
  */
 async function sendMainMenu(bot, chatId) {
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://futures-vitamin-writers-managers.trycloudflare.com';
+  const webAppUrl = `${baseUrl}/app`;
+
   const keyboard = {
     inline_keyboard: [
+      [
+        { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+      ],
       [
         { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
       ]
@@ -253,8 +260,8 @@ async function showUpcomingHearings(bot, chatId, messageId) {
 async function fetchViaAPI() {
   const fetch = require('node-fetch');
 
-  const range = `${SHEET_NAME}!A:Q`; // Колонки A-Q (0-16)
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_API_KEY}`;
+  const range = 'A:Q'; // Используем первый лист без названия (обход проблемы с кириллицей)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API] Запрос к Google Sheets API v4');
 
