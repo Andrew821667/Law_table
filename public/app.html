@@ -14,35 +14,26 @@
     }
 
     :root {
-      --tg-theme-bg-color: #1a1d24;
-      --tg-theme-text-color: #e8e9ed;
-      --tg-theme-hint-color: #8b92a8;
-      --tg-theme-link-color: #5b9bd5;
-      --tg-theme-button-color: #5b9bd5;
+      --tg-theme-bg-color: #1a2332;
+      --tg-theme-text-color: #2481cc;
+      --tg-theme-hint-color: #6b7c93;
+      --tg-theme-link-color: #2481cc;
+      --tg-theme-button-color: #2481cc;
       --tg-theme-button-text-color: #ffffff;
-      --tg-theme-secondary-bg-color: #2a2f3a;
+      --tg-theme-secondary-bg-color: #f4f4f5;
 
-      /* Стальные цвета для 3D эффекта */
-      --steel-light: #b8bcc4;
-      --steel-mid: #8b92a8;
-      --steel-dark: #5a5f6e;
-      --steel-gradient: linear-gradient(145deg, #9ea3b0, #7a8090);
+      /* Светлые глянцевые ячейки */
+      --steel-gradient: linear-gradient(145deg, #e8eaed, #c5c9d0);
 
-      /* Цвета для истца и ответчика */
-      --plaintiff-color: #4a9eff;
-      --plaintiff-bg: rgba(74, 158, 255, 0.15);
-      --defendant-color: #ff6b6b;
-      --defendant-bg: rgba(255, 107, 107, 0.15);
-
-      /* 3D тени */
+      /* 3D тени для глянцевого эффекта */
       --card-shadow:
-        5px 5px 10px rgba(0, 0, 0, 0.3),
-        -2px -2px 8px rgba(255, 255, 255, 0.05),
-        inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+        3px 3px 8px rgba(0, 0, 0, 0.2),
+        -2px -2px 6px rgba(255, 255, 255, 0.7),
+        inset 1px 1px 3px rgba(255, 255, 255, 0.8);
       --card-hover-shadow:
-        7px 7px 14px rgba(0, 0, 0, 0.4),
-        -3px -3px 10px rgba(255, 255, 255, 0.08),
-        inset 1px 1px 2px rgba(255, 255, 255, 0.15);
+        4px 4px 12px rgba(0, 0, 0, 0.25),
+        -3px -3px 8px rgba(255, 255, 255, 0.8),
+        inset 1px 1px 3px rgba(255, 255, 255, 0.9);
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -72,7 +63,7 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: var(--tg-theme-secondary-bg-color);
+      background: rgba(255, 255, 255, 0.2);
       border: none;
       cursor: pointer;
       display: flex;
@@ -80,6 +71,7 @@
       justify-content: center;
       transition: var(--transition);
       font-size: 20px;
+      color: #fff;
     }
 
     .header-back:active {
@@ -90,6 +82,7 @@
       font-size: 20px;
       font-weight: 600;
       flex: 1;
+      color: #fff;
     }
 
     /* Список дел */
@@ -138,28 +131,22 @@
       font-size: 16px;
       font-weight: 600;
       margin-bottom: 8px;
-      color: var(--tg-theme-text-color);
+      color: #333;
       position: relative;
       z-index: 1;
     }
 
     /* Выделение истца и ответчика */
     .plaintiff {
-      color: var(--plaintiff-color);
-      background: var(--plaintiff-bg);
-      padding: 2px 8px;
-      border-radius: 6px;
+      color: var(--tg-theme-text-color);
       font-weight: 700;
-      border: 1px solid var(--plaintiff-color);
+      text-decoration: underline;
     }
 
     .defendant {
-      color: var(--defendant-color);
-      background: var(--defendant-bg);
-      padding: 2px 8px;
-      border-radius: 6px;
+      color: var(--tg-theme-text-color);
       font-weight: 700;
-      border: 1px solid var(--defendant-color);
+      text-decoration: underline;
     }
 
     .case-subtitle {
@@ -252,7 +239,7 @@
 
     .field-label {
       font-size: 12px;
-      color: var(--tg-theme-hint-color);
+      color: #666;
       margin-bottom: 4px;
       position: relative;
       z-index: 1;
@@ -261,7 +248,7 @@
     .field-value {
       font-size: 14px;
       font-weight: 500;
-      color: var(--tg-theme-text-color);
+      color: #222;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -294,7 +281,7 @@
 
     .field-content-label {
       font-size: 14px;
-      color: var(--tg-theme-hint-color);
+      color: #aaa;
       margin-bottom: 8px;
     }
 
@@ -302,6 +289,7 @@
       font-size: 16px;
       line-height: 1.5;
       word-wrap: break-word;
+      color: #fff;
     }
 
     /* Редактирование поля */
@@ -312,7 +300,7 @@
       font-size: 16px;
       line-height: 1.5;
       background: var(--steel-gradient);
-      color: var(--tg-theme-text-color);
+      color: #222;
       border: 2px solid var(--tg-theme-button-color);
       border-radius: 12px;
       resize: vertical;
@@ -350,7 +338,7 @@
 
     .field-edit-btn-cancel {
       background: var(--steel-gradient);
-      color: var(--tg-theme-text-color);
+      color: #333;
     }
 
     .field-edit-btn:active {
@@ -360,13 +348,13 @@
     .edit-mode-indicator {
       display: inline-block;
       padding: 4px 12px;
-      background: var(--plaintiff-bg);
-      color: var(--plaintiff-color);
+      background: #e3f2fd;
+      color: var(--tg-theme-button-color);
       border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
       margin-left: 8px;
-      border: 1px solid var(--plaintiff-color);
+      border: 1px solid var(--tg-theme-button-color);
     }
 
     /* Загрузка */
@@ -377,6 +365,7 @@
       min-height: 100vh;
       flex-direction: column;
       gap: 16px;
+      color: #fff;
     }
 
     .spinner {
@@ -411,7 +400,7 @@
     .empty-text {
       font-size: 18px;
       font-weight: 500;
-      color: var(--tg-theme-hint-color);
+      color: #aaa;
     }
 
   </style>
