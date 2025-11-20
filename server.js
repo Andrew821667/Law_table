@@ -21,6 +21,10 @@ app.get('/health', (req, res) => {
 const casesHandler = require('./api/cases.js');
 app.get('/api/cases', casesHandler);
 
+// API: Обновить дело
+const updateCaseHandler = require('./api/update-case.js');
+app.post('/api/update-case', updateCaseHandler);
+
 // Mini App главная страница
 app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'app.html'));

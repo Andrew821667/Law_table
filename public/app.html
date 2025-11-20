@@ -304,6 +304,71 @@
       word-wrap: break-word;
     }
 
+    /* Редактирование поля */
+    .field-edit-textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 12px;
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--steel-gradient);
+      color: var(--tg-theme-text-color);
+      border: 2px solid var(--tg-theme-button-color);
+      border-radius: 12px;
+      resize: vertical;
+      font-family: inherit;
+      box-shadow: var(--card-shadow);
+    }
+
+    .field-edit-textarea:focus {
+      outline: none;
+      border-color: var(--plaintiff-color);
+    }
+
+    .field-edit-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .field-edit-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--card-shadow);
+    }
+
+    .field-edit-btn-save {
+      background: var(--plaintiff-color);
+      color: white;
+    }
+
+    .field-edit-btn-cancel {
+      background: var(--steel-gradient);
+      color: var(--tg-theme-text-color);
+    }
+
+    .field-edit-btn:active {
+      transform: scale(0.95);
+    }
+
+    .edit-mode-indicator {
+      display: inline-block;
+      padding: 4px 12px;
+      background: var(--plaintiff-bg);
+      color: var(--plaintiff-color);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+      border: 1px solid var(--plaintiff-color);
+    }
+
     /* Загрузка */
     .loading {
       display: flex;
@@ -403,6 +468,8 @@
     let cases = [];
     let currentCase = null;
     let currentFieldIndex = 0;
+    let currentCaseIndex = 0;
+    let isEditMode = false;
 
     // Элементы
     const loading = document.getElementById('loading');
@@ -470,7 +537,8 @@
       // Обработчики кликов
       document.querySelectorAll('.case-card').forEach(card => {
         card.addEventListener('click', () => {
-          showCaseDetails(cases[parseInt(card.dataset.index)]);
+          currentCaseIndex = parseInt(card.dataset.index);
+          showCaseDetails(cases[currentCaseIndex]);
         });
       });
     }
@@ -506,12 +574,102 @@
     function showFieldView(field) {
       caseDetails.classList.remove('active');
       fieldView.classList.add('active');
+      isEditMode = false;
 
-      document.getElementById('fieldViewTitle').textContent = field.label;
-      fieldContent.innerHTML = `
-        <div class="field-content-label">${field.label}</div>
-        <div class="field-content-value">${field.value || 'Не указано'}</div>
-      `;
+      renderFieldView(field);
+    }
+
+    // Рендер просмотра поля
+    function renderFieldView(field) {
+      const titleElement = document.getElementById('fieldViewTitle');
+
+      if (isEditMode) {
+        titleElement.innerHTML = `${field.label}<span class="edit-mode-indicator">РЕДАКТИРОВАНИЕ</span>`;
+        fieldContent.innerHTML = `
+          <div class="field-content-label">${field.label}</div>
+          <textarea class="field-edit-textarea" id="editTextarea">${field.value || ''}</textarea>
+          <div class="field-edit-buttons">
+            <button class="field-edit-btn field-edit-btn-save" id="saveBtn">💾 Сохранить</button>
+            <button class="field-edit-btn field-edit-btn-cancel" id="cancelBtn">❌ Отмена</button>
+          </div>
+        `;
+
+        // Обработчики кнопок
+        document.getElementById('saveBtn').addEventListener('click', saveFieldValue);
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+          isEditMode = false;
+          renderFieldView(field);
+        });
+
+        // Фокус на textarea
+        document.getElementById('editTextarea').focus();
+      } else {
+        titleElement.textContent = field.label;
+        fieldContent.innerHTML = `
+          <div class="field-content-label">${field.label}</div>
+          <div class="field-content-value" id="fieldValueDisplay">${field.value || 'Не указано'}</div>
+          <div style="margin-top: 16px; padding: 12px; background: var(--steel-gradient); border-radius: 12px; font-size: 14px; color: var(--tg-theme-hint-color); text-align: center;">
+            💡 Двойной клик для редактирования
+          </div>
+        `;
+
+        // Двойной клик для редактирования
+        document.getElementById('fieldValueDisplay').addEventListener('dblclick', () => {
+          isEditMode = true;
+          renderFieldView(field);
+        });
+      }
+    }
+
+    // Сохранить значение поля
+    async function saveFieldValue() {
+      const newValue = document.getElementById('editTextarea').value;
+      const field = currentCase.fields[currentFieldIndex];
+
+      // Показываем индикатор загрузки
+      document.getElementById('saveBtn').textContent = '⏳ Сохранение...';
+      document.getElementById('saveBtn').disabled = true;
+
+      try {
+        const response = await fetch('/api/update-case', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            rowIndex: currentCaseIndex + 1, // +1 т.к. строка 0 - заголовок
+            columnIndex: currentFieldIndex,
+            value: newValue
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Обновляем локальные данные
+          field.value = newValue;
+          cases[currentCaseIndex].fields[currentFieldIndex].value = newValue;
+
+          // Обновляем отображаемые поля (plaintiff/defendant/etc)
+          if (currentFieldIndex === 6) cases[currentCaseIndex].plaintiff = newValue;
+          if (currentFieldIndex === 7) cases[currentCaseIndex].defendant = newValue;
+          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;
+
+          // Выходим из режима редактирования
+          isEditMode = false;
+          renderFieldView(field);
+
+          // Показываем уведомление
+          tg.showAlert('✅ Изменения сохранены!');
+        } else {
+          throw new Error(data.error || 'Ошибка сохранения');
+        }
+      } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        tg.showAlert('❌ ' + error.message);
+        document.getElementById('saveBtn').textContent = '💾 Сохранить';
+        document.getElementById('saveBtn').disabled = false;
+      }
     }
 
     // Навигация назад
