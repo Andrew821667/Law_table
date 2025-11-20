@@ -14,26 +14,20 @@
     }
 
     :root {
-      --tg-theme-bg-color: #1a2332;
-      --tg-theme-text-color: #2481cc;
-      --tg-theme-hint-color: #6b7c93;
+      --tg-theme-bg-color: #f5f1e8;
+      --tg-theme-text-color: #333;
+      --tg-theme-hint-color: #888;
       --tg-theme-link-color: #2481cc;
       --tg-theme-button-color: #2481cc;
       --tg-theme-button-text-color: #ffffff;
-      --tg-theme-secondary-bg-color: #f4f4f5;
+      --tg-theme-secondary-bg-color: #e0e0e0;
 
-      /* Светлые глянцевые ячейки */
-      --steel-gradient: linear-gradient(145deg, #e8eaed, #c5c9d0);
+      /* Матовые светло-серые ячейки */
+      --cell-bg: #d8d8d8;
 
-      /* 3D тени для глянцевого эффекта */
-      --card-shadow:
-        3px 3px 8px rgba(0, 0, 0, 0.2),
-        -2px -2px 6px rgba(255, 255, 255, 0.7),
-        inset 1px 1px 3px rgba(255, 255, 255, 0.8);
-      --card-hover-shadow:
-        4px 4px 12px rgba(0, 0, 0, 0.25),
-        -3px -3px 8px rgba(255, 255, 255, 0.8),
-        inset 1px 1px 3px rgba(255, 255, 255, 0.9);
+      /* Простые тени без 3D */
+      --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      --card-hover-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -63,7 +57,7 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--cell-bg);
       border: none;
       cursor: pointer;
       display: flex;
@@ -71,7 +65,7 @@
       justify-content: center;
       transition: var(--transition);
       font-size: 20px;
-      color: #fff;
+      color: #333;
     }
 
     .header-back:active {
@@ -82,7 +76,7 @@
       font-size: 20px;
       font-weight: 600;
       flex: 1;
-      color: #fff;
+      color: #333;
     }
 
     /* Список дел */
@@ -94,32 +88,13 @@
     }
 
     .case-card {
-      background: var(--steel-gradient);
-      border-radius: 16px;
+      background: var(--cell-bg);
+      border-radius: 12px;
       padding: 16px;
       box-shadow: var(--card-shadow);
       transition: var(--transition);
       cursor: pointer;
       user-select: none;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      position: relative;
-    }
-
-    .case-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.1) 0%,
-        transparent 50%,
-        rgba(0, 0, 0, 0.1) 100%
-      );
-      border-radius: 16px;
-      pointer-events: none;
     }
 
     .case-card:active {
@@ -138,13 +113,13 @@
 
     /* Выделение истца и ответчика */
     .plaintiff {
-      color: var(--tg-theme-text-color);
+      color: #2481cc;
       font-weight: 700;
       text-decoration: underline;
     }
 
     .defendant {
-      color: var(--tg-theme-text-color);
+      color: #2481cc;
       font-weight: 700;
       text-decoration: underline;
     }
@@ -204,32 +179,13 @@
     }
 
     .field-button {
-      background: var(--steel-gradient);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--cell-bg);
       border-radius: 12px;
       padding: 16px 12px;
       cursor: pointer;
       transition: var(--transition);
       text-align: left;
       box-shadow: var(--card-shadow);
-      position: relative;
-    }
-
-    .field-button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        transparent 50%,
-        rgba(0, 0, 0, 0.08) 100%
-      );
-      border-radius: 12px;
-      pointer-events: none;
     }
 
     .field-button:active {
@@ -241,8 +197,6 @@
       font-size: 12px;
       color: #666;
       margin-bottom: 4px;
-      position: relative;
-      z-index: 1;
     }
 
     .field-value {
@@ -252,8 +206,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      position: relative;
-      z-index: 1;
     }
 
     /* Просмотр поля */
@@ -281,7 +233,7 @@
 
     .field-content-label {
       font-size: 14px;
-      color: #aaa;
+      color: #888;
       margin-bottom: 8px;
     }
 
@@ -289,7 +241,7 @@
       font-size: 16px;
       line-height: 1.5;
       word-wrap: break-word;
-      color: #fff;
+      color: #333;
     }
 
     /* Редактирование поля */
@@ -299,7 +251,7 @@
       padding: 12px;
       font-size: 16px;
       line-height: 1.5;
-      background: var(--steel-gradient);
+      background: var(--cell-bg);
       color: #222;
       border: 2px solid var(--tg-theme-button-color);
       border-radius: 12px;
@@ -337,7 +289,7 @@
     }
 
     .field-edit-btn-cancel {
-      background: var(--steel-gradient);
+      background: var(--cell-bg);
       color: #333;
     }
 
@@ -365,7 +317,7 @@
       min-height: 100vh;
       flex-direction: column;
       gap: 16px;
-      color: #fff;
+      color: #333;
     }
 
     .spinner {
@@ -400,7 +352,7 @@
     .empty-text {
       font-size: 18px;
       font-weight: 500;
-      color: #aaa;
+      color: #888;
     }
 
   </style>
