@@ -128,8 +128,15 @@ async function handleCallbackQuery(bot, callbackQuery) {
  * Отправить главное меню
  */
 async function sendMainMenu(bot, chatId) {
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app`;
+
   const keyboard = {
     inline_keyboard: [
+      [
+        { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+      ],
       [
         { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
       ]
