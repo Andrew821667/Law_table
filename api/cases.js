@@ -48,7 +48,7 @@ module.exports = async (req, res) => {
 async function fetchCases() {
   const fetch = require('node-fetch');
 
-  const range = 'A:Q'; // Первый лист без названия
+  const range = 'A:AE'; // Все 31 колонки из "Активные дела"
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API Cases] Запрос к Google Sheets API v4');
@@ -75,47 +75,22 @@ async function fetchCases() {
 
     if (!row[0]) continue; // Пропускаем пустые строки
 
-    // Создаем объект дела с именами полей
+    // Создаем объект дела с всеми полями динамически
     const caseObj = {
       id: i,
-      caseNumber: row[0] || '',
-      clientName: row[1] || '',
-      caseType: row[2] || '',
-      status: row[3] || '',
-      court: row[4] || '',
-      priority: row[5] || '',
-      plaintiff: row[6] || '',
-      defendant: row[7] || '',
-      claimAmount: row[8] || '',
-      filingDate: row[9] || null,
-      incidentDate: row[10] || null,
-      caseCategory: row[11] || '',
-      assignedLawyer: row[12] || '',
-      description: row[13] || '',
-      notes: row[14] || '',
-      documentsLink: row[15] || '',
-      hearingDate: row[16] || null,
+      // Важные поля для отображения
+      plaintiff: row[6] || '',  // Колонка G (index 6)
+      defendant: row[7] || '',  // Колонка H (index 7)
+      caseNumber: row[1] || '', // Колонка B (index 1)
+      status: row[3] || '',     // Колонка D (index 3)
+      priority: row[4] || '',   // Колонка E (index 4)
 
-      // Дополнительно: названия полей для отображения
-      fields: [
-        { key: 'caseNumber', label: 'Номер дела', value: row[0] || '' },
-        { key: 'clientName', label: 'Имя клиента', value: row[1] || '' },
-        { key: 'caseType', label: 'Тип дела', value: row[2] || '' },
-        { key: 'status', label: 'Статус', value: row[3] || '' },
-        { key: 'court', label: 'Суд', value: row[4] || '' },
-        { key: 'priority', label: 'Приоритет', value: row[5] || '' },
-        { key: 'plaintiff', label: 'Истец', value: row[6] || '' },
-        { key: 'defendant', label: 'Ответчик', value: row[7] || '' },
-        { key: 'claimAmount', label: 'Сумма иска', value: row[8] || '' },
-        { key: 'filingDate', label: 'Дата подачи', value: row[9] || '' },
-        { key: 'incidentDate', label: 'Дата инцидента', value: row[10] || '' },
-        { key: 'caseCategory', label: 'Категория дела', value: row[11] || '' },
-        { key: 'assignedLawyer', label: 'Назначенный юрист', value: row[12] || '' },
-        { key: 'description', label: 'Описание', value: row[13] || '' },
-        { key: 'notes', label: 'Примечания', value: row[14] || '' },
-        { key: 'documentsLink', label: 'Ссылка на документы', value: row[15] || '' },
-        { key: 'hearingDate', label: 'Дата заседания', value: row[16] || '' }
-      ]
+      // Динамически создаем массив полей из всех колонок
+      fields: headers.map((header, index) => ({
+        key: `col_${index}`,
+        label: header || `Колонка ${String.fromCharCode(65 + index)}`,
+        value: row[index] || ''
+      })).filter(field => field.label) // Убираем пустые заголовки
     };
 
     cases.push(caseObj);
