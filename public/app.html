@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Судебные дела</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --tg-theme-bg-color: #ffffff;
+      --tg-theme-text-color: #000000;
+      --tg-theme-hint-color: #999999;
+      --tg-theme-link-color: #2481cc;
+      --tg-theme-button-color: #2481cc;
+      --tg-theme-button-text-color: #ffffff;
+      --tg-theme-secondary-bg-color: #f4f4f5;
+
+      --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      --card-hover-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Заголовок */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--tg-theme-bg-color);
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-back {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--tg-theme-secondary-bg-color);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      font-size: 20px;
+    }
+
+    .header-back:active {
+      transform: scale(0.95);
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    /* Список дел */
+    .cases-list {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .case-card {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--card-shadow);
+      transition: var(--transition);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .case-card:active {
+      transform: scale(0.98);
+      box-shadow: var(--card-hover-shadow);
+    }
+
+    .case-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--tg-theme-text-color);
+    }
+
+    .case-subtitle {
+      font-size: 14px;
+      color: var(--tg-theme-hint-color);
+      margin-bottom: 12px;
+    }
+
+    .case-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .case-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--tg-theme-button-color);
+      color: var(--tg-theme-button-text-color);
+    }
+
+    /* Детали дела */
+    .case-details {
+      display: none;
+    }
+
+    .case-details.active {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .fields-grid {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .field-button {
+      background: var(--tg-theme-secondary-bg-color);
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 16px 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: left;
+    }
+
+    .field-button:active {
+      transform: scale(0.95);
+      border-color: var(--tg-theme-button-color);
+    }
+
+    .field-label {
+      font-size: 12px;
+      color: var(--tg-theme-hint-color);
+      margin-bottom: 4px;
+    }
+
+    .field-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--tg-theme-text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Просмотр поля */
+    .field-view {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--tg-theme-bg-color);
+      z-index: 200;
+      overflow-y: auto;
+    }
+
+    .field-view.active {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .field-content {
+      padding: 16px;
+      min-height: calc(100vh - 64px);
+    }
+
+    .field-content-label {
+      font-size: 14px;
+      color: var(--tg-theme-hint-color);
+      margin-bottom: 8px;
+    }
+
+    .field-content-value {
+      font-size: 16px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    /* Загрузка */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--tg-theme-secondary-bg-color);
+      border-top-color: var(--tg-theme-button-color);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Пустое состояние */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 80px);
+      padding: 32px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .empty-text {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--tg-theme-hint-color);
+    }
+
+    /* Свайп индикатор */
+    .swipe-indicator {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border-radius: 20px;
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .swipe-indicator.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Загрузка -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>Загрузка дел...</div>
+  </div>
+
+  <!-- Список дел -->
+  <div class="cases-list" id="casesList" style="display: none;"></div>
+
+  <!-- Детали дела -->
+  <div class="case-details" id="caseDetails">
+    <div class="header">
+      <button class="header-back" id="backToCases">←</button>
+      <div class="header-title" id="detailsTitle">Детали дела</div>
+    </div>
+    <div class="fields-grid" id="fieldsGrid"></div>
+  </div>
+
+  <!-- Просмотр поля -->
+  <div class="field-view" id="fieldView">
+    <div class="header">
+      <button class="header-back" id="backToDetails">←</button>
+      <div class="header-title" id="fieldViewTitle">Поле</div>
+    </div>
+    <div class="field-content" id="fieldContent"></div>
+  </div>
+
+  <!-- Свайп индикатор -->
+  <div class="swipe-indicator" id="swipeIndicator"></div>
+
+  <script>
+    // Инициализация Telegram WebApp
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // Отключаем вертикальные свайпы для закрытия приложения
+    if (tg.disableVerticalSwipes) {
+      tg.disableVerticalSwipes();
+    }
+
+    // Применяем цветовую схему Telegram
+    document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
+    document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
+    document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
+    document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color || '#2481cc');
+    document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#2481cc');
+    document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
+    document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f4f4f5');
+
+    // Состояние приложения
+    let cases = [];
+    let currentCase = null;
+    let currentFieldIndex = 0;
+    let currentCaseIndex = 0;
+
+    // Элементы
+    const loading = document.getElementById('loading');
+    const casesList = document.getElementById('casesList');
+    const caseDetails = document.getElementById('caseDetails');
+    const fieldView = document.getElementById('fieldView');
+    const fieldsGrid = document.getElementById('fieldsGrid');
+    const fieldContent = document.getElementById('fieldContent');
+    const swipeIndicator = document.getElementById('swipeIndicator');
+
+    // Загрузка дел
+    async function loadCases() {
+      try {
+        const response = await fetch('/api/cases');
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Ошибка загрузки данных');
+        }
+
+        cases = data.cases;
+        renderCasesList();
+
+      } catch (error) {
+        console.error('Ошибка:', error);
+        loading.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-text">Ошибка загрузки данных</div>
+            <div style="margin-top: 8px; font-size: 14px; color: var(--tg-theme-hint-color);">${error.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    // Отображение списка дел
+    function renderCasesList() {
+      loading.style.display = 'none';
+      casesList.style.display = 'block';
+
+      if (cases.length === 0) {
+        casesList.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">Нет дел</div>
+          </div>
+        `;
+        return;
+      }
+
+      casesList.innerHTML = cases.map((c, index) => `
+        <div class="case-card" data-index="${index}">
+          <div class="case-title">${c.plaintiff || 'Истец не указан'} vs ${c.defendant || 'Ответчик не указан'}</div>
+          <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
+          <div class="case-meta">
+            ${c.status ? `<div class="case-badge">${c.status}</div>` : ''}
+            ${c.priority ? `<div class="case-badge">${c.priority}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      // Обработчики кликов
+      document.querySelectorAll('.case-card').forEach(card => {
+        card.addEventListener('click', () => {
+          currentCaseIndex = parseInt(card.dataset.index);
+          showCaseDetails(cases[currentCaseIndex]);
+        });
+      });
+
+      setupCasesSwipe();
+    }
+
+    // Показать детали дела
+    function showCaseDetails(caseData) {
+      currentCase = caseData;
+      casesList.style.display = 'none';
+      caseDetails.classList.add('active');
+
+      document.getElementById('detailsTitle').textContent = `${caseData.plaintiff} vs ${caseData.defendant}`;
+
+      fieldsGrid.innerHTML = caseData.fields.map((field, index) => `
+        <div class="field-button" data-index="${index}">
+          <div class="field-label">${field.label}</div>
+          <div class="field-value">${field.value || 'Не указано'}</div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.field-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentFieldIndex = parseInt(btn.dataset.index);
+          showFieldView(currentCase.fields[currentFieldIndex]);
+        });
+      });
+
+      setupFieldsSwipe();
+    }
+
+    // Показать просмотр поля
+    function showFieldView(field) {
+      caseDetails.classList.remove('active');
+      fieldView.classList.add('active');
+
+      document.getElementById('fieldViewTitle').textContent = field.label;
+      fieldContent.innerHTML = `
+        <div class="field-content-label">${field.label}</div>
+        <div class="field-content-value">${field.value || 'Не указано'}</div>
+      `;
+
+      setupFieldViewSwipe();
+    }
+
+    // Навигация назад
+    document.getElementById('backToCases').addEventListener('click', () => {
+      caseDetails.classList.remove('active');
+      casesList.style.display = 'block';
+    });
+
+    document.getElementById('backToDetails').addEventListener('click', () => {
+      fieldView.classList.remove('active');
+      caseDetails.classList.add('active');
+    });
+
+    // Свайп-жесты для списка дел
+    function setupCasesSwipe() {
+      let touchStartY = 0;
+
+      casesList.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      });
+
+      casesList.addEventListener('touchmove', (e) => {
+        const touchEndY = e.touches[0].clientY;
+        const diff = touchStartY - touchEndY;
+
+        // Свайп вверх/вниз для скроллинга (нативный)
+      });
+    }
+
+    // Свайп-жесты для полей
+    function setupFieldsSwipe() {
+      let touchStartX = 0;
+
+      fieldsGrid.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+      });
+
+      fieldsGrid.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > 50) {
+          if (diff > 0) {
+            // Свайп влево - не делаем ничего (нет навигации между делами на этом уровне)
+          } else {
+            // Свайп вправо - назад
+            document.getElementById('backToCases').click();
+          }
+        }
+      });
+    }
+
+    // Свайп-жесты для просмотра поля
+    function setupFieldViewSwipe() {
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      fieldContent.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      });
+
+      fieldContent.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+          // Горизонтальный свайп
+          if (diffX > 0) {
+            // Свайп влево - следующее поле
+            navigateField(1);
+          } else {
+            // Свайп вправо - предыдущее поле
+            navigateField(-1);
+          }
+        } else if (Math.abs(diffY) > 50 && Math.abs(diffY) > Math.abs(diffX)) {
+          // Вертикальный свайп
+          if (diffY > 0) {
+            // Свайп вверх - следующее дело
+            navigateCase(1);
+          } else {
+            // Свайп вниз - предыдущее дело
+            navigateCase(-1);
+          }
+        }
+      });
+    }
+
+    // Навигация между полями
+    function navigateField(direction) {
+      const newIndex = currentFieldIndex + direction;
+      if (newIndex >= 0 && newIndex < currentCase.fields.length) {
+        currentFieldIndex = newIndex;
+        showFieldView(currentCase.fields[currentFieldIndex]);
+        showSwipeIndicator(`Поле ${currentFieldIndex + 1}/${currentCase.fields.length}`);
+      }
+    }
+
+    // Навигация между делами
+    function navigateCase(direction) {
+      const newIndex = currentCaseIndex + direction;
+      if (newIndex >= 0 && newIndex < cases.length) {
+        currentCaseIndex = newIndex;
+        currentCase = cases[currentCaseIndex];
+        currentFieldIndex = 0; // Сброс к первому полю
+        showFieldView(currentCase.fields[currentFieldIndex]);
+        showSwipeIndicator(`Дело ${currentCaseIndex + 1}/${cases.length}`);
+      }
+    }
+
+    // Показать индикатор свайпа
+    function showSwipeIndicator(text) {
+      swipeIndicator.textContent = text;
+      swipeIndicator.classList.add('show');
+      setTimeout(() => {
+        swipeIndicator.classList.remove('show');
+      }, 1500);
+    }
+
+    // Запуск приложения
+    loadCases();
+  </script>
+</body>
+</html>
