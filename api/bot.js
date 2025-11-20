@@ -109,6 +109,22 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await showUpcomingHearings(bot, chatId, messageId);
       break;
 
+    case 'search_case':
+      await handleSearchCase(bot, chatId, messageId);
+      break;
+
+    case 'show_filters':
+      await showFiltersMenu(bot, chatId, messageId);
+      break;
+
+    case 'add_date':
+      await handleAddDate(bot, chatId, messageId);
+      break;
+
+    case 'reschedule_hearing':
+      await handleRescheduleHearing(bot, chatId, messageId);
+      break;
+
     case 'back_main':
       // Удаляем текущее сообщение
       await bot.deleteMessage(chatId, messageId).catch(() => {});
@@ -132,21 +148,53 @@ async function sendMainMenu(bot, chatId) {
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
   const webAppUrl = `${baseUrl}/app`;
 
+  const welcomeMessage = `⚖️ *СИСТЕМА УПРАВЛЕНИЯ ДЕЛАМИ*
+_Legal Cases Management System_
+
+Добро пожаловать в систему управления судебными делами!
+
+*Ваш помощник для:*
+📋 Управления судебными делами
+📅 Отслеживания заседаний
+🔍 Быстрого поиска информации
+📊 Контроля сроков и дедлайнов
+
+*Возможности:*
+• Просмотр предстоящих заседаний
+• Фильтрация по статусу, приоритету, юристу
+• Поиск дел по номеру
+• Добавление и перенос заседаний
+• Полный доступ к картам дел
+• Уведомления по срокам
+
+Выберите действие ниже ⬇️`;
+
   const keyboard = {
     inline_keyboard: [
       [
         { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
       ],
       [
-        { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
+        { text: '📅 Заседания', callback_data: 'view_hearings' },
+        { text: '🔍 Поиск дела', callback_data: 'search_case' }
+      ],
+      [
+        { text: '🎯 Фильтры', callback_data: 'show_filters' },
+        { text: '➕ Добавить дату', callback_data: 'add_date' }
+      ],
+      [
+        { text: '🔄 Перенести заседание', callback_data: 'reschedule_hearing' }
       ]
     ]
   };
 
   await bot.sendMessage(
     chatId,
-    '👋 Добро пожаловать!\n\nВыберите действие:',
-    { reply_markup: keyboard }
+    welcomeMessage,
+    {
+      reply_markup: keyboard,
+      parse_mode: 'Markdown'
+    }
   );
 }
 
@@ -408,4 +456,103 @@ function parseCSVLine(line) {
   result.push(current.trim());
 
   return result;
+}
+
+/**
+ * Обработка поиска дела по номеру
+ */
+async function handleSearchCase(bot, chatId, messageId) {
+  const keyboard = {
+    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+  };
+
+  await bot.editMessageText(
+    '🔍 *Поиск дела по номеру*\n\n' +
+    'Отправьте номер дела в формате:\n' +
+    '`А64-5863/2025`\n\n' +
+    '_Функция в разработке..._',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Показать меню фильтров
+ */
+async function showFiltersMenu(bot, chatId, messageId) {
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📊 По статусу', callback_data: 'filter_status' },
+        { text: '🎯 По приоритету', callback_data: 'filter_priority' }
+      ],
+      [
+        { text: '👨‍⚖️ По юристу', callback_data: 'filter_lawyer' }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '🎯 *Фильтры дел*\n\n' +
+    'Выберите параметр для фильтрации:',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Обработка добавления даты заседания
+ */
+async function handleAddDate(bot, chatId, messageId) {
+  const keyboard = {
+    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+  };
+
+  await bot.editMessageText(
+    '➕ *Добавление даты заседания*\n\n' +
+    'Для добавления даты заседания:\n' +
+    '1. Укажите номер дела\n' +
+    '2. Укажите дату и время\n\n' +
+    '_Функция в разработке..._',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Обработка переноса заседания
+ */
+async function handleRescheduleHearing(bot, chatId, messageId) {
+  const keyboard = {
+    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+  };
+
+  await bot.editMessageText(
+    '🔄 *Перенос заседания*\n\n' +
+    'Для переноса заседания:\n' +
+    '1. Выберите дело\n' +
+    '2. Укажите новую дату и время\n\n' +
+    '_Функция в разработке..._',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
 }
