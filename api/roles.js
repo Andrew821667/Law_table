@@ -99,7 +99,7 @@ const ROLES = {
  * Получить данные пользователей из Google Sheets
  */
 async function fetchUsersFromSheet() {
-  const usersSheet = 'Пользователи';
+  const usersSheet = '👥 Пользователи';
   const range = `${usersSheet}!A:H`; // Email | Роль | Имя | Telegram Chat ID | Email флаг | Telegram флаг | SMS флаг | Дела
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
