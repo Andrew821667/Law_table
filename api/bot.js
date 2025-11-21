@@ -233,15 +233,15 @@ _Legal Cases Management System_
  */
 
 /**
- * Парсить дату в формате ММ.ДД.ГГГГ, ЧЧ:ММ (месяц.день.год)
+ * Парсить дату в формате ДД.ММ.ГГГГ, ЧЧ:ММ
  */
 function parseDate(dateStr) {
   if (!dateStr) return null;
   const cleaned = dateStr.split('✅')[0].trim();
   const m = cleaned.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,?\s*(\d{1,2}):(\d{2}))?/);
   if (!m) return null;
-  // m[1] = месяц, m[2] = день, m[3] = год
-  return new Date(Date.UTC(m[3], m[1]-1, m[2], m[4]||0, m[5]||0));
+  // m[1] = день, m[2] = месяц, m[3] = год
+  return new Date(Date.UTC(m[3], m[2]-1, m[1], m[4]||0, m[5]||0));
 }
 async function showUpcomingHearings(bot, chatId, messageId) {
   try {
@@ -292,13 +292,13 @@ async function showUpcomingHearings(bot, chatId, messageId) {
 let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
     hearings.forEach((h, i) => {
       const hearingDate = new Date(h.hearingDate);
-      const dateStr = hearingDate.toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      // Форматируем дату как ДД.ММ.ГГГГ
+      const day = String(hearingDate.getUTCDate()).padStart(2, '0');
+      const month = String(hearingDate.getUTCMonth() + 1).padStart(2, '0');
+      const year = hearingDate.getUTCFullYear();
+      const hours = String(hearingDate.getUTCHours()).padStart(2, '0');
+      const minutes = String(hearingDate.getUTCMinutes()).padStart(2, '0');
+      const dateStr = `${day}.${month}.${year}`;
 
       const daysUntil = Math.ceil((hearingDate - now) / (1000 * 60 * 60 * 24));
       const urgency = daysUntil === 0 ? '🔴 СЕГОДНЯ' :
@@ -307,7 +307,7 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
                       '🟢 ' + daysUntil + ' дн.';
 
       message += `
-📅 *Дата:* ${dateStr} ${('0' + hearingDate.getHours()).slice(-2)}:${('0' + hearingDate.getMinutes()).slice(-2)}
+📅 *Дата:* ${dateStr} ${hours}:${minutes}
 ⏰ ${urgency}
 
 📋 *Дело:* ${h.caseNumber || 'Без номера'}
