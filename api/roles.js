@@ -100,7 +100,7 @@ const ROLES = {
  */
 async function fetchUsersFromSheet() {
   const usersSheet = 'Пользователи';
-  const range = `${usersSheet}!A:D`; // Telegram ID | Имя | Роль | Юрист (опционально)
+  const range = `${usersSheet}!A:H`; // Email | Роль | Имя | Telegram Chat ID | Email флаг | Telegram флаг | SMS флаг | Дела
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
@@ -119,20 +119,32 @@ async function fetchUsersFromSheet() {
     }
 
     const users = [];
-    // Пропускаем заголовок
-    for (let i = 1; i < data.values.length; i++) {
+    // Пропускаем заголовок и инструкцию (первые 9 строк)
+    for (let i = 9; i < data.values.length; i++) {
       const row = data.values[i];
-      const telegramId = row[0];
-      const name = row[1] || '';
-      const role = (row[2] || '').toLowerCase().trim();
-      const lawyer = row[3] || ''; // Имя юриста (для фильтрации дел)
+
+      // Пропускаем пустые строки и строки с #ERROR!
+      if (!row[0] || row[0].includes('#ERROR')) continue;
+
+      const email = row[0] || '';
+      const role = (row[1] || '').toUpperCase().trim();
+      const name = row[2] || '';
+      const telegramId = row[3];
+      const emailNotifications = row[4] === 'TRUE' || row[4] === true;
+      const telegramNotifications = row[5] === 'TRUE' || row[5] === true;
+      const smsNotifications = row[6] === 'TRUE' || row[6] === true;
+      const cases = row[7] || ''; // Номера дел для юристов
 
       if (telegramId && !isNaN(telegramId)) {
         users.push({
           telegramId: parseInt(telegramId),
+          email,
           name,
           role: mapRoleFromSheet(role),
-          lawyer
+          emailNotifications,
+          telegramNotifications,
+          smsNotifications,
+          cases: cases ? cases.split(',').map(c => c.trim()) : []
         });
       }
     }
@@ -184,9 +196,13 @@ async function updateRolesCache() {
   rolesCache.clear();
   users.forEach(user => {
     rolesCache.set(user.telegramId, {
+      email: user.email,
       name: user.name,
       role: user.role,
-      lawyer: user.lawyer
+      emailNotifications: user.emailNotifications,
+      telegramNotifications: user.telegramNotifications,
+      smsNotifications: user.smsNotifications,
+      cases: user.cases
     });
   });
 
@@ -205,8 +221,12 @@ async function getUserRole(telegramId) {
   if (!userData) {
     return {
       role: ROLES.GUEST.name,
+      email: '',
       name: '',
-      lawyer: ''
+      emailNotifications: false,
+      telegramNotifications: false,
+      smsNotifications: false,
+      cases: []
     };
   }
 
@@ -275,10 +295,14 @@ async function getAllUsers() {
     const role = getRoleObject(userData.role);
     users.push({
       telegramId,
+      email: userData.email,
       name: userData.name,
       role: userData.role,
       roleDisplay: role.displayName,
-      lawyer: userData.lawyer
+      emailNotifications: userData.emailNotifications,
+      telegramNotifications: userData.telegramNotifications,
+      smsNotifications: userData.smsNotifications,
+      cases: userData.cases
     });
   });
 

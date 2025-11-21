@@ -621,12 +621,23 @@ async function showUserProfile(bot, chatId, messageId) {
   const userData = await getUserRole(chatId);
   const role = getRoleObject(userData.role);
 
+  // Формируем строку уведомлений
+  const notifications = [];
+  if (userData.telegramNotifications) notifications.push('📱 Telegram');
+  if (userData.emailNotifications) notifications.push('✉️ Email');
+  if (userData.smsNotifications) notifications.push('📞 SMS');
+  const notificationsStr = notifications.length > 0 ? notifications.join(', ') : 'Отключены';
+
   const profileMessage = `
 👤 *МОЙ ПРОФИЛЬ*
 
 *Имя:* ${userData.name || 'Не указано'}
+*Email:* ${userData.email || 'Не указан'}
+*Telegram ID:* ${chatId}
 *Роль:* ${role.displayName}
-${userData.lawyer ? `*Юрист:* ${userData.lawyer}` : ''}
+
+*🔔 Уведомления:* ${notificationsStr}
+${userData.cases && userData.cases.length > 0 ? `\n*📁 Мои дела:* ${userData.cases.length} дел` : ''}
 
 *📋 Ваши права доступа:*
 

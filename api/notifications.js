@@ -153,12 +153,11 @@ function isInThreeDays(date) {
 
 /**
  * Получить список пользователей для уведомлений
- * Читает из листа "Пользователи" или аналогичного
+ * Читает из листа "Пользователи" с учетом флага Telegram уведомлений
  */
 async function getNotificationUsers() {
-  // TODO: Нужно уточнить название листа с пользователями
-  const usersSheet = 'Пользователи'; // или другое название
-  const range = `${usersSheet}!A:C`; // Предположительно: Telegram ID, Имя, Роль
+  const usersSheet = 'Пользователи';
+  const range = `${usersSheet}!A:H`; // Email | Роль | Имя | Telegram Chat ID | Email флаг | Telegram флаг | SMS флаг | Дела
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
@@ -166,25 +165,31 @@ async function getNotificationUsers() {
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.log('⚠️  Лист с пользователями не найден, используем fallback');
+      console.log('⚠️  Лист с пользователями не найден');
       return [];
     }
 
     const data = await response.json();
 
-    if (!data.values || data.values.length < 2) {
+    if (!data.values || data.values.length < 10) {
       return [];
     }
 
     const users = [];
-    // Пропускаем заголовок
-    for (let i = 1; i < data.values.length; i++) {
+    // Пропускаем заголовок и инструкцию (первые 9 строк)
+    for (let i = 9; i < data.values.length; i++) {
       const row = data.values[i];
-      const telegramId = row[0];
-      const name = row[1] || '';
-      const role = row[2] || '';
 
-      if (telegramId && !isNaN(telegramId)) {
+      // Пропускаем пустые строки и строки с #ERROR!
+      if (!row[0] || row[0].includes('#ERROR')) continue;
+
+      const telegramId = row[3]; // Колонка D
+      const name = row[2] || ''; // Колонка C
+      const role = row[1] || ''; // Колонка B
+      const telegramNotifications = row[5] === 'TRUE' || row[5] === true; // Колонка F
+
+      // Включаем только пользователей с включенными Telegram уведомлениями
+      if (telegramId && !isNaN(telegramId) && telegramNotifications) {
         users.push({
           telegramId: parseInt(telegramId),
           name,
