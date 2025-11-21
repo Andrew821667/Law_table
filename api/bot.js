@@ -288,8 +288,7 @@ async function showUpcomingHearings(bot, chatId, messageId) {
     }
 
     // Формируем сообщение
-    let message = `📅 *Предстоящие заседания* (${hearings.length} шт.)\n\n`;
-
+let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
     hearings.forEach((h, i) => {
       const hearingDate = new Date(h.hearingDate);
       const dateStr = hearingDate.toLocaleDateString('ru-RU', {
@@ -306,11 +305,20 @@ async function showUpcomingHearings(bot, chatId, messageId) {
                       daysUntil <= 3 ? '🟠 ' + daysUntil + ' дн.' :
                       '🟢 ' + daysUntil + ' дн.';
 
-      message += `${i + 1}. ${urgency}\n`;
-      message += `   📋 Дело: ${h.caseNumber || 'Без номера'}\n`;
-      message += `   📅 ${dateStr}\n`;
-      message += `   🏛️ ${h.court || 'Суд не указан'}\n\n`;
-    });
+      
+        message += `
+📅 *Дата:* ${dateStr} ${('0' + hearingDate.getHours()).slice(-2)}:${('0' + hearingDate.getMinutes()).slice(-2)}
+⏰ ${urgency}
+
+📋 *Дело:* ${h.caseNumber || 'Без номера'}
+🏛️ *Суд:* ${h.court || 'Суд не указан'}
+
+👤 *Истец:* ${h.plaintiff || 'Не указан'}
+👤 *Ответчик:* ${h.defendant || 'Не указан'}
+🔥 *Приоритет:* ${h.priority || 'Обычный'}
+
+`;
+      ;
 
     const keyboard = {
       inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
