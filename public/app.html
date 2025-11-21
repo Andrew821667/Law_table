@@ -126,9 +126,10 @@
     }
 
     .case-subtitle {
-      font-size: 16px;
+      font-size: 32px;
       color: #8b0000;
       margin-bottom: 12px;
+      font-weight: 600;
       position: relative;
       z-index: 1;
       font-weight: 600;
@@ -464,6 +465,7 @@
 
       casesList.innerHTML = cases.map((c, index) => `
         <div class="case-card" data-index="${index}">
+          ${c.court ? `<div style="font-size: 14px; color: #666; margin-bottom: 8px; font-weight: 500;">🏛️ ${c.court}</div>` : ''}
           <div class="case-title">
             <span class="plaintiff">${c.plaintiff || 'Истец не указан'}</span>
             <span style="margin: 0 8px;">vs</span>
