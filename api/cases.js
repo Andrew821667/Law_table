@@ -79,6 +79,7 @@ async function fetchCases() {
     const caseObj = {
       id: i,
       // Важные поля для отображения
+      court: row[0] || '',      // Колонка A (index 0) - Суд
       plaintiff: row[6] || '',  // Колонка G (index 6)
       defendant: row[7] || '',  // Колонка H (index 7)
       caseNumber: row[1] || '', // Колонка B (index 1)
