@@ -305,8 +305,7 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
                       daysUntil <= 3 ? '🟠 ' + daysUntil + ' дн.' :
                       '🟢 ' + daysUntil + ' дн.';
 
-      
-        message += `
+      message += `
 📅 *Дата:* ${dateStr} ${('0' + hearingDate.getHours()).slice(-2)}:${('0' + hearingDate.getMinutes()).slice(-2)}
 ⏰ ${urgency}
 
@@ -318,7 +317,7 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
 🔥 *Приоритет:* ${h.priority || 'Обычный'}
 
 `;
-      ;
+    });
 
     const keyboard = {
       inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
