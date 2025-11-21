@@ -384,14 +384,14 @@ async function fetchViaAPI() {
     if (!row[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      caseNumber: row[0] || '',
-      clientName: row[1] || '',
+      caseNumber: row[1] || '',      // Колонка B - номер дела в суде
+      clientName: row[2] || '',
       caseType: row[2] || '',
-      status: row[3] || '',
-      court: row[4] || '',
-      priority: row[5] || '',
-      plaintiff: row[6] || '',
-      defendant: row[7] || '',
+      status: row[3] || '',          // Колонка D - статус
+      court: row[4] || '',           // Колонка E - суд
+      priority: row[5] || '',        // Колонка F - приоритет
+      plaintiff: row[6] || '',       // Колонка G - истец
+      defendant: row[7] || '',       // Колонка H - ответчик
       claimAmount: row[8] || '',
       filingDate: row[9] || null,
       incidentDate: row[10] || null,
@@ -448,14 +448,14 @@ function parseCSVToCases(csvText) {
     if (!cols[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      caseNumber: cols[0] || '',
-      clientName: cols[1] || '',
+      caseNumber: cols[1] || '',      // Колонка B - номер дела в суде
+      clientName: cols[2] || '',
       caseType: cols[2] || '',
-      status: cols[3] || '',
-      court: cols[4] || '',
-      priority: cols[5] || '',
-      plaintiff: cols[6] || '',
-      defendant: cols[7] || '',
+      status: cols[3] || '',          // Колонка D - статус
+      court: cols[4] || '',           // Колонка E - суд
+      priority: cols[5] || '',        // Колонка F - приоритет
+      plaintiff: cols[6] || '',       // Колонка G - истец
+      defendant: cols[7] || '',       // Колонка H - ответчик
       claimAmount: cols[8] || '',
       filingDate: cols[9] || null,
       incidentDate: cols[10] || null,
