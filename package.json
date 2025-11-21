@@ -1,13 +1,12 @@
 {
   "name": "law-table-telegram-bot",
   "version": "2.0.0",
-  "description": "Telegram бот для управления судебными делами - деплой на Vercel с прямым доступом к Google Sheets",
-  "main": "api/bot.js",
+  "description": "Telegram бот для управления судебными делами с системой уведомлений и ролей",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "scheduler": "node scheduler.js",
-    "dev": "vercel dev",
-    "deploy": "vercel --prod",
+    "dev": "node server.js",
     "test": "node api/health.js",
     "lint": "echo '✅ Lint check passed (no linter configured yet)'"
   },
@@ -26,9 +25,10 @@
   "keywords": [
     "telegram",
     "bot",
-    "vercel",
-    "serverless",
-    "google-sheets"
+    "vps",
+    "google-sheets",
+    "notifications",
+    "roles"
   ],
   "author": "",
   "license": "MIT"
