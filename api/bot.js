@@ -233,15 +233,15 @@ _Legal Cases Management System_
  */
 
 /**
- * Парсить дату в формате ДД.ММ.ГГГГ, ЧЧ:ММ
+ * Парсить дату в формате ММ.ДД.ГГГГ, ЧЧ:ММ (месяц.день.год)
  */
 function parseDate(dateStr) {
   if (!dateStr) return null;
   const cleaned = dateStr.split('✅')[0].trim();
   const m = cleaned.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,?\s*(\d{1,2}):(\d{2}))?/);
   if (!m) return null;
-  // m[1] = день, m[2] = месяц, m[3] = год
-  return new Date(Date.UTC(m[3], m[2]-1, m[1], m[4]||0, m[5]||0));
+  // m[1] = месяц, m[2] = день, m[3] = год
+  return new Date(Date.UTC(m[3], m[1]-1, m[2], m[4]||0, m[5]||0));
 }
 async function showUpcomingHearings(bot, chatId, messageId) {
   try {
