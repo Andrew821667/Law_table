@@ -6,6 +6,7 @@
  */
 
 const TelegramBot = require('node-telegram-bot-api');
+const { checkPermission, getUserRole, getRoleObject, formatPermissions } = require('./roles');
 
 // Telegram Bot Token из переменных окружения
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -125,6 +126,10 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await handleRescheduleHearing(bot, chatId, messageId);
       break;
 
+    case 'my_profile':
+      await showUserProfile(bot, chatId, messageId);
+      break;
+
     case 'back_main':
       // Удаляем текущее сообщение
       await bot.deleteMessage(chatId, messageId).catch(() => {});
@@ -144,6 +149,10 @@ async function handleCallbackQuery(bot, callbackQuery) {
  * Отправить главное меню
  */
 async function sendMainMenu(bot, chatId) {
+  // Получаем роль пользователя
+  const userData = await getUserRole(chatId);
+  const role = getRoleObject(userData.role);
+
   // Получаем базовый URL для Mini App
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
   const webAppUrl = `${baseUrl}/app`;
@@ -151,7 +160,8 @@ async function sendMainMenu(bot, chatId) {
   const welcomeMessage = `⚖️ *СИСТЕМА УПРАВЛЕНИЯ ДЕЛАМИ*
 _Legal Cases Management System_
 
-Добро пожаловать в систему управления судебными делами!
+Добро пожаловать, ${userData.name || 'пользователь'}!
+Ваша роль: ${role.displayName}
 
 *Ваш помощник для:*
 📋 Управления судебными делами
@@ -159,34 +169,53 @@ _Legal Cases Management System_
 🔍 Быстрого поиска информации
 📊 Контроля сроков и дедлайнов
 
-*Возможности:*
-• Просмотр предстоящих заседаний
-• Фильтрация по статусу, приоритету, юристу
-• Поиск дел по номеру
-• Добавление и перенос заседаний
-• Полный доступ к картам дел
-• Уведомления по срокам
-
 Выберите действие ниже ⬇️`;
 
-  const keyboard = {
-    inline_keyboard: [
-      [
-        { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
-      ],
-      [
-        { text: '📅 Заседания', callback_data: 'view_hearings' },
-        { text: '🔍 Поиск дела', callback_data: 'search_case' }
-      ],
-      [
-        { text: '🎯 Фильтры', callback_data: 'show_filters' },
-        { text: '➕ Добавить дату', callback_data: 'add_date' }
-      ],
-      [
-        { text: '🔄 Перенести заседание', callback_data: 'reschedule_hearing' }
-      ]
-    ]
-  };
+  // Динамически создаем кнопки в зависимости от прав
+  const keyboard = { inline_keyboard: [] };
+
+  // Mini App доступно всем
+  if (role.permissions.viewCases) {
+    keyboard.inline_keyboard.push([
+      { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+    ]);
+  }
+
+  // Заседания и поиск
+  const row1 = [];
+  if (role.permissions.viewCases) {
+    row1.push({ text: '📅 Заседания', callback_data: 'view_hearings' });
+  }
+  if (role.permissions.searchCases) {
+    row1.push({ text: '🔍 Поиск дела', callback_data: 'search_case' });
+  }
+  if (row1.length > 0) {
+    keyboard.inline_keyboard.push(row1);
+  }
+
+  // Фильтры и добавление даты
+  const row2 = [];
+  if (role.permissions.searchCases) {
+    row2.push({ text: '🎯 Фильтры', callback_data: 'show_filters' });
+  }
+  if (role.permissions.addDate) {
+    row2.push({ text: '➕ Добавить дату', callback_data: 'add_date' });
+  }
+  if (row2.length > 0) {
+    keyboard.inline_keyboard.push(row2);
+  }
+
+  // Перенос заседания
+  if (role.permissions.rescheduleHearing) {
+    keyboard.inline_keyboard.push([
+      { text: '🔄 Перенести заседание', callback_data: 'reschedule_hearing' }
+    ]);
+  }
+
+  // Профиль пользователя (всегда доступен)
+  keyboard.inline_keyboard.push([
+    { text: '👤 Мой профиль', callback_data: 'my_profile' }
+  ]);
 
   await bot.sendMessage(
     chatId,
@@ -515,6 +544,20 @@ async function showFiltersMenu(bot, chatId, messageId) {
  * Обработка добавления даты заседания
  */
 async function handleAddDate(bot, chatId, messageId) {
+  // Проверка прав
+  const permission = await checkPermission(chatId, 'addDate');
+  if (!permission.allowed) {
+    await bot.editMessageText(permission.message, {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+      }
+    });
+    return;
+  }
+
   const keyboard = {
     inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
   };
@@ -538,6 +581,20 @@ async function handleAddDate(bot, chatId, messageId) {
  * Обработка переноса заседания
  */
 async function handleRescheduleHearing(bot, chatId, messageId) {
+  // Проверка прав
+  const permission = await checkPermission(chatId, 'rescheduleHearing');
+  if (!permission.allowed) {
+    await bot.editMessageText(permission.message, {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+      }
+    });
+    return;
+  }
+
   const keyboard = {
     inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
   };
@@ -555,4 +612,39 @@ async function handleRescheduleHearing(bot, chatId, messageId) {
       reply_markup: keyboard
     }
   );
+}
+
+/**
+ * Показать профиль пользователя
+ */
+async function showUserProfile(bot, chatId, messageId) {
+  const userData = await getUserRole(chatId);
+  const role = getRoleObject(userData.role);
+
+  const profileMessage = `
+👤 *МОЙ ПРОФИЛЬ*
+
+*Имя:* ${userData.name || 'Не указано'}
+*Роль:* ${role.displayName}
+${userData.lawyer ? `*Юрист:* ${userData.lawyer}` : ''}
+
+*📋 Ваши права доступа:*
+
+${formatPermissions(userData.role)}
+
+_Для изменения прав обратитесь к администратору_
+  `.trim();
+
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '⬅️ Назад в меню', callback_data: 'back_main' }]
+    ]
+  };
+
+  await bot.editMessageText(profileMessage, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'Markdown',
+    reply_markup: keyboard
+  });
 }
