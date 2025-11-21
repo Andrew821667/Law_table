@@ -18,11 +18,11 @@ else
     cd /home/user/Law_table || cd ~/Law_table || cd /root/Law_table
 
     # Запустить сервер в фоне
-    nohup node api/server.js > logs/server-out.log 2> logs/server-error.log &
+    nohup node server.js > logs/server-out.log 2> logs/server-error.log &
     echo "Server PID: $!"
 
     # Запустить планировщик в фоне
-    nohup node services/scheduler.js > logs/scheduler-out.log 2> logs/scheduler-error.log &
+    nohup node scheduler.js > logs/scheduler-out.log 2> logs/scheduler-error.log &
     echo "Scheduler PID: $!"
 
     sleep 2
