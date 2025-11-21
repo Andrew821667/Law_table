@@ -256,8 +256,8 @@ async function showUpcomingHearings(bot, chatId, messageId) {
     // Фильтруем только дела с предстоящими заседаниями
     const now = new Date();
     const hearings = cases
-      .filter(c => c.hearingDate && new Date(c.hearingDate) > now)
-      .sort((a, b) => new Date(a.hearingDate) - new Date(b.hearingDate))
+      .filter(c => c.hearingDate && parseDate(c.hearingDate) > now)
+      .sort((a, b) => (parseDate(a.hearingDate) || new Date(0)) - (parseDate(b.hearingDate) || new Date(0)))
       .slice(0, 10);
 
     if (hearings.length === 0) {
