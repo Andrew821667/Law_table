@@ -231,6 +231,17 @@ _Legal Cases Management System_
  * Показать предстоящие заседания
  * Читает данные напрямую из Google Sheets через CSV
  */
+
+/**
+ * Парсить дату в формате ДД.МММ.ГГГГ, ЧЧ:ММ
+ */
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  const cleaned = dateStr.split('✅')[0].trim();
+  const m = cleaned.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,?\s*(\d{1,2}):(\d{2}))?/);
+  if (!m) return null;
+  return new Date(Date.UTC(m[3], m[2]-1, m[1], m[4]||0, m[5]||0));
+}
 async function showUpcomingHearings(bot, chatId, messageId) {
   try {
     const fetch = require('node-fetch');
