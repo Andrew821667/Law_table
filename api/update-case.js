@@ -3,34 +3,46 @@
  */
 
 const { google } = require('googleapis');
+const fs = require('fs');
+const path = require('path');
 
 // ID таблицы Google Sheets
-const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1z_W0X_tSRz0cWxB-hgfJzIUO1rYNFnJNvklD8tY3rYY';
 
 /**
  * Получить авторизованного клиента Google Sheets
  */
 async function getAuthClient() {
   try {
-    // Проверяем наличие Service Account credentials в переменных окружения
+    // Вариант 1: Использование JSON файла с credentials (приоритет)
+    const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH;
+    if (credentialsPath && fs.existsSync(credentialsPath)) {
+      const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+      const auth = new google.auth.JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      return auth;
+    }
+
+    // Вариант 2: Использование переменных окружения
     const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
     const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
 
-    if (!serviceAccountEmail || !serviceAccountKey) {
-      throw new Error(
-        'Service Account credentials не найдены. ' +
-        'Установите GOOGLE_SERVICE_ACCOUNT_EMAIL и GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY в .env файле'
-      );
+    if (serviceAccountEmail && serviceAccountKey) {
+      const auth = new google.auth.JWT({
+        email: serviceAccountEmail,
+        key: serviceAccountKey.replace(/\\n/g, '\n'),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      return auth;
     }
 
-    // Создаем JWT клиента с Service Account
-    const auth = new google.auth.JWT({
-      email: serviceAccountEmail,
-      key: serviceAccountKey.replace(/\\n/g, '\n'), // Заменяем escaped newlines
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    return auth;
+    throw new Error(
+      'Service Account credentials не найдены. ' +
+      'Установите GOOGLE_CREDENTIALS_PATH или GOOGLE_SERVICE_ACCOUNT_EMAIL/GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY'
+    );
   } catch (error) {
     console.error('[Auth] Ошибка создания auth клиента:', error.message);
     throw error;
@@ -109,7 +121,8 @@ async function updateCell(rowIndex, columnIndex, value) {
     const sheetRow = rowIndex + 1;
 
     // Диапазон для обновления (например, "B5")
-    const range = `Судебные дела!${columnLetter}${sheetRow}`;
+    const sheetName = process.env.SHEET_NAME || 'Дела';
+    const range = `${sheetName}!${columnLetter}${sheetRow}`;
 
     console.log('[API Update Case] Обновление ячейки:', range, '=', value);
 
