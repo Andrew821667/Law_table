@@ -138,6 +138,18 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await handleManualCaseInput(bot, chatId, messageId, 'reschedule');
       break;
 
+    case 'filter_status':
+      await handleFilterByStatus(bot, chatId, messageId);
+      break;
+
+    case 'filter_priority':
+      await handleFilterByPriority(bot, chatId, messageId);
+      break;
+
+    case 'filter_lawyer':
+      await handleFilterByLawyer(bot, chatId, messageId);
+      break;
+
     case 'back_main':
       // Удаляем текущее сообщение
       await bot.deleteMessage(chatId, messageId).catch(() => {});
@@ -555,15 +567,25 @@ function parseCSVLine(line) {
  * Обработка поиска дела по номеру
  */
 async function handleSearchCase(bot, chatId, messageId) {
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?search=true`;
+
   const keyboard = {
-    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
   };
 
   await bot.editMessageText(
-    '🔍 *Поиск дела по номеру*\n\n' +
-    'Отправьте номер дела в формате:\n' +
-    '`А64-5863/2025`\n\n' +
-    '_Функция в разработке..._',
+    '🔍 *Поиск дела*\n\n' +
+    'Откройте мини-приложение для поиска и просмотра дел.\n\n' +
+    '_Вы можете искать по номеру дела, истцу или ответчику_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -750,4 +772,97 @@ _Для изменения прав обратитесь к администра
     parse_mode: 'Markdown',
     reply_markup: keyboard
   });
+}
+
+/**
+ * Обработка фильтра по статусу
+ */
+async function handleFilterByStatus(bot, chatId, messageId) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?filter=status`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'show_filters' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '📊 *Фильтр по статусу*\n\n' +
+    'Откройте мини-приложение для просмотра дел.\n\n' +
+    '_В приложении вы сможете отфильтровать дела по статусу_',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Обработка фильтра по приоритету
+ */
+async function handleFilterByPriority(bot, chatId, messageId) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?filter=priority`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'show_filters' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '🎯 *Фильтр по приоритету*\n\n' +
+    'Откройте мини-приложение для просмотра дел.\n\n' +
+    '_В приложении вы сможете отфильтровать дела по приоритету_',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Обработка фильтра по юристу
+ */
+async function handleFilterByLawyer(bot, chatId, messageId) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?filter=lawyer`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'show_filters' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '👨‍⚖️ *Фильтр по юристу*\n\n' +
+    'Откройте мини-приложение для просмотра дел.\n\n' +
+    '_В приложении вы сможете отфильтровать дела по ответственному юристу_',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
 }
