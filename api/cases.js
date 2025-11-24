@@ -87,6 +87,10 @@ async function fetchCases() {
             if (cell.hyperlink) {
               const key = `${rowIndex}_${colIndex}`;
               hyperlinks[key] = cell.hyperlink;
+              // Логируем только колонки AA-AE (26-30)
+              if (colIndex >= 26 && colIndex <= 30) {
+                console.log(`[API Cases] Гиперссылка в ${String.fromCharCode(65 + colIndex)}${rowIndex + 1}:`, cell.hyperlink);
+              }
             }
           });
         }
