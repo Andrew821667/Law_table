@@ -624,7 +624,7 @@ async function handleAddDate(bot, chatId, messageId) {
 
   // Получаем базовый URL для Mini App
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
-  const webAppUrl = `${baseUrl}/app`;
+  const webAppUrl = `${baseUrl}/app?dates=true`;
 
   const keyboard = {
     inline_keyboard: [
@@ -645,7 +645,7 @@ async function handleAddDate(bot, chatId, messageId) {
     'Выберите способ выбора дела:\n\n' +
     '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
     '✏️ *Ввести номер дела* - ручной ввод номера\n\n' +
-    '_После выбора дела вы сможете добавить или изменить дату заседания_',
+    '_После выбора дела вы увидите только поля с датами_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -675,7 +675,7 @@ async function handleRescheduleHearing(bot, chatId, messageId) {
 
   // Получаем базовый URL для Mini App
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
-  const webAppUrl = `${baseUrl}/app`;
+  const webAppUrl = `${baseUrl}/app?dates=true`;
 
   const keyboard = {
     inline_keyboard: [

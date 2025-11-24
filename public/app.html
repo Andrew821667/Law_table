@@ -22,8 +22,8 @@
       --tg-theme-button-text-color: #ffffff;
       --tg-theme-secondary-bg-color: #e0e0e0;
 
-      /* Матовые светло-серые ячейки */
-      --cell-bg: #d8d8d8;
+      /* Бледно-голубые ячейки */
+      --cell-bg: #B0C4DE;
 
       /* Простые тени без 3D */
       --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -127,7 +127,7 @@
 
     .case-subtitle {
       font-size: 24px;
-      color: #8b0000;
+      color: #8B4513;
       margin-bottom: 8px;
       position: relative;
       z-index: 1;
@@ -136,7 +136,7 @@
 
     .case-court {
       font-size: 21px;
-      color: #555;
+      color: #8B4513;
       margin-bottom: 12px;
       position: relative;
       z-index: 1;
@@ -509,8 +509,24 @@
         <span class="defendant">${caseData.defendant}</span>
       `;
 
-      fieldsGrid.innerHTML = caseData.fields.map((field, index) => `
-        <div class="field-button" data-index="${index}">
+      // Проверяем URL параметр для фильтрации только дат
+      const urlParams = new URLSearchParams(window.location.search);
+      const datesOnly = urlParams.has('dates') || urlParams.has('search');
+
+      // Фильтруем поля - только даты если указан параметр
+      let fieldsToShow = caseData.fields;
+      if (datesOnly) {
+        fieldsToShow = caseData.fields.filter(field => {
+          const label = field.label.toLowerCase();
+          return label.includes('дата') ||
+                 label.includes('date') ||
+                 label.includes('заседан') ||
+                 label.includes('слушан');
+        });
+      }
+
+      fieldsGrid.innerHTML = fieldsToShow.map((field, index) => `
+        <div class="field-button" data-index="${caseData.fields.indexOf(field)}">
           <div class="field-label">${field.label}</div>
           <div class="field-value">${field.value || 'Не указано'}</div>
         </div>
