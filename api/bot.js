@@ -315,14 +315,28 @@ async function handleManualCaseInput(bot, chatId, messageId, action) {
  */
 
 /**
- * Парсить дату в формате ДД.МММ.ГГГГ, ЧЧ:ММ
+ * Парсить дату в формате ДД.ММ.ГГГГ, ЧЧ:ММ с учетом московского времени
  */
 function parseDate(dateStr) {
   if (!dateStr) return null;
   const cleaned = dateStr.split('✅')[0].trim();
   const m = cleaned.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,?\s*(\d{1,2}):(\d{2}))?/);
   if (!m) return null;
-  return new Date(Date.UTC(m[3], m[2]-1, m[1], m[4]||0, m[5]||0));
+
+  // Создаем дату в московском часовом поясе (UTC+3)
+  const year = parseInt(m[3]);
+  const month = parseInt(m[2]) - 1; // месяцы с 0
+  const day = parseInt(m[1]);
+  const hour = parseInt(m[4] || 0);
+  const minute = parseInt(m[5] || 0);
+
+  // Создаем дату как московское время и конвертируем в UTC для сравнения
+  const moscowDate = new Date(year, month, day, hour, minute);
+  const moscowOffset = 3 * 60; // Москва UTC+3
+  const localOffset = moscowDate.getTimezoneOffset(); // offset местного времени
+  const utcTime = moscowDate.getTime() - (moscowOffset + localOffset) * 60 * 1000;
+
+  return new Date(utcTime);
 }
 async function showUpcomingHearings(bot, chatId, messageId) {
   try {
