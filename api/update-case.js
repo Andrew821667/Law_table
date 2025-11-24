@@ -16,12 +16,8 @@ async function getAuthClient() {
   try {
     // Вариант 1: Использование JSON файла с credentials (приоритет)
     const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH;
-    console.log('[Auth] GOOGLE_CREDENTIALS_PATH:', credentialsPath);
-    console.log('[Auth] Файл существует:', credentialsPath && fs.existsSync(credentialsPath));
-
     if (credentialsPath && fs.existsSync(credentialsPath)) {
       const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-      console.log('[Auth] Используем Service Account:', credentials.client_email);
       const auth = new google.auth.JWT({
         email: credentials.client_email,
         key: credentials.private_key,
@@ -128,8 +124,6 @@ async function updateCell(rowIndex, columnIndex, value) {
     const sheetName = process.env.SHEET_NAME || 'Дела';
     const range = `${sheetName}!${columnLetter}${sheetRow}`;
 
-    console.log('[API Update Case] SPREADSHEET_ID:', SPREADSHEET_ID);
-    console.log('[API Update Case] SHEET_NAME:', sheetName);
     console.log('[API Update Case] Обновление ячейки:', range, '=', value);
 
     // Обновляем ячейку
@@ -147,7 +141,6 @@ async function updateCell(rowIndex, columnIndex, value) {
     return response.data;
   } catch (error) {
     console.error('[API Update Case] Ошибка обновления:', error.message);
-    console.error('[API Update Case] Полная ошибка:', JSON.stringify(error, null, 2));
 
     if (error.message.includes('credentials не найдены')) {
       throw new Error(
