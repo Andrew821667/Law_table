@@ -22,8 +22,8 @@
       --tg-theme-button-text-color: #ffffff;
       --tg-theme-secondary-bg-color: #e0e0e0;
 
-      /* Матовые светло-серые ячейки */
-      --cell-bg: #d8d8d8;
+      /* Бледно-голубые ячейки */
+      --cell-bg: #B0C4DE;
 
       /* Простые тени без 3D */
       --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -88,7 +88,7 @@
     }
 
     .case-card {
-      background: var(--cell-bg);
+      background: #E8EEF7;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 8px;
@@ -126,12 +126,21 @@
     }
 
     .case-subtitle {
-      font-size: 16px;
-      color: #8b0000;
-      margin-bottom: 12px;
+      font-size: 24px;
+      color: #8B4513;
+      margin-bottom: 8px;
       position: relative;
       z-index: 1;
       font-weight: 600;
+    }
+
+    .case-court {
+      font-size: 21px;
+      color: #8B4513;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+      font-weight: 500;
     }
 
     .case-meta {
@@ -181,7 +190,7 @@
     }
 
     .field-button {
-      background: var(--cell-bg);
+      background: #FFF8F0;
       border-radius: 12px;
       padding: 16px 12px;
       cursor: pointer;
@@ -196,15 +205,16 @@
     }
 
     .field-label {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 4px;
+      font-size: 18px;
+      color: #008B8B;
+      margin-bottom: 6px;
+      font-weight: 500;
     }
 
     .field-value {
-      font-size: 14px;
+      font-size: 20px;
       font-weight: 500;
-      color: #222;
+      color: #4169E1;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -464,12 +474,13 @@
 
       casesList.innerHTML = cases.map((c, index) => `
         <div class="case-card" data-index="${index}">
+          ${c.court ? `<div class="case-court">🏛️ ${c.court}</div>` : ''}
+          <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
           <div class="case-title">
             <span class="plaintiff">${c.plaintiff || 'Истец не указан'}</span>
             <span style="margin: 0 8px;">vs</span>
             <span class="defendant">${c.defendant || 'Ответчик не указан'}</span>
           </div>
-          <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
           <div class="case-meta">
             ${c.status ? `<div class="case-badge">${c.status}</div>` : ''}
             ${c.priority ? `<div class="case-badge">${c.priority}</div>` : ''}
@@ -498,8 +509,24 @@
         <span class="defendant">${caseData.defendant}</span>
       `;
 
-      fieldsGrid.innerHTML = caseData.fields.map((field, index) => `
-        <div class="field-button" data-index="${index}">
+      // Проверяем URL параметр для фильтрации только дат
+      const urlParams = new URLSearchParams(window.location.search);
+      const datesOnly = urlParams.has('dates') || urlParams.has('search');
+
+      // Фильтруем поля - только даты если указан параметр
+      let fieldsToShow = caseData.fields;
+      if (datesOnly) {
+        fieldsToShow = caseData.fields.filter(field => {
+          const label = field.label.toLowerCase();
+          return label.includes('дата') ||
+                 label.includes('date') ||
+                 label.includes('заседан') ||
+                 label.includes('слушан');
+        });
+      }
+
+      fieldsGrid.innerHTML = fieldsToShow.map((field, index) => `
+        <div class="field-button" data-index="${caseData.fields.indexOf(field)}">
           <div class="field-label">${field.label}</div>
           <div class="field-value">${field.value || 'Не указано'}</div>
         </div>
@@ -594,9 +621,12 @@
           cases[currentCaseIndex].fields[currentFieldIndex].value = newValue;
 
           // Обновляем отображаемые поля (plaintiff/defendant/etc)
+          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;
+          if (currentFieldIndex === 2) cases[currentCaseIndex].court = newValue;
+          if (currentFieldIndex === 3) cases[currentCaseIndex].status = newValue;
+          if (currentFieldIndex === 4) cases[currentCaseIndex].priority = newValue;
           if (currentFieldIndex === 6) cases[currentCaseIndex].plaintiff = newValue;
           if (currentFieldIndex === 7) cases[currentCaseIndex].defendant = newValue;
-          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;
 
           // Выходим из режима редактирования
           isEditMode = false;

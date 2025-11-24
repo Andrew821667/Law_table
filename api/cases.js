@@ -82,6 +82,7 @@ async function fetchCases() {
       plaintiff: row[6] || '',  // Колонка G (index 6)
       defendant: row[7] || '',  // Колонка H (index 7)
       caseNumber: row[1] || '', // Колонка B (index 1)
+      court: row[2] || '',      // Колонка C (index 2)
       status: row[3] || '',     // Колонка D (index 3)
       priority: row[4] || '',   // Колонка E (index 4)
 

@@ -2,11 +2,52 @@
  * API Endpoint для обновления данных дела в Google Sheets
  */
 
-// ID таблицы Google Sheets
-const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
+const { google } = require('googleapis');
+const fs = require('fs');
+const path = require('path');
 
-// Google API ключ (для чтения, но для записи нужен Service Account)
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyA157k12RMUz_UIbhDyuPjdj__sWpSGBZQ';
+// ID таблицы Google Sheets
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1z_W0X_tSRz0cWxB-hgfJzIUO1rYNFnJNvklD8tY3rYY';
+
+/**
+ * Получить авторизованного клиента Google Sheets
+ */
+async function getAuthClient() {
+  try {
+    // Вариант 1: Использование JSON файла с credentials (приоритет)
+    const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH;
+    if (credentialsPath && fs.existsSync(credentialsPath)) {
+      const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+      const auth = new google.auth.JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      return auth;
+    }
+
+    // Вариант 2: Использование переменных окружения
+    const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+
+    if (serviceAccountEmail && serviceAccountKey) {
+      const auth = new google.auth.JWT({
+        email: serviceAccountEmail,
+        key: serviceAccountKey.replace(/\\n/g, '\n'),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+      return auth;
+    }
+
+    throw new Error(
+      'Service Account credentials не найдены. ' +
+      'Установите GOOGLE_CREDENTIALS_PATH или GOOGLE_SERVICE_ACCOUNT_EMAIL/GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY'
+    );
+  } catch (error) {
+    console.error('[Auth] Ошибка создания auth клиента:', error.message);
+    throw error;
+  }
+}
 
 /**
  * Главный обработчик
@@ -63,60 +104,51 @@ module.exports = async (req, res) => {
 };
 
 /**
- * Обновить ячейку в Google Sheets
- *
- * ВАЖНО: Для записи в Google Sheets через API нужен Service Account
- * с правами доступа к таблице. API Key работает только для чтения.
- *
- * Для продакшена нужно:
- * 1. Создать Service Account в Google Cloud Console
- * 2. Скачать JSON ключ
- * 3. Дать доступ к таблице для email Service Account
- * 4. Использовать Google Sheets API v4 с авторизацией
+ * Обновить ячейку в Google Sheets используя Service Account
  */
 async function updateCell(rowIndex, columnIndex, value) {
-  const fetch = require('node-fetch');
+  try {
+    // Получаем авторизованного клиента
+    const auth = await getAuthClient();
 
-  // Преобразуем номер колонки в букву (A, B, C, ...)
-  const columnLetter = String.fromCharCode(65 + columnIndex);
+    // Создаем клиента Google Sheets API
+    const sheets = google.sheets({ version: 'v4', auth });
 
-  // Номер строки в Google Sheets (rowIndex + 1, т.к. строка 0 - заголовок)
-  const sheetRow = rowIndex + 1;
+    // Преобразуем номер колонки в букву (A, B, C, ...)
+    const columnLetter = String.fromCharCode(65 + columnIndex);
 
-  // Диапазон для обновления (например, "B5")
-  const range = `${columnLetter}${sheetRow}`;
+    // Номер строки в Google Sheets (rowIndex + 1, т.к. строка 0 - заголовок)
+    const sheetRow = rowIndex + 1;
 
-  console.log('[API Update Case] Обновление ячейки:', range, '=', value);
+    // Диапазон для обновления (например, "B5")
+    const sheetName = process.env.SHEET_NAME || 'Дела';
+    const range = `${sheetName}!${columnLetter}${sheetRow}`;
 
-  // ВРЕМЕННОЕ РЕШЕНИЕ: Используем Google Sheets API v4 для обновления
-  // Это работает только если API Key имеет права на запись (обычно нет)
-  // В продакшене нужно использовать Service Account
+    console.log('[API Update Case] Обновление ячейки:', range, '=', value);
 
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?valueInputOption=RAW&key=${GOOGLE_API_KEY}`;
+    // Обновляем ячейку
+    const response = await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: range,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[value]]
+      }
+    });
 
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      values: [[value]]
-    })
-  });
+    console.log('[API Update Case] Ячейка обновлена:', response.data);
 
-  if (!response.ok) {
-    const error = await response.text();
+    return response.data;
+  } catch (error) {
+    console.error('[API Update Case] Ошибка обновления:', error.message);
 
-    // Если ошибка 403 - нет прав на запись
-    if (response.status === 403) {
-      throw new Error('API Key не имеет прав на запись. Необходим Service Account для редактирования ячеек.');
+    if (error.message.includes('credentials не найдены')) {
+      throw new Error(
+        'Редактирование недоступно: не настроен Service Account. ' +
+        'Обратитесь к администратору для настройки прав доступа.'
+      );
     }
 
-    throw new Error(`Google Sheets API error: ${response.status} - ${error}`);
+    throw new Error(`Ошибка обновления ячейки: ${error.message}`);
   }
-
-  const data = await response.json();
-  console.log('[API Update Case] Ячейка обновлена:', data);
-
-  return data;
 }

@@ -130,6 +130,30 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await showUserProfile(bot, chatId, messageId);
       break;
 
+    case 'add_date_manual':
+      await handleManualCaseInput(bot, chatId, messageId, 'add_date');
+      break;
+
+    case 'reschedule_manual':
+      await handleManualCaseInput(bot, chatId, messageId, 'reschedule');
+      break;
+
+    case 'search_manual':
+      await handleManualCaseInput(bot, chatId, messageId, 'search');
+      break;
+
+    case 'filter_status':
+      await handleFilterByStatus(bot, chatId, messageId);
+      break;
+
+    case 'filter_priority':
+      await handleFilterByPriority(bot, chatId, messageId);
+      break;
+
+    case 'filter_lawyer':
+      await handleFilterByLawyer(bot, chatId, messageId);
+      break;
+
     case 'back_main':
       // Удаляем текущее сообщение
       await bot.deleteMessage(chatId, messageId).catch(() => {});
@@ -228,19 +252,91 @@ _Legal Cases Management System_
 }
 
 /**
+ * Обработка ручного ввода номера дела
+ */
+async function handleManualCaseInput(bot, chatId, messageId, action) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+
+  let actionText, backCallback, instructionText;
+
+  if (action === 'add_date') {
+    actionText = 'добавления даты';
+    backCallback = 'add_date';
+    instructionText = `1. Нажмите "🔍 Открыть поиск"\n` +
+                     `2. В мини-приложении используйте поиск по номеру дела\n` +
+                     `3. Выберите нужное дело из результатов\n` +
+                     `4. Перейдите к полю "Дата заседания" и измените его\n\n` +
+                     `_Двойной клик по полю откроет редактор_`;
+  } else if (action === 'reschedule') {
+    actionText = 'переноса заседания';
+    backCallback = 'reschedule_hearing';
+    instructionText = `1. Нажмите "🔍 Открыть поиск"\n` +
+                     `2. В мини-приложении используйте поиск по номеру дела\n` +
+                     `3. Выберите нужное дело из результатов\n` +
+                     `4. Перейдите к полю "Дата заседания" и измените его\n\n` +
+                     `_Двойной клик по полю откроет редактор_`;
+  } else if (action === 'search') {
+    actionText = 'поиска';
+    backCallback = 'search_case';
+    instructionText = `1. Нажмите "🔍 Открыть поиск"\n` +
+                     `2. В мини-приложении используйте поиск по номеру дела\n` +
+                     `3. Выберите нужное дело из результатов\n` +
+                     `4. Просмотрите информацию о деле\n\n` +
+                     `_Вы можете искать по номеру дела, истцу или ответчику_`;
+  }
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '🔍 Открыть поиск', web_app: { url: `${baseUrl}/app?search=true` } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: backCallback }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    `✏️ *Ручной ввод номера дела*\n\n` +
+    `Для ${actionText}:\n\n` +
+    instructionText,
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
  * Показать предстоящие заседания
  * Читает данные напрямую из Google Sheets через CSV
  */
 
 /**
- * Парсить дату в формате ДД.МММ.ГГГГ, ЧЧ:ММ
+ * Парсить дату в формате ДД.ММ.ГГГГ, ЧЧ:ММ с учетом московского времени
  */
 function parseDate(dateStr) {
   if (!dateStr) return null;
   const cleaned = dateStr.split('✅')[0].trim();
   const m = cleaned.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,?\s*(\d{1,2}):(\d{2}))?/);
   if (!m) return null;
-  return new Date(Date.UTC(m[3], m[2]-1, m[1], m[4]||0, m[5]||0));
+
+  // Создаем дату в московском часовом поясе (UTC+3)
+  const year = parseInt(m[3]);
+  const month = parseInt(m[2]) - 1; // месяцы с 0
+  const day = parseInt(m[1]);
+  const hour = parseInt(m[4] || 0);
+  const minute = parseInt(m[5] || 0);
+
+  // Создаем дату как московское время и конвертируем в UTC для сравнения
+  const moscowDate = new Date(year, month, day, hour, minute);
+  const moscowOffset = 3 * 60; // Москва UTC+3
+  const localOffset = moscowDate.getTimezoneOffset(); // offset местного времени
+  const utcTime = moscowDate.getTime() - (moscowOffset + localOffset) * 60 * 1000;
+
+  return new Date(utcTime);
 }
 async function showUpcomingHearings(bot, chatId, messageId) {
   try {
@@ -290,13 +386,16 @@ async function showUpcomingHearings(bot, chatId, messageId) {
     // Формируем сообщение
 let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
     hearings.forEach((h, i) => {
-      const hearingDate = new Date(h.hearingDate);
+      const hearingDate = parseDate(h.hearingDate);
+      if (!hearingDate) return; // Пропускаем, если дата не распарсилась
+
       const dateStr = hearingDate.toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'Europe/Moscow'
       });
 
       const daysUntil = Math.ceil((hearingDate - now) / (1000 * 60 * 60 * 24));
@@ -305,20 +404,19 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
                       daysUntil <= 3 ? '🟠 ' + daysUntil + ' дн.' :
                       '🟢 ' + daysUntil + ' дн.';
 
-      
-        message += `
-📅 *Дата:* ${dateStr} ${('0' + hearingDate.getHours()).slice(-2)}:${('0' + hearingDate.getMinutes()).slice(-2)}
+      message += `
+📅 *Дата:* ${dateStr}
 ⏰ ${urgency}
 
-📋 *Дело:* ${h.caseNumber || 'Без номера'}
 🏛️ *Суд:* ${h.court || 'Суд не указан'}
+📋 *Дело:* ${h.caseNumber || 'Без номера'}
 
 👤 *Истец:* ${h.plaintiff || 'Не указан'}
 👤 *Ответчик:* ${h.defendant || 'Не указан'}
 🔥 *Приоритет:* ${h.priority || 'Обычный'}
 
 `;
-      ;
+    });
 
     const keyboard = {
       inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
@@ -384,12 +482,12 @@ async function fetchViaAPI() {
     if (!row[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      caseNumber: row[0] || '',
-      clientName: row[1] || '',
-      caseType: row[2] || '',
+      clientName: row[0] || '',
+      caseNumber: row[1] || '',
+      court: row[2] || '',
       status: row[3] || '',
-      court: row[4] || '',
-      priority: row[5] || '',
+      priority: row[4] || '',
+      caseType: row[5] || '',
       plaintiff: row[6] || '',
       defendant: row[7] || '',
       claimAmount: row[8] || '',
@@ -448,12 +546,12 @@ function parseCSVToCases(csvText) {
     if (!cols[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      caseNumber: cols[0] || '',
-      clientName: cols[1] || '',
-      caseType: cols[2] || '',
+      clientName: cols[0] || '',
+      caseNumber: cols[1] || '',
+      court: cols[2] || '',
       status: cols[3] || '',
-      court: cols[4] || '',
-      priority: cols[5] || '',
+      priority: cols[4] || '',
+      caseType: cols[5] || '',
       plaintiff: cols[6] || '',
       defendant: cols[7] || '',
       claimAmount: cols[8] || '',
@@ -510,15 +608,30 @@ function parseCSVLine(line) {
  * Обработка поиска дела по номеру
  */
 async function handleSearchCase(bot, chatId, messageId) {
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?search=true`;
+
   const keyboard = {
-    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+    inline_keyboard: [
+      [
+        { text: '📱 Выбрать из списка', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '✏️ Ввести номер дела', callback_data: 'search_manual' }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
   };
 
   await bot.editMessageText(
-    '🔍 *Поиск дела по номеру*\n\n' +
-    'Отправьте номер дела в формате:\n' +
-    '`А64-5863/2025`\n\n' +
-    '_Функция в разработке..._',
+    '🔍 *Поиск дела*\n\n' +
+    'Выберите способ поиска дела:\n\n' +
+    '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
+    '✏️ *Ввести номер дела* - ручной ввод номера для поиска\n\n' +
+    '_Вы можете искать по номеру дела, истцу или ответчику_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -577,16 +690,30 @@ async function handleAddDate(bot, chatId, messageId) {
     return;
   }
 
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?dates=true`;
+
   const keyboard = {
-    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+    inline_keyboard: [
+      [
+        { text: '📱 Выбрать из списка', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '✏️ Ввести номер дела', callback_data: 'add_date_manual' }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
   };
 
   await bot.editMessageText(
     '➕ *Добавление даты заседания*\n\n' +
-    'Для добавления даты заседания:\n' +
-    '1. Укажите номер дела\n' +
-    '2. Укажите дату и время\n\n' +
-    '_Функция в разработке..._',
+    'Выберите способ выбора дела:\n\n' +
+    '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
+    '✏️ *Ввести номер дела* - ручной ввод номера\n\n' +
+    '_После выбора дела вы увидите только поля с датами_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -614,16 +741,30 @@ async function handleRescheduleHearing(bot, chatId, messageId) {
     return;
   }
 
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?dates=true`;
+
   const keyboard = {
-    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+    inline_keyboard: [
+      [
+        { text: '📱 Выбрать из списка', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '✏️ Ввести номер дела', callback_data: 'reschedule_manual' }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
   };
 
   await bot.editMessageText(
     '🔄 *Перенос заседания*\n\n' +
-    'Для переноса заседания:\n' +
-    '1. Выберите дело\n' +
-    '2. Укажите новую дату и время\n\n' +
-    '_Функция в разработке..._',
+    'Выберите способ выбора дела:\n\n' +
+    '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
+    '✏️ *Ввести номер дела* - ручной ввод номера\n\n' +
+    '_После выбора дела вы сможете изменить дату заседания_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -677,4 +818,97 @@ _Для изменения прав обратитесь к администра
     parse_mode: 'Markdown',
     reply_markup: keyboard
   });
+}
+
+/**
+ * Обработка фильтра по статусу
+ */
+async function handleFilterByStatus(bot, chatId, messageId) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?filter=status`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'show_filters' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '📊 *Фильтр по статусу*\n\n' +
+    'Откройте мини-приложение для просмотра дел.\n\n' +
+    '_В приложении вы сможете отфильтровать дела по статусу_',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Обработка фильтра по приоритету
+ */
+async function handleFilterByPriority(bot, chatId, messageId) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?filter=priority`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'show_filters' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '🎯 *Фильтр по приоритету*\n\n' +
+    'Откройте мини-приложение для просмотра дел.\n\n' +
+    '_В приложении вы сможете отфильтровать дела по приоритету_',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
+}
+
+/**
+ * Обработка фильтра по юристу
+ */
+async function handleFilterByLawyer(bot, chatId, messageId) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app?filter=lawyer`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'show_filters' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    '👨‍⚖️ *Фильтр по юристу*\n\n' +
+    'Откройте мини-приложение для просмотра дел.\n\n' +
+    '_В приложении вы сможете отфильтровать дела по ответственному юристу_',
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    }
+  );
 }
