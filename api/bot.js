@@ -130,6 +130,14 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await showUserProfile(bot, chatId, messageId);
       break;
 
+    case 'add_date_manual':
+      await handleManualCaseInput(bot, chatId, messageId, 'add_date');
+      break;
+
+    case 'reschedule_manual':
+      await handleManualCaseInput(bot, chatId, messageId, 'reschedule');
+      break;
+
     case 'back_main':
       // Удаляем текущее сообщение
       await bot.deleteMessage(chatId, messageId).catch(() => {});
@@ -223,6 +231,41 @@ _Legal Cases Management System_
     {
       reply_markup: keyboard,
       parse_mode: 'Markdown'
+    }
+  );
+}
+
+/**
+ * Обработка ручного ввода номера дела
+ */
+async function handleManualCaseInput(bot, chatId, messageId, action) {
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const actionText = action === 'add_date' ? 'добавления даты' : 'переноса заседания';
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: '🔍 Открыть поиск', web_app: { url: `${baseUrl}/app?search=true` } }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: action === 'add_date' ? 'add_date' : 'reschedule_hearing' }
+      ]
+    ]
+  };
+
+  await bot.editMessageText(
+    `✏️ *Ручной ввод номера дела*\n\n` +
+    `Для ${actionText}:\n\n` +
+    `1. Нажмите "🔍 Открыть поиск"\n` +
+    `2. В мини-приложении используйте поиск по номеру дела\n` +
+    `3. Выберите нужное дело из результатов\n` +
+    `4. Перейдите к полю "Дата заседания" и измените его\n\n` +
+    `_Двойной клик по полю откроет редактор_`,
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
     }
   );
 }
@@ -579,16 +622,30 @@ async function handleAddDate(bot, chatId, messageId) {
     return;
   }
 
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app`;
+
   const keyboard = {
-    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+    inline_keyboard: [
+      [
+        { text: '📱 Выбрать из списка', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '✏️ Ввести номер дела', callback_data: 'add_date_manual' }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
   };
 
   await bot.editMessageText(
     '➕ *Добавление даты заседания*\n\n' +
-    'Для добавления даты заседания:\n' +
-    '1. Укажите номер дела\n' +
-    '2. Укажите дату и время\n\n' +
-    '_Функция в разработке..._',
+    'Выберите способ выбора дела:\n\n' +
+    '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
+    '✏️ *Ввести номер дела* - ручной ввод номера\n\n' +
+    '_После выбора дела вы сможете добавить или изменить дату заседания_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -616,16 +673,30 @@ async function handleRescheduleHearing(bot, chatId, messageId) {
     return;
   }
 
+  // Получаем базовый URL для Mini App
+  const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
+  const webAppUrl = `${baseUrl}/app`;
+
   const keyboard = {
-    inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]
+    inline_keyboard: [
+      [
+        { text: '📱 Выбрать из списка', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '✏️ Ввести номер дела', callback_data: 'reschedule_manual' }
+      ],
+      [
+        { text: '⬅️ Назад', callback_data: 'back_main' }
+      ]
+    ]
   };
 
   await bot.editMessageText(
     '🔄 *Перенос заседания*\n\n' +
-    'Для переноса заседания:\n' +
-    '1. Выберите дело\n' +
-    '2. Укажите новую дату и время\n\n' +
-    '_Функция в разработке..._',
+    'Выберите способ выбора дела:\n\n' +
+    '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
+    '✏️ *Ввести номер дела* - ручной ввод номера\n\n' +
+    '_После выбора дела вы сможете изменить дату заседания_',
     {
       chat_id: chatId,
       message_id: messageId,
