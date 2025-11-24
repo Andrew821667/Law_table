@@ -290,13 +290,16 @@ async function showUpcomingHearings(bot, chatId, messageId) {
     // Формируем сообщение
 let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
     hearings.forEach((h, i) => {
-      const hearingDate = new Date(h.hearingDate);
+      const hearingDate = parseDate(h.hearingDate);
+      if (!hearingDate) return; // Пропускаем, если дата не распарсилась
+
       const dateStr = hearingDate.toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'Europe/Moscow'
       });
 
       const daysUntil = Math.ceil((hearingDate - now) / (1000 * 60 * 60 * 24));
@@ -305,9 +308,8 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
                       daysUntil <= 3 ? '🟠 ' + daysUntil + ' дн.' :
                       '🟢 ' + daysUntil + ' дн.';
 
-      
-        message += `
-📅 *Дата:* ${dateStr} ${('0' + hearingDate.getHours()).slice(-2)}:${('0' + hearingDate.getMinutes()).slice(-2)}
+      message += `
+📅 *Дата:* ${dateStr}
 ⏰ ${urgency}
 
 📋 *Дело:* ${h.caseNumber || 'Без номера'}
@@ -318,7 +320,7 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
 🔥 *Приоритет:* ${h.priority || 'Обычный'}
 
 `;
-      ;
+    });
 
     const keyboard = {
       inline_keyboard: [[{ text: '⬅️ Назад', callback_data: 'back_main' }]]

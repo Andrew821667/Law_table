@@ -128,10 +128,19 @@
     .case-subtitle {
       font-size: 16px;
       color: #8b0000;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       position: relative;
       z-index: 1;
       font-weight: 600;
+    }
+
+    .case-court {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+      font-weight: 500;
     }
 
     .case-meta {
@@ -470,6 +479,7 @@
             <span class="defendant">${c.defendant || 'Ответчик не указан'}</span>
           </div>
           <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
+          ${c.court ? `<div class="case-court">🏛️ ${c.court}</div>` : ''}
           <div class="case-meta">
             ${c.status ? `<div class="case-badge">${c.status}</div>` : ''}
             ${c.priority ? `<div class="case-badge">${c.priority}</div>` : ''}
@@ -594,9 +604,12 @@
           cases[currentCaseIndex].fields[currentFieldIndex].value = newValue;
 
           // Обновляем отображаемые поля (plaintiff/defendant/etc)
+          if (currentFieldIndex === 0) cases[currentCaseIndex].caseNumber = newValue;
+          if (currentFieldIndex === 3) cases[currentCaseIndex].status = newValue;
+          if (currentFieldIndex === 4) cases[currentCaseIndex].court = newValue;
+          if (currentFieldIndex === 5) cases[currentCaseIndex].priority = newValue;
           if (currentFieldIndex === 6) cases[currentCaseIndex].plaintiff = newValue;
           if (currentFieldIndex === 7) cases[currentCaseIndex].defendant = newValue;
-          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;
 
           // Выходим из режима редактирования
           isEditMode = false;
