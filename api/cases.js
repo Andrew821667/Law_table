@@ -48,30 +48,62 @@ module.exports = async (req, res) => {
 async function fetchCases() {
   const fetch = require('node-fetch');
 
+  // Получаем значения
   const range = 'A:AE'; // Все 31 колонки из "Активные дела"
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
+  const valuesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API Cases] Запрос к Google Sheets API v4');
 
-  const response = await fetch(url);
+  const valuesResponse = await fetch(valuesUrl);
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Google Sheets API error: ${response.status} - ${error}`);
+  if (!valuesResponse.ok) {
+    const error = await valuesResponse.text();
+    throw new Error(`Google Sheets API error: ${valuesResponse.status} - ${error}`);
   }
 
-  const data = await response.json();
+  const valuesData = await valuesResponse.json();
 
-  if (!data.values || data.values.length < 2) {
+  if (!valuesData.values || valuesData.values.length < 2) {
     return [];
   }
 
+  // Получаем данные с гиперссылками
+  const sheetName = process.env.SHEET_NAME || 'Активные дела';
+  const gridUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?ranges=${encodeURIComponent(sheetName)}!A:AE&fields=sheets(data(rowData(values(hyperlink,formattedValue))))&key=${GOOGLE_API_KEY}`;
+
+  const gridResponse = await fetch(gridUrl);
+  let hyperlinks = {};
+
+  if (gridResponse.ok) {
+    const gridData = await gridResponse.json();
+
+    // Извлекаем гиперссылки из данных
+    if (gridData.sheets && gridData.sheets[0] && gridData.sheets[0].data && gridData.sheets[0].data[0]) {
+      const rowData = gridData.sheets[0].data[0].rowData || [];
+
+      rowData.forEach((row, rowIndex) => {
+        if (row.values) {
+          row.values.forEach((cell, colIndex) => {
+            if (cell.hyperlink) {
+              const key = `${rowIndex}_${colIndex}`;
+              hyperlinks[key] = cell.hyperlink;
+              // Логируем только колонки AA-AE (26-30)
+              if (colIndex >= 26 && colIndex <= 30) {
+                console.log(`[API Cases] Гиперссылка в ${String.fromCharCode(65 + colIndex)}${rowIndex + 1}:`, cell.hyperlink);
+              }
+            }
+          });
+        }
+      });
+    }
+  }
+
   const cases = [];
-  const headers = data.values[0]; // Заголовки
+  const headers = valuesData.values[0]; // Заголовки
 
   // Пропускаем заголовок (строка 0)
-  for (let i = 1; i < data.values.length; i++) {
-    const row = data.values[i];
+  for (let i = 1; i < valuesData.values.length; i++) {
+    const row = valuesData.values[i];
 
     if (!row[0]) continue; // Пропускаем пустые строки
 
@@ -87,17 +119,24 @@ async function fetchCases() {
       priority: row[4] || '',   // Колонка E (index 4)
 
       // Динамически создаем массив полей из всех колонок
-      fields: headers.map((header, index) => ({
-        key: `col_${index}`,
-        label: header || `Колонка ${String.fromCharCode(65 + index)}`,
-        value: row[index] || ''
-      })).filter(field => field.label) // Убираем пустые заголовки
+      fields: headers.map((header, index) => {
+        const hyperlinkKey = `${i}_${index}`;
+        const hyperlink = hyperlinks[hyperlinkKey];
+
+        return {
+          key: `col_${index}`,
+          label: header || `Колонка ${String.fromCharCode(65 + index)}`,
+          value: row[index] || '',
+          hyperlink: hyperlink || null
+        };
+      }).filter(field => field.label) // Убираем пустые заголовки
     };
 
     cases.push(caseObj);
   }
 
   console.log('[API Cases] Прочитано дел:', cases.length);
+  console.log('[API Cases] Найдено гиперссылок:', Object.keys(hyperlinks).length);
 
   return cases;
 }

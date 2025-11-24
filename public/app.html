@@ -96,6 +96,7 @@
       transition: var(--transition);
       cursor: pointer;
       user-select: none;
+      border: 1.5px solid #999999;
     }
 
     .case-card:active {
@@ -197,6 +198,7 @@
       transition: var(--transition);
       text-align: left;
       box-shadow: var(--card-shadow);
+      border: 1.5px solid #999999;
     }
 
     .field-button:active {
@@ -218,6 +220,36 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    /* Google Drive ссылки */
+    .drive-link {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #4285F4;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      transition: var(--transition);
+      box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .drive-link:hover {
+      background: #3367D6;
+      box-shadow: 0 3px 6px rgba(66, 133, 244, 0.4);
+    }
+
+    .drive-link:active {
+      transform: scale(0.95);
+    }
+
+    .drive-link-icon {
+      margin-right: 6px;
     }
 
     /* Просмотр поля */
@@ -432,6 +464,23 @@
     const fieldsGrid = document.getElementById('fieldsGrid');
     const fieldContent = document.getElementById('fieldContent');
 
+    // Функция проверки и форматирования гиперссылок (включая Google Drive)
+    function hasHyperlink(field) {
+      return field && field.hyperlink;
+    }
+
+    function formatFieldValue(field) {
+      if (hasHyperlink(field)) {
+        const url = field.hyperlink;
+        const isDriveLink = url.includes('drive.google.com') || url.includes('docs.google.com');
+        const icon = isDriveLink ? '📁' : '🔗';
+        const text = isDriveLink ? 'Открыть Google Drive' : 'Открыть ссылку';
+
+        return `<button onclick="tg.openLink('${url}')" class="drive-link"><span class="drive-link-icon">${icon}</span>${text}</button>`;
+      }
+      return field.value || 'Не указано';
+    }
+
     // Загрузка дел
     async function loadCases() {
       try {
@@ -525,12 +574,24 @@
         });
       }
 
-      fieldsGrid.innerHTML = fieldsToShow.map((field, index) => `
-        <div class="field-button" data-index="${caseData.fields.indexOf(field)}">
-          <div class="field-label">${field.label}</div>
-          <div class="field-value">${field.value || 'Не указано'}</div>
-        </div>
-      `).join('');
+      fieldsGrid.innerHTML = fieldsToShow.map((field, index) => {
+        const fieldIndex = caseData.fields.indexOf(field);
+        let displayValue;
+
+        if (hasHyperlink(field)) {
+          const isDriveLink = field.hyperlink.includes('drive.google.com') || field.hyperlink.includes('docs.google.com');
+          displayValue = isDriveLink ? '📁 Google Drive' : '🔗 Ссылка';
+        } else {
+          displayValue = field.value || 'Не указано';
+        }
+
+        return `
+          <div class="field-button" data-index="${fieldIndex}">
+            <div class="field-label">${field.label}</div>
+            <div class="field-value">${displayValue}</div>
+          </div>
+        `;
+      }).join('');
 
       document.querySelectorAll('.field-button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -575,19 +636,24 @@
         document.getElementById('editTextarea').focus();
       } else {
         titleElement.textContent = field.label;
+        const formattedValue = formatFieldValue(field);
+        const isLink = hasHyperlink(field);
+
         fieldContent.innerHTML = `
           <div class="field-content-label">${field.label}</div>
-          <div class="field-content-value" id="fieldValueDisplay">${field.value || 'Не указано'}</div>
-          <div style="margin-top: 16px; padding: 12px; background: var(--steel-gradient); border-radius: 12px; font-size: 14px; color: var(--tg-theme-hint-color); text-align: center;">
+          <div class="field-content-value" id="fieldValueDisplay">${formattedValue}</div>
+          ${!isLink ? `<div style="margin-top: 16px; padding: 12px; background: var(--steel-gradient); border-radius: 12px; font-size: 14px; color: var(--tg-theme-hint-color); text-align: center;">
             💡 Двойной клик для редактирования
-          </div>
+          </div>` : ''}
         `;
 
-        // Двойной клик для редактирования
-        document.getElementById('fieldValueDisplay').addEventListener('dblclick', () => {
-          isEditMode = true;
-          renderFieldView(field);
-        });
+        // Двойной клик для редактирования (не для гиперссылок)
+        if (!isLink) {
+          document.getElementById('fieldValueDisplay').addEventListener('dblclick', () => {
+            isEditMode = true;
+            renderFieldView(field);
+          });
+        }
       }
     }
 
