@@ -96,6 +96,7 @@
       transition: var(--transition);
       cursor: pointer;
       user-select: none;
+      border: 1.5px solid #999999;
     }
 
     .case-card:active {
@@ -197,6 +198,7 @@
       transition: var(--transition);
       text-align: left;
       box-shadow: var(--card-shadow);
+      border: 1.5px solid #999999;
     }
 
     .field-button:active {
@@ -218,6 +220,33 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    /* Google Drive ссылки */
+    .drive-link {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #4285F4;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      transition: var(--transition);
+      box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+    }
+
+    .drive-link:hover {
+      background: #3367D6;
+      box-shadow: 0 3px 6px rgba(66, 133, 244, 0.4);
+    }
+
+    .drive-link:active {
+      transform: scale(0.95);
+    }
+
+    .drive-link-icon {
+      margin-right: 6px;
     }
 
     /* Просмотр поля */
@@ -432,6 +461,20 @@
     const fieldsGrid = document.getElementById('fieldsGrid');
     const fieldContent = document.getElementById('fieldContent');
 
+    // Функция проверки и форматирования Google Drive ссылок
+    function isGoogleDriveLink(value) {
+      if (!value) return false;
+      return value.includes('drive.google.com') || value.includes('docs.google.com');
+    }
+
+    function formatDriveLink(value) {
+      if (isGoogleDriveLink(value)) {
+        const url = value.trim();
+        return `<a href="${url}" target="_blank" class="drive-link"><span class="drive-link-icon">📁</span>Открыть Google Drive</a>`;
+      }
+      return value || 'Не указано';
+    }
+
     // Загрузка дел
     async function loadCases() {
       try {
@@ -525,12 +568,19 @@
         });
       }
 
-      fieldsGrid.innerHTML = fieldsToShow.map((field, index) => `
-        <div class="field-button" data-index="${caseData.fields.indexOf(field)}">
-          <div class="field-label">${field.label}</div>
-          <div class="field-value">${field.value || 'Не указано'}</div>
-        </div>
-      `).join('');
+      fieldsGrid.innerHTML = fieldsToShow.map((field, index) => {
+        const fieldIndex = caseData.fields.indexOf(field);
+        const displayValue = isGoogleDriveLink(field.value)
+          ? '📁 Google Drive'
+          : (field.value || 'Не указано');
+
+        return `
+          <div class="field-button" data-index="${fieldIndex}">
+            <div class="field-label">${field.label}</div>
+            <div class="field-value">${displayValue}</div>
+          </div>
+        `;
+      }).join('');
 
       document.querySelectorAll('.field-button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -575,19 +625,24 @@
         document.getElementById('editTextarea').focus();
       } else {
         titleElement.textContent = field.label;
+        const formattedValue = formatDriveLink(field.value);
+        const isDriveLink = isGoogleDriveLink(field.value);
+
         fieldContent.innerHTML = `
           <div class="field-content-label">${field.label}</div>
-          <div class="field-content-value" id="fieldValueDisplay">${field.value || 'Не указано'}</div>
-          <div style="margin-top: 16px; padding: 12px; background: var(--steel-gradient); border-radius: 12px; font-size: 14px; color: var(--tg-theme-hint-color); text-align: center;">
+          <div class="field-content-value" id="fieldValueDisplay">${formattedValue}</div>
+          ${!isDriveLink ? `<div style="margin-top: 16px; padding: 12px; background: var(--steel-gradient); border-radius: 12px; font-size: 14px; color: var(--tg-theme-hint-color); text-align: center;">
             💡 Двойной клик для редактирования
-          </div>
+          </div>` : ''}
         `;
 
-        // Двойной клик для редактирования
-        document.getElementById('fieldValueDisplay').addEventListener('dblclick', () => {
-          isEditMode = true;
-          renderFieldView(field);
-        });
+        // Двойной клик для редактирования (не для ссылок Drive)
+        if (!isDriveLink) {
+          document.getElementById('fieldValueDisplay').addEventListener('dblclick', () => {
+            isEditMode = true;
+            renderFieldView(field);
+          });
+        }
       }
     }
 
