@@ -138,6 +138,10 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await handleManualCaseInput(bot, chatId, messageId, 'reschedule');
       break;
 
+    case 'search_manual':
+      await handleManualCaseInput(bot, chatId, messageId, 'search');
+      break;
+
     case 'filter_status':
       await handleFilterByStatus(bot, chatId, messageId);
       break;
@@ -252,7 +256,34 @@ _Legal Cases Management System_
  */
 async function handleManualCaseInput(bot, chatId, messageId, action) {
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
-  const actionText = action === 'add_date' ? 'добавления даты' : 'переноса заседания';
+
+  let actionText, backCallback, instructionText;
+
+  if (action === 'add_date') {
+    actionText = 'добавления даты';
+    backCallback = 'add_date';
+    instructionText = `1. Нажмите "🔍 Открыть поиск"\n` +
+                     `2. В мини-приложении используйте поиск по номеру дела\n` +
+                     `3. Выберите нужное дело из результатов\n` +
+                     `4. Перейдите к полю "Дата заседания" и измените его\n\n` +
+                     `_Двойной клик по полю откроет редактор_`;
+  } else if (action === 'reschedule') {
+    actionText = 'переноса заседания';
+    backCallback = 'reschedule_hearing';
+    instructionText = `1. Нажмите "🔍 Открыть поиск"\n` +
+                     `2. В мини-приложении используйте поиск по номеру дела\n` +
+                     `3. Выберите нужное дело из результатов\n` +
+                     `4. Перейдите к полю "Дата заседания" и измените его\n\n` +
+                     `_Двойной клик по полю откроет редактор_`;
+  } else if (action === 'search') {
+    actionText = 'поиска';
+    backCallback = 'search_case';
+    instructionText = `1. Нажмите "🔍 Открыть поиск"\n` +
+                     `2. В мини-приложении используйте поиск по номеру дела\n` +
+                     `3. Выберите нужное дело из результатов\n` +
+                     `4. Просмотрите информацию о деле\n\n` +
+                     `_Вы можете искать по номеру дела, истцу или ответчику_`;
+  }
 
   const keyboard = {
     inline_keyboard: [
@@ -260,7 +291,7 @@ async function handleManualCaseInput(bot, chatId, messageId, action) {
         { text: '🔍 Открыть поиск', web_app: { url: `${baseUrl}/app?search=true` } }
       ],
       [
-        { text: '⬅️ Назад', callback_data: action === 'add_date' ? 'add_date' : 'reschedule_hearing' }
+        { text: '⬅️ Назад', callback_data: backCallback }
       ]
     ]
   };
@@ -268,11 +299,7 @@ async function handleManualCaseInput(bot, chatId, messageId, action) {
   await bot.editMessageText(
     `✏️ *Ручной ввод номера дела*\n\n` +
     `Для ${actionText}:\n\n` +
-    `1. Нажмите "🔍 Открыть поиск"\n` +
-    `2. В мини-приложении используйте поиск по номеру дела\n` +
-    `3. Выберите нужное дело из результатов\n` +
-    `4. Перейдите к полю "Дата заседания" и измените его\n\n` +
-    `_Двойной клик по полю откроет редактор_`,
+    instructionText,
     {
       chat_id: chatId,
       message_id: messageId,
@@ -574,7 +601,10 @@ async function handleSearchCase(bot, chatId, messageId) {
   const keyboard = {
     inline_keyboard: [
       [
-        { text: '📱 Открыть список дел', web_app: { url: webAppUrl } }
+        { text: '📱 Выбрать из списка', web_app: { url: webAppUrl } }
+      ],
+      [
+        { text: '✏️ Ввести номер дела', callback_data: 'search_manual' }
       ],
       [
         { text: '⬅️ Назад', callback_data: 'back_main' }
@@ -584,7 +614,9 @@ async function handleSearchCase(bot, chatId, messageId) {
 
   await bot.editMessageText(
     '🔍 *Поиск дела*\n\n' +
-    'Откройте мини-приложение для поиска и просмотра дел.\n\n' +
+    'Выберите способ поиска дела:\n\n' +
+    '📱 *Выбрать из списка* - откроет мини-приложение со всеми делами\n' +
+    '✏️ *Ввести номер дела* - ручной ввод номера для поиска\n\n' +
     '_Вы можете искать по номеру дела, истцу или ответчику_',
     {
       chat_id: chatId,
