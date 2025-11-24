@@ -473,13 +473,13 @@
 
       casesList.innerHTML = cases.map((c, index) => `
         <div class="case-card" data-index="${index}">
+          ${c.court ? `<div class="case-court">🏛️ ${c.court}</div>` : ''}
+          <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
           <div class="case-title">
             <span class="plaintiff">${c.plaintiff || 'Истец не указан'}</span>
             <span style="margin: 0 8px;">vs</span>
             <span class="defendant">${c.defendant || 'Ответчик не указан'}</span>
           </div>
-          <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
-          ${c.court ? `<div class="case-court">🏛️ ${c.court}</div>` : ''}
           <div class="case-meta">
             ${c.status ? `<div class="case-badge">${c.status}</div>` : ''}
             ${c.priority ? `<div class="case-badge">${c.priority}</div>` : ''}
@@ -604,10 +604,10 @@
           cases[currentCaseIndex].fields[currentFieldIndex].value = newValue;
 
           // Обновляем отображаемые поля (plaintiff/defendant/etc)
-          if (currentFieldIndex === 0) cases[currentCaseIndex].caseNumber = newValue;
+          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;
+          if (currentFieldIndex === 2) cases[currentCaseIndex].court = newValue;
           if (currentFieldIndex === 3) cases[currentCaseIndex].status = newValue;
-          if (currentFieldIndex === 4) cases[currentCaseIndex].court = newValue;
-          if (currentFieldIndex === 5) cases[currentCaseIndex].priority = newValue;
+          if (currentFieldIndex === 4) cases[currentCaseIndex].priority = newValue;
           if (currentFieldIndex === 6) cases[currentCaseIndex].plaintiff = newValue;
           if (currentFieldIndex === 7) cases[currentCaseIndex].defendant = newValue;
 

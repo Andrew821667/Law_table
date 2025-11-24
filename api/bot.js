@@ -312,8 +312,8 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
 📅 *Дата:* ${dateStr}
 ⏰ ${urgency}
 
-📋 *Дело:* ${h.caseNumber || 'Без номера'}
 🏛️ *Суд:* ${h.court || 'Суд не указан'}
+📋 *Дело:* ${h.caseNumber || 'Без номера'}
 
 👤 *Истец:* ${h.plaintiff || 'Не указан'}
 👤 *Ответчик:* ${h.defendant || 'Не указан'}
@@ -386,12 +386,12 @@ async function fetchViaAPI() {
     if (!row[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      caseNumber: row[0] || '',
-      clientName: row[1] || '',
-      caseType: row[2] || '',
+      clientName: row[0] || '',
+      caseNumber: row[1] || '',
+      court: row[2] || '',
       status: row[3] || '',
-      court: row[4] || '',
-      priority: row[5] || '',
+      priority: row[4] || '',
+      caseType: row[5] || '',
       plaintiff: row[6] || '',
       defendant: row[7] || '',
       claimAmount: row[8] || '',
@@ -450,12 +450,12 @@ function parseCSVToCases(csvText) {
     if (!cols[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      caseNumber: cols[0] || '',
-      clientName: cols[1] || '',
-      caseType: cols[2] || '',
+      clientName: cols[0] || '',
+      caseNumber: cols[1] || '',
+      court: cols[2] || '',
       status: cols[3] || '',
-      court: cols[4] || '',
-      priority: cols[5] || '',
+      priority: cols[4] || '',
+      caseType: cols[5] || '',
       plaintiff: cols[6] || '',
       defendant: cols[7] || '',
       claimAmount: cols[8] || '',
