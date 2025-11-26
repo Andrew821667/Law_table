@@ -66,19 +66,33 @@ var HearingNotifier = (function() {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const caseNumber = row[1]; // Столбец B - Номер дела
-      const hearingDate = row[17]; // Столбец R - Дата заседания
+      let hearingDate = row[17]; // Столбец R - Дата заседания
 
-      if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
-        const hoursUntil = (hearingDate - now) / (1000 * 60 * 60);
-        const daysUntil = Math.floor(hoursUntil / 24);
+      // Обрабатываем как Date объекты, так и строки с датами
+      if (hearingDate) {
+        // Если это строка, пытаемся распарсить дату
+        if (typeof hearingDate === 'string' && hearingDate.trim()) {
+          // Парсим формат "DD.MM.YYYY, HH:MM"
+          const match = hearingDate.match(/(\d{2})\.(\d{2})\.(\d{4}),?\s*(\d{2}):(\d{2})/);
+          if (match) {
+            const [, day, month, year, hour, minute] = match;
+            hearingDate = new Date(year, month - 1, day, hour, minute);
+          } else {
+            hearingDate = null; // Неверный формат
+          }
+        }
 
-        // Проверяем нужно ли уведомление
-        const needsNotification = checkIfNeedsNotification(daysUntil, hoursUntil, schedule);
+        if (hearingDate instanceof Date && hearingDate >= now) {
+          const hoursUntil = (hearingDate - now) / (1000 * 60 * 60);
+          const daysUntil = Math.floor(hoursUntil / 24);
 
-        if (needsNotification) {
-          hearings.push({
-            caseNumber: caseNumber,
-            date: hearingDate,
+          // Проверяем нужно ли уведомление
+          const needsNotification = checkIfNeedsNotification(daysUntil, hoursUntil, schedule);
+
+          if (needsNotification) {
+            hearings.push({
+              caseNumber: caseNumber,
+              date: hearingDate,
             court: row[2] || 'Не указан',
             plaintiff: row[7] || 'Не указан',
             defendant: row[8] || 'Не указан',
@@ -330,15 +344,29 @@ var HearingNotifier = (function() {
 
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
-        const hearingDate = row[17];
+        let hearingDate = row[17];
 
-        if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
-          const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
+        // Обрабатываем как Date объекты, так и строки с датами
+        if (hearingDate) {
+          // Если это строка, пытаемся распарсить дату
+          if (typeof hearingDate === 'string' && hearingDate.trim()) {
+            // Парсим формат "DD.MM.YYYY, HH:MM"
+            const match = hearingDate.match(/(\d{2})\.(\d{2})\.(\d{4}),?\s*(\d{2}):(\d{2})/);
+            if (match) {
+              const [, day, month, year, hour, minute] = match;
+              hearingDate = new Date(year, month - 1, day, hour, minute);
+            } else {
+              hearingDate = null; // Неверный формат
+            }
+          }
 
-          if (daysUntil <= 30) { // Только заседания в ближайшие 30 дней
-            hearings.push({
-              caseNumber: row[1], // Столбец B - Номер дела
-              date: hearingDate,
+          if (hearingDate instanceof Date && hearingDate >= now) {
+            const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
+
+            if (daysUntil <= 30) { // Только заседания в ближайшие 30 дней
+              hearings.push({
+                caseNumber: row[1], // Столбец B - Номер дела
+                date: hearingDate,
               court: row[2] || 'Не указан',
               plaintiff: row[7] || 'Не указан',
               defendant: row[8] || 'Не указан',
@@ -741,12 +769,26 @@ var HearingNotifier = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const hearingDate = row[17]; // Столбец R - Дата заседания
+      let hearingDate = row[17]; // Столбец R - Дата заседания
 
-      if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
-        upcomingHearings.push({
-          caseNumber: row[1], // Столбец B - Номер дела
-          date: hearingDate,
+      // Обрабатываем как Date объекты, так и строки с датами
+      if (hearingDate) {
+        // Если это строка, пытаемся распарсить дату
+        if (typeof hearingDate === 'string' && hearingDate.trim()) {
+          // Парсим формат "DD.MM.YYYY, HH:MM"
+          const match = hearingDate.match(/(\d{2})\.(\d{2})\.(\d{4}),?\s*(\d{2}):(\d{2})/);
+          if (match) {
+            const [, day, month, year, hour, minute] = match;
+            hearingDate = new Date(year, month - 1, day, hour, minute);
+          } else {
+            hearingDate = null; // Неверный формат
+          }
+        }
+
+        if (hearingDate instanceof Date && hearingDate >= now) {
+          upcomingHearings.push({
+            caseNumber: row[1], // Столбец B - Номер дела
+            date: hearingDate,
           court: row[2] || 'Не указан',
           plaintiff: row[7] || 'Не указан',
           defendant: row[8] || 'Не указан',
