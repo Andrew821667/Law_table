@@ -665,7 +665,7 @@ var ClientDatabase = (function() {
       if (rowText.includes(clientId)) {
         cases.push({
           caseNumber: row[0],
-          court: row[4] || 'Не указан',
+          court: row[2] || 'Не указан',
           status: row[6] || 'Не указан'
         });
       }

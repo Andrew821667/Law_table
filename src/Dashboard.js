@@ -39,13 +39,13 @@ var Dashboard = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const status = row[5] || 'Не указан';
-      const court = row[4] || 'Не указан';
+      const status = row[4] || 'Не указан';
+      const court = row[2] || 'Не указан';
 
       stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
       stats.byCourt[court] = (stats.byCourt[court] || 0) + 1;
 
-      const nextHearing = row[8];
+      const nextHearing = row[17];
       if (nextHearing) {
         const hearingDate = new Date(nextHearing);
         if (hearingDate < now) {

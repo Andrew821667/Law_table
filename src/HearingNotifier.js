@@ -66,7 +66,7 @@ var HearingNotifier = (function() {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const caseNumber = row[0];
-      const hearingDate = row[16]; // Столбец Q
+      const hearingDate = row[17]; // Столбец Q
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         const hoursUntil = (hearingDate - now) / (1000 * 60 * 60);
@@ -79,17 +79,17 @@ var HearingNotifier = (function() {
           hearings.push({
             caseNumber: caseNumber,
             date: hearingDate,
-            court: row[4] || 'Не указан',
-            plaintiff: row[6] || 'Не указан',
-            defendant: row[7] || 'Не указан',
+            court: row[2] || 'Не указан',
+            plaintiff: row[7] || 'Не указан',
+            defendant: row[8] || 'Не указан',
             priority: row[5] || '',            // Столбец F - Приоритет
-            columnR: row[17] || '',            // Столбец R
-            columnS: row[18] || '',            // Столбец S
-            columnT: row[19] || '',            // Столбец T
-            columnU: row[20] || '',            // Столбец U
-            columnV: row[21] || '',            // Столбец V
-            columnW: row[22] || '',            // Столбец W
-            columnX: row[23] || '',            // Столбец X
+            columnR: row[18] || '',            // Столбец R
+            columnS: row[19] || '',            // Столбец S
+            columnT: row[20] || '',            // Столбец T
+            columnU: row[21] || '',            // Столбец U
+            columnV: row[22] || '',            // Столбец V
+            columnW: row[23] || '',            // Столбец W
+            columnX: row[24] || '',            // Столбец X
             daysUntil: daysUntil,
             hoursUntil: hoursUntil,
             notificationType: needsNotification
@@ -292,7 +292,7 @@ var HearingNotifier = (function() {
 
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
-        const hearingDate = row[16];
+        const hearingDate = row[17];
 
         if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
           const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
@@ -301,17 +301,17 @@ var HearingNotifier = (function() {
             hearings.push({
               caseNumber: row[0],
               date: hearingDate,
-              court: row[4] || 'Не указан',
-              plaintiff: row[6] || 'Не указан',
-              defendant: row[7] || 'Не указан',
+              court: row[2] || 'Не указан',
+              plaintiff: row[7] || 'Не указан',
+              defendant: row[8] || 'Не указан',
               priority: row[5] || '',            // Столбец F - Приоритет
-              columnR: row[17] || '',            // Столбец R
-              columnS: row[18] || '',            // Столбец S
-              columnT: row[19] || '',            // Столбец T
-              columnU: row[20] || '',            // Столбец U
-              columnV: row[21] || '',            // Столбец V
-              columnW: row[22] || '',            // Столбец W
-              columnX: row[23] || '',            // Столбец X
+              columnR: row[18] || '',            // Столбец R
+              columnS: row[19] || '',            // Столбец S
+              columnT: row[20] || '',            // Столбец T
+              columnU: row[21] || '',            // Столбец U
+              columnV: row[22] || '',            // Столбец V
+              columnW: row[23] || '',            // Столбец W
+              columnX: row[24] || '',            // Столбец X
               daysUntil: daysUntil,
               notificationType: 'manual'
             });
@@ -703,23 +703,23 @@ var HearingNotifier = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const hearingDate = row[16]; // Столбец Q
+      const hearingDate = row[17]; // Столбец Q
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         upcomingHearings.push({
           caseNumber: row[0],
           date: hearingDate,
-          court: row[4] || 'Не указан',
-          plaintiff: row[6] || 'Не указан',
-          defendant: row[7] || 'Не указан',
+          court: row[2] || 'Не указан',
+          plaintiff: row[7] || 'Не указан',
+          defendant: row[8] || 'Не указан',
           priority: row[5] || '',            // Столбец F - Приоритет
-          columnR: row[17] || '',            // Столбец R
-          columnS: row[18] || '',            // Столбец S
-          columnT: row[19] || '',            // Столбец T
-          columnU: row[20] || '',            // Столбец U
-          columnV: row[21] || '',            // Столбец V
-          columnW: row[22] || '',            // Столбец W
-          columnX: row[23] || '',            // Столбец X
+          columnR: row[18] || '',            // Столбец R
+          columnS: row[19] || '',            // Столбец S
+          columnT: row[20] || '',            // Столбец T
+          columnU: row[21] || '',            // Столбец U
+          columnV: row[22] || '',            // Столбец V
+          columnW: row[23] || '',            // Столбец W
+          columnX: row[24] || '',            // Столбец X
           rowIndex: i + 1
         });
       }
