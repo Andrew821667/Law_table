@@ -265,6 +265,44 @@ var HearingNotifier = (function() {
   // ============================================
 
   /**
+   * ДИАГНОСТИКА - проверить данные в таблице
+   */
+  function debugCheckData() {
+    const ui = SpreadsheetApp.getUi();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
+    const data = sheet.getDataRange().getValues();
+
+    let debugInfo = `Всего строк: ${data.length}\n\n`;
+    let dateCount = 0;
+    let stringCount = 0;
+    let emptyCount = 0;
+
+    for (let i = 1; i < Math.min(data.length, 10); i++) {
+      const row = data[i];
+      const caseNum = row[1];
+      const hearingDate = row[17];
+
+      debugInfo += `Строка ${i + 1}:\n`;
+      debugInfo += `  Дело: ${caseNum}\n`;
+      debugInfo += `  Значение row[17]: ${hearingDate}\n`;
+      debugInfo += `  Тип: ${typeof hearingDate}\n`;
+      debugInfo += `  instanceof Date: ${hearingDate instanceof Date}\n\n`;
+
+      if (!hearingDate) emptyCount++;
+      else if (hearingDate instanceof Date) dateCount++;
+      else if (typeof hearingDate === 'string') stringCount++;
+    }
+
+    debugInfo += `\nСтатистика (первые 10 строк):\n`;
+    debugInfo += `Дат: ${dateCount}\n`;
+    debugInfo += `Строк: ${stringCount}\n`;
+    debugInfo += `Пустых: ${emptyCount}`;
+
+    ui.alert('🔍 Диагностика данных', debugInfo, ui.ButtonSet.OK);
+  }
+
+  /**
    * Отправить уведомления вручную (через меню)
    */
   function sendManualNotifications() {
@@ -1108,7 +1146,8 @@ var HearingNotifier = (function() {
     getNotificationSchedule: getNotificationSchedule,
     setupCustomCaseNotification: setupCustomCaseNotification,
     sendCustomCaseNotification: sendCustomCaseNotification,
-    showCustomNotifications: showCustomNotifications
+    showCustomNotifications: showCustomNotifications,
+    debugCheckData: debugCheckData
   };
 
 })();
