@@ -320,7 +320,8 @@ var HearingNotifier = (function() {
    * Отправить уведомления вручную (через меню)
    */
   function sendManualNotifications() {
-    if (!checkPermission('view_cases')) return;
+    // Убрана проверка прав для ручного запуска
+    // if (!checkPermission('view_cases')) return;
 
     const ui = SpreadsheetApp.getUi();
 
