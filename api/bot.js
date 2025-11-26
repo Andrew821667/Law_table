@@ -360,12 +360,39 @@ async function showUpcomingHearings(bot, chatId, messageId) {
 
     console.log('[Sheets] Прочитано дел:', cases.length);
 
+    // ДИАГНОСТИКА: Проверяем даты заседаний
+    console.log('[DEBUG] Все даты заседаний:');
+    cases.forEach((c, i) => {
+      if (i < 5) { // Показываем первые 5 для примера
+        console.log(`[DEBUG] Дело ${i}: hearingDate="${c.hearingDate}", plaintiff="${c.plaintiff}", defendant="${c.defendant}"`);
+      }
+    });
+
+    const casesWithDates = cases.filter(c => c.hearingDate);
+    console.log('[DEBUG] Дел с hearingDate:', casesWithDates.length);
+
+    if (casesWithDates.length > 0) {
+      console.log('[DEBUG] Примеры дат:', casesWithDates.slice(0, 3).map(c => c.hearingDate));
+    }
+
     // Фильтруем только дела с предстоящими заседаниями
     const now = new Date();
+    console.log('[DEBUG] Текущая дата:', now);
+
     const hearings = cases
-      .filter(c => c.hearingDate && parseDate(c.hearingDate) > now)
+      .filter(c => {
+        if (!c.hearingDate) return false;
+        const parsed = parseDate(c.hearingDate);
+        const isFuture = parsed && parsed > now;
+        if (c.hearingDate) {
+          console.log(`[DEBUG] Дело "${c.caseNumber}": hearingDate="${c.hearingDate}", parsed=${parsed}, isFuture=${isFuture}`);
+        }
+        return isFuture;
+      })
       .sort((a, b) => (parseDate(a.hearingDate) || new Date(0)) - (parseDate(b.hearingDate) || new Date(0)))
       .slice(0, 10);
+
+    console.log('[DEBUG] Найдено предстоящих заседаний:', hearings.length);
 
     if (hearings.length === 0) {
       const keyboard = {
