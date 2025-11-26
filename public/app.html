@@ -687,12 +687,15 @@
           cases[currentCaseIndex].fields[currentFieldIndex].value = newValue;
 
           // Обновляем отображаемые поля (plaintiff/defendant/etc)
-          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;
-          if (currentFieldIndex === 2) cases[currentCaseIndex].court = newValue;
-          if (currentFieldIndex === 3) cases[currentCaseIndex].status = newValue;
-          if (currentFieldIndex === 4) cases[currentCaseIndex].priority = newValue;
-          if (currentFieldIndex === 6) cases[currentCaseIndex].plaintiff = newValue;
-          if (currentFieldIndex === 7) cases[currentCaseIndex].defendant = newValue;
+          // ВАЖНО: Индексы обновлены для новой структуры с двумя дополнительными колонками!
+          if (currentFieldIndex === 1) cases[currentCaseIndex].caseNumber = newValue;        // B - Номер дела
+          if (currentFieldIndex === 2) cases[currentCaseIndex].court = newValue;             // C - Суд
+          if (currentFieldIndex === 3) cases[currentCaseIndex].currentInstance = newValue;   // D - Текущая инстанция (НОВАЯ!)
+          if (currentFieldIndex === 4) cases[currentCaseIndex].category = newValue;          // E - Категория дела
+          if (currentFieldIndex === 5) cases[currentCaseIndex].status = newValue;            // F - Статус
+          if (currentFieldIndex === 6) cases[currentCaseIndex].priority = newValue;          // G - Приоритет
+          if (currentFieldIndex === 7) cases[currentCaseIndex].plaintiff = newValue;         // H - Истец
+          if (currentFieldIndex === 8) cases[currentCaseIndex].defendant = newValue;         // I - Ответчик
 
           // Выходим из режима редактирования
           isEditMode = false;

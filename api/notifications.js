@@ -5,6 +5,7 @@
 
 const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
+const { COLUMNS, FULL_RANGE } = require('./columns-config');
 
 // Конфигурация
 const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
@@ -15,7 +16,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
  * Получить список дел с датами заседаний
  */
 async function getCasesWithHearings() {
-  const range = 'A:AE';
+  const range = FULL_RANGE;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   const response = await fetch(url);
@@ -52,11 +53,11 @@ async function getCasesWithHearings() {
 
     const caseData = {
       rowIndex: i + 1, // +1 т.к. в таблице нумерация с 1
-      caseNumber: row[1] || '',
-      plaintiff: row[6] || '',
-      defendant: row[7] || '',
-      status: row[3] || '',
-      lawyer: row[5] || '', // Предположительно колонка F - юрист
+      caseNumber: row[COLUMNS.CASE_NUMBER] || '',
+      plaintiff: row[COLUMNS.PLAINTIFF] || '',
+      defendant: row[COLUMNS.DEFENDANT] || '',
+      status: row[COLUMNS.STATUS] || '',
+      lawyer: row[COLUMNS.LAWYER] || '', // Колонка AA (index 26) - Ответственный юрист
       hearingDates: []
     };
 

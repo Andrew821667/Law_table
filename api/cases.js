@@ -3,6 +3,8 @@
  * Используется Mini App для отображения данных
  */
 
+const { COLUMNS, FULL_RANGE } = require('./columns-config');
+
 // ID таблицы Google Sheets
 const SPREADSHEET_ID = '1z71C-B_f8REz45blQKISYmqmNcemdHLtICwbSMrcIo8';
 
@@ -49,7 +51,7 @@ async function fetchCases() {
   const fetch = require('node-fetch');
 
   // Получаем значения
-  const range = 'A:AE'; // Все 31 колонки из "Активные дела"
+  const range = FULL_RANGE; // Все колонки A-AG (33 колонки)
   const valuesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API Cases] Запрос к Google Sheets API v4');
@@ -69,7 +71,7 @@ async function fetchCases() {
 
   // Получаем данные с гиперссылками
   const sheetName = process.env.SHEET_NAME || 'Активные дела';
-  const gridUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?ranges=${encodeURIComponent(sheetName)}!A:AE&fields=sheets(data(rowData(values(hyperlink,formattedValue))))&key=${GOOGLE_API_KEY}`;
+  const gridUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?ranges=${encodeURIComponent(sheetName)}!${FULL_RANGE}&fields=sheets(data(rowData(values(hyperlink,formattedValue))))&key=${GOOGLE_API_KEY}`;
 
   const gridResponse = await fetch(gridUrl);
   let hyperlinks = {};
@@ -87,8 +89,8 @@ async function fetchCases() {
             if (cell.hyperlink) {
               const key = `${rowIndex}_${colIndex}`;
               hyperlinks[key] = cell.hyperlink;
-              // Логируем только колонки AA-AE (26-30)
-              if (colIndex >= 26 && colIndex <= 30) {
+              // Логируем только колонки с документами (AC-AG: 28-32)
+              if (colIndex >= COLUMNS.DOCUMENTS && colIndex <= COLUMNS.EVIDENCE) {
                 console.log(`[API Cases] Гиперссылка в ${String.fromCharCode(65 + colIndex)}${rowIndex + 1}:`, cell.hyperlink);
               }
             }
@@ -111,12 +113,14 @@ async function fetchCases() {
     const caseObj = {
       id: i,
       // Важные поля для отображения
-      plaintiff: row[6] || '',  // Колонка G (index 6)
-      defendant: row[7] || '',  // Колонка H (index 7)
-      caseNumber: row[1] || '', // Колонка B (index 1)
-      court: row[2] || '',      // Колонка C (index 2)
-      status: row[3] || '',     // Колонка D (index 3)
-      priority: row[4] || '',   // Колонка E (index 4)
+      plaintiff: row[COLUMNS.PLAINTIFF] || '',           // Колонка H (index 7)
+      defendant: row[COLUMNS.DEFENDANT] || '',           // Колонка I (index 8)
+      caseNumber: row[COLUMNS.CASE_NUMBER] || '',        // Колонка B (index 1)
+      court: row[COLUMNS.COURT] || '',                   // Колонка C (index 2)
+      currentInstance: row[COLUMNS.CURRENT_INSTANCE] || '', // Колонка D (index 3) - НОВАЯ!
+      category: row[COLUMNS.CATEGORY] || '',             // Колонка E (index 4)
+      status: row[COLUMNS.STATUS] || '',                 // Колонка F (index 5)
+      priority: row[COLUMNS.PRIORITY] || '',             // Колонка G (index 6)
 
       // Динамически создаем массив полей из всех колонок
       fields: headers.map((header, index) => {

@@ -7,6 +7,7 @@
 
 const TelegramBot = require('node-telegram-bot-api');
 const { checkPermission, getUserRole, getRoleObject, formatPermissions } = require('./roles');
+const { COLUMNS, FULL_RANGE } = require('./columns-config');
 
 // Telegram Bot Token из переменных окружения
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -454,8 +455,8 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
 async function fetchViaAPI() {
   const fetch = require('node-fetch');
 
-  // Используем первый лист без названия (обход проблемы с кириллицей)
-  const range = `A:Q`; // Колонки A-Q (0-16)
+  // Используем весь диапазон колонок
+  const range = FULL_RANGE; // Колонки A-AG (0-32)
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API] Запрос к Google Sheets API v4');
@@ -482,23 +483,39 @@ async function fetchViaAPI() {
     if (!row[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      clientName: row[0] || '',
-      caseNumber: row[1] || '',
-      court: row[2] || '',
-      status: row[3] || '',
-      priority: row[4] || '',
-      caseType: row[5] || '',
-      plaintiff: row[6] || '',
-      defendant: row[7] || '',
-      claimAmount: row[8] || '',
-      filingDate: row[9] || null,
-      incidentDate: row[10] || null,
-      caseCategory: row[11] || '',
-      assignedLawyer: row[12] || '',
-      description: row[13] || '',
-      notes: row[14] || '',
-      documentsLink: row[15] || '',
-      hearingDate: row[16] || null
+      clientName: row[COLUMNS.ID] || '',
+      caseNumber: row[COLUMNS.CASE_NUMBER] || '',
+      court: row[COLUMNS.COURT] || '',
+      currentInstance: row[COLUMNS.CURRENT_INSTANCE] || '', // НОВАЯ КОЛОНКА!
+      category: row[COLUMNS.CATEGORY] || '',
+      status: row[COLUMNS.STATUS] || '',
+      priority: row[COLUMNS.PRIORITY] || '',
+      plaintiff: row[COLUMNS.PLAINTIFF] || '',
+      defendant: row[COLUMNS.DEFENDANT] || '',
+      claimSubject: row[COLUMNS.CLAIM_SUBJECT] || '',
+      disputeEssence: row[COLUMNS.DISPUTE_ESSENCE] || '',
+      strategy: row[COLUMNS.STRATEGY] || '',
+      claimAmount: row[COLUMNS.CLAIM_AMOUNT] || '',
+      filingDate: row[COLUMNS.FILING_DATE] || null,
+      obstructingActs: row[COLUMNS.OBSTRUCTING_ACTS] || '',
+      correctionDate: row[COLUMNS.CORRECTION_DATE] || '',
+      pastHearings: row[COLUMNS.PAST_HEARINGS] || '',
+      hearingDate: row[COLUMNS.HEARING_DATE] || null,
+      objectionDeadline: row[COLUMNS.OBJECTION_DEADLINE] || '',
+      firstDecision: row[COLUMNS.FIRST_DECISION] || '',
+      firstAppealDeadline: row[COLUMNS.FIRST_APPEAL_DEADLINE] || '',
+      appellateDecision: row[COLUMNS.APPELLATE_DECISION] || '',
+      appellateDeadline: row[COLUMNS.APPELLATE_DEADLINE] || '',
+      cassationDecision: row[COLUMNS.CASSATION_DECISION] || '',
+      cassationDeadline: row[COLUMNS.CASSATION_DEADLINE] || '',
+      supervisoryDecision: row[COLUMNS.SUPERVISORY_DECISION] || '', // НОВАЯ КОЛОНКА!
+      assignedLawyer: row[COLUMNS.LAWYER] || '',
+      representativeContacts: row[COLUMNS.CONTACTS] || '',
+      documentsLink: row[COLUMNS.DOCUMENTS] || '',
+      correspondence: row[COLUMNS.CORRESPONDENCE] || '',
+      judicialActs: row[COLUMNS.JUDICIAL_ACTS] || '',
+      financialDocs: row[COLUMNS.FINANCIAL_DOCS] || '',
+      evidence: row[COLUMNS.EVIDENCE] || ''
     });
   }
 
@@ -546,23 +563,39 @@ function parseCSVToCases(csvText) {
     if (!cols[0]) continue; // Пропускаем пустые строки
 
     cases.push({
-      clientName: cols[0] || '',
-      caseNumber: cols[1] || '',
-      court: cols[2] || '',
-      status: cols[3] || '',
-      priority: cols[4] || '',
-      caseType: cols[5] || '',
-      plaintiff: cols[6] || '',
-      defendant: cols[7] || '',
-      claimAmount: cols[8] || '',
-      filingDate: cols[9] || null,
-      incidentDate: cols[10] || null,
-      caseCategory: cols[11] || '',
-      assignedLawyer: cols[12] || '',
-      description: cols[13] || '',
-      notes: cols[14] || '',
-      documentsLink: cols[15] || '',
-      hearingDate: cols[16] || null
+      clientName: cols[COLUMNS.ID] || '',
+      caseNumber: cols[COLUMNS.CASE_NUMBER] || '',
+      court: cols[COLUMNS.COURT] || '',
+      currentInstance: cols[COLUMNS.CURRENT_INSTANCE] || '', // НОВАЯ КОЛОНКА!
+      category: cols[COLUMNS.CATEGORY] || '',
+      status: cols[COLUMNS.STATUS] || '',
+      priority: cols[COLUMNS.PRIORITY] || '',
+      plaintiff: cols[COLUMNS.PLAINTIFF] || '',
+      defendant: cols[COLUMNS.DEFENDANT] || '',
+      claimSubject: cols[COLUMNS.CLAIM_SUBJECT] || '',
+      disputeEssence: cols[COLUMNS.DISPUTE_ESSENCE] || '',
+      strategy: cols[COLUMNS.STRATEGY] || '',
+      claimAmount: cols[COLUMNS.CLAIM_AMOUNT] || '',
+      filingDate: cols[COLUMNS.FILING_DATE] || null,
+      obstructingActs: cols[COLUMNS.OBSTRUCTING_ACTS] || '',
+      correctionDate: cols[COLUMNS.CORRECTION_DATE] || '',
+      pastHearings: cols[COLUMNS.PAST_HEARINGS] || '',
+      hearingDate: cols[COLUMNS.HEARING_DATE] || null,
+      objectionDeadline: cols[COLUMNS.OBJECTION_DEADLINE] || '',
+      firstDecision: cols[COLUMNS.FIRST_DECISION] || '',
+      firstAppealDeadline: cols[COLUMNS.FIRST_APPEAL_DEADLINE] || '',
+      appellateDecision: cols[COLUMNS.APPELLATE_DECISION] || '',
+      appellateDeadline: cols[COLUMNS.APPELLATE_DEADLINE] || '',
+      cassationDecision: cols[COLUMNS.CASSATION_DECISION] || '',
+      cassationDeadline: cols[COLUMNS.CASSATION_DEADLINE] || '',
+      supervisoryDecision: cols[COLUMNS.SUPERVISORY_DECISION] || '', // НОВАЯ КОЛОНКА!
+      assignedLawyer: cols[COLUMNS.LAWYER] || '',
+      representativeContacts: cols[COLUMNS.CONTACTS] || '',
+      documentsLink: cols[COLUMNS.DOCUMENTS] || '',
+      correspondence: cols[COLUMNS.CORRESPONDENCE] || '',
+      judicialActs: cols[COLUMNS.JUDICIAL_ACTS] || '',
+      financialDocs: cols[COLUMNS.FINANCIAL_DOCS] || '',
+      evidence: cols[COLUMNS.EVIDENCE] || ''
     });
   }
 
