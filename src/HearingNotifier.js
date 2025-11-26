@@ -1204,6 +1204,11 @@ function sendCustomCaseNotification() {
   HearingNotifier.sendCustomCaseNotification();
 }
 
+// Глобальная обертка для ручной отправки уведомлений
+function sendManualNotifications() {
+  HearingNotifier.sendManualNotifications();
+}
+
 // Временная функция для диагностики
 function runDebugCheckData() {
   const ui = SpreadsheetApp.getUi();
@@ -1238,4 +1243,35 @@ function runDebugCheckData() {
   debugInfo += `Пустых: ${emptyCount}`;
 
   ui.alert('🔍 Диагностика данных', debugInfo, ui.ButtonSet.OK);
+}
+
+// Тестовая функция поиска заседаний
+function testFindHearings() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+
+  const now = new Date();
+  let result = 'Сейчас: ' + now + '\n\n';
+  let found = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const caseNum = row[1];
+    const hearingDate = row[17];
+
+    if (hearingDate instanceof Date && hearingDate >= now) {
+      const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
+      if (daysUntil <= 30) {
+        found++;
+        result += found + '. Дело: ' + caseNum + '\n';
+        result += '   Дата: ' + hearingDate + '\n';
+        result += '   Через дней: ' + daysUntil + '\n\n';
+      }
+    }
+  }
+
+  result += '\nВсего найдено: ' + found;
+  ui.alert('Тест поиска заседаний', result, ui.ButtonSet.OK);
 }
