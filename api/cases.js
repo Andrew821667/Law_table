@@ -111,14 +111,15 @@ async function fetchCases() {
     const caseObj = {
       id: i,
       // Важные поля для отображения
-      plaintiff: row[7] || '',  // Колонка H (index 7) - было G, сдвиг +1
-      defendant: row[8] || '',  // Колонка I (index 8) - было H, сдвиг +1
+      plaintiff: row[7] || '',  // Колонка H (index 7) - было G, +1
+      defendant: row[8] || '',  // Колонка I (index 8) - было H, +1
       caseNumber: row[1] || '', // Колонка B (index 1) - без изменений
-      courtFirstInstance: row[2] || '', // Колонка C (index 2) - суд первой инстанции
-      courtCurrentInstance: row[3] || '', // Колонка D (index 3) - НОВАЯ: суд текущей инстанции
-      status: row[4] || '',     // Колонка E (index 4) - было D, сдвиг +1
-      judicialActSupervisory: row[24] || '', // Колонка Y (index 24) - НОВАЯ: судебный акт надзорной инстанции
-      responsibleLawyer: row[26] || '', // Колонка AA (index 26) - было Y, сдвиг +2
+      courtFirstInstance: row[2] || '', // Колонка C (index 2)
+      courtCurrentInstance: row[3] || '', // Колонка D (index 3) - НОВАЯ
+      status: row[4] || '',     // Колонка E (index 4) - был D, +1
+      priority: row[5] || '',   // Колонка F (index 5) - был E, +1 (оставляем, но не используем в UI)
+      judicialActSupervisory: row[24] || '', // Колонка Y (index 24) - НОВАЯ
+      responsibleLawyer: row[27] || '', // Колонка AB (index 27) - был Y, +3 total
 
       // Динамически создаем массив полей из всех колонок
       fields: headers.map((header, index) => {

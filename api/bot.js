@@ -484,23 +484,24 @@ async function fetchViaAPI() {
     cases.push({
       clientName: row[0] || '',
       caseNumber: row[1] || '',
-      courtFirstInstance: row[2] || '', // Колонка C - суд первой инстанции
-      courtCurrentInstance: row[3] || '', // Колонка D - НОВАЯ: суд текущей инстанции
-      status: row[4] || '', // Было D (index 3), стало E (index 4)
-      caseType: row[5] || '', // Было E, стало F
-      plaintiff: row[7] || '', // Было G (index 6), стало H (index 7)
-      defendant: row[8] || '', // Было H (index 7), стало I (index 8)
-      claimAmount: row[9] || '', // Сдвиг +1
-      filingDate: row[10] || null, // Сдвиг +1
-      incidentDate: row[11] || null, // Сдвиг +1
-      caseCategory: row[12] || '', // Сдвиг +1
-      assignedLawyer: row[13] || '', // Сдвиг +1
-      description: row[14] || '', // Сдвиг +1
-      notes: row[15] || '', // Сдвиг +1
-      documentsLink: row[16] || '', // Сдвиг +1
-      hearingDate: row[17] || null, // Сдвиг +1
+      courtFirstInstance: row[2] || '', // Колонка C
+      courtCurrentInstance: row[3] || '', // Колонка D - НОВАЯ
+      status: row[4] || '', // Колонка E (был index 3, +1)
+      priority: row[5] || '', // Колонка F (был index 4, +1) - оставляем, но не используем
+      caseType: row[6] || '', // Колонка G (был index 5, +1)
+      plaintiff: row[7] || '', // Колонка H (был index 6, +1)
+      defendant: row[8] || '', // Колонка I (был index 7, +1)
+      claimAmount: row[9] || '', // Колонка J (был index 8, +1)
+      filingDate: row[10] || null, // Колонка K (был index 9, +1)
+      incidentDate: row[11] || null, // Колонка L (был index 10, +1)
+      caseCategory: row[12] || '', // Колонка M (был index 11, +1)
+      assignedLawyer: row[13] || '', // Колонка N (был index 12, +1)
+      description: row[14] || '', // Колонка O (был index 13, +1)
+      notes: row[15] || '', // Колонка P (был index 14, +1)
+      documentsLink: row[16] || '', // Колонка Q (был index 15, +1)
+      hearingDate: row[17] || null, // Колонка R (был index 16, +1)
       judicialActSupervisory: row[24] || '', // Колонка Y - НОВАЯ
-      responsibleLawyer: row[26] || '' // Колонка AA - было Y (index 24), стало AA (index 26)
+      responsibleLawyer: row[27] || '' // Колонка AB (был Y index 24, +1 от D, +2 от Y)
     });
   }
 
@@ -550,23 +551,24 @@ function parseCSVToCases(csvText) {
     cases.push({
       clientName: cols[0] || '',
       caseNumber: cols[1] || '',
-      courtFirstInstance: cols[2] || '', // Колонка C - суд первой инстанции
-      courtCurrentInstance: cols[3] || '', // Колонка D - НОВАЯ: суд текущей инстанции
-      status: cols[4] || '', // Было D (index 3), стало E (index 4)
-      caseType: cols[5] || '', // Было E, стало F
-      plaintiff: cols[7] || '', // Было G (index 6), стало H (index 7)
-      defendant: cols[8] || '', // Было H (index 7), стало I (index 8)
-      claimAmount: cols[9] || '', // Сдвиг +1
-      filingDate: cols[10] || null, // Сдвиг +1
-      incidentDate: cols[11] || null, // Сдвиг +1
-      caseCategory: cols[12] || '', // Сдвиг +1
-      assignedLawyer: cols[13] || '', // Сдвиг +1
-      description: cols[14] || '', // Сдвиг +1
-      notes: cols[15] || '', // Сдвиг +1
-      documentsLink: cols[16] || '', // Сдвиг +1
-      hearingDate: cols[17] || null, // Сдвиг +1
+      courtFirstInstance: cols[2] || '', // Колонка C
+      courtCurrentInstance: cols[3] || '', // Колонка D - НОВАЯ
+      status: cols[4] || '', // Колонка E (был index 3, +1)
+      priority: cols[5] || '', // Колонка F (был index 4, +1) - оставляем, но не используем
+      caseType: cols[6] || '', // Колонка G (был index 5, +1)
+      plaintiff: cols[7] || '', // Колонка H (был index 6, +1)
+      defendant: cols[8] || '', // Колонка I (был index 7, +1)
+      claimAmount: cols[9] || '', // Колонка J (был index 8, +1)
+      filingDate: cols[10] || null, // Колонка K (был index 9, +1)
+      incidentDate: cols[11] || null, // Колонка L (был index 10, +1)
+      caseCategory: cols[12] || '', // Колонка M (был index 11, +1)
+      assignedLawyer: cols[13] || '', // Колонка N (был index 12, +1)
+      description: cols[14] || '', // Колонка O (был index 13, +1)
+      notes: cols[15] || '', // Колонка P (был index 14, +1)
+      documentsLink: cols[16] || '', // Колонка Q (был index 15, +1)
+      hearingDate: cols[17] || null, // Колонка R (был index 16, +1)
       judicialActSupervisory: cols[24] || '', // Колонка Y - НОВАЯ
-      responsibleLawyer: cols[26] || '' // Колонка AA - было Y (index 24), стало AA (index 26)
+      responsibleLawyer: cols[27] || '' // Колонка AB (был Y index 24, +1 от D, +2 от Y)
     });
   }
 
