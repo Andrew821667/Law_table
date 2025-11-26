@@ -97,13 +97,13 @@ var HearingNotifier = (function() {
             plaintiff: row[7] || 'Не указан',
             defendant: row[8] || 'Не указан',
             priority: row[5] || '',            // Столбец F - Приоритет
-            columnR: row[18] || '',            // Столбец R
-            columnS: row[19] || '',            // Столбец S
-            columnT: row[20] || '',            // Столбец T
-            columnU: row[21] || '',            // Столбец U
-            columnV: row[22] || '',            // Столбец V
-            columnW: row[23] || '',            // Столбец W
-            columnX: row[24] || '',            // Столбец X
+            columnR: row[18] || '',            // Столбец S
+            columnS: row[19] || '',            // Столбец T
+            columnT: row[20] || '',            // Столбец U
+            columnU: row[21] || '',            // Столбец V
+            columnV: row[22] || '',            // Столбец W
+            columnW: row[23] || '',            // Столбец X
+            columnX: row[23] || '',            // Столбец X (ИСПРАВЛЕНО: было row[24])
             daysUntil: daysUntil,
             hoursUntil: hoursUntil,
             notificationType: needsNotification
