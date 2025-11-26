@@ -49,7 +49,7 @@ async function fetchCases() {
   const fetch = require('node-fetch');
 
   // Получаем значения
-  const range = 'A:AE'; // Все 31 колонки из "Активные дела"
+  const range = 'A:AH'; // Все 33 колонки из "Активные дела" (добавлены D и Y)
   const valuesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API Cases] Запрос к Google Sheets API v4');
@@ -69,7 +69,7 @@ async function fetchCases() {
 
   // Получаем данные с гиперссылками
   const sheetName = process.env.SHEET_NAME || 'Активные дела';
-  const gridUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?ranges=${encodeURIComponent(sheetName)}!A:AE&fields=sheets(data(rowData(values(hyperlink,formattedValue))))&key=${GOOGLE_API_KEY}`;
+  const gridUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?ranges=${encodeURIComponent(sheetName)}!A:AH&fields=sheets(data(rowData(values(hyperlink,formattedValue))))&key=${GOOGLE_API_KEY}`;
 
   const gridResponse = await fetch(gridUrl);
   let hyperlinks = {};
@@ -87,8 +87,8 @@ async function fetchCases() {
             if (cell.hyperlink) {
               const key = `${rowIndex}_${colIndex}`;
               hyperlinks[key] = cell.hyperlink;
-              // Логируем только колонки AA-AE (26-30)
-              if (colIndex >= 26 && colIndex <= 30) {
+              // Логируем только колонки AD-AH (29-33) - Google Drive ссылки
+              if (colIndex >= 29 && colIndex <= 33) {
                 console.log(`[API Cases] Гиперссылка в ${String.fromCharCode(65 + colIndex)}${rowIndex + 1}:`, cell.hyperlink);
               }
             }
@@ -111,12 +111,14 @@ async function fetchCases() {
     const caseObj = {
       id: i,
       // Важные поля для отображения
-      plaintiff: row[6] || '',  // Колонка G (index 6)
-      defendant: row[7] || '',  // Колонка H (index 7)
-      caseNumber: row[1] || '', // Колонка B (index 1)
-      court: row[2] || '',      // Колонка C (index 2)
-      status: row[3] || '',     // Колонка D (index 3)
-      priority: row[4] || '',   // Колонка E (index 4)
+      plaintiff: row[7] || '',  // Колонка H (index 7) - было G, сдвиг +1
+      defendant: row[8] || '',  // Колонка I (index 8) - было H, сдвиг +1
+      caseNumber: row[1] || '', // Колонка B (index 1) - без изменений
+      courtFirstInstance: row[2] || '', // Колонка C (index 2) - суд первой инстанции
+      courtCurrentInstance: row[3] || '', // Колонка D (index 3) - НОВАЯ: суд текущей инстанции
+      status: row[4] || '',     // Колонка E (index 4) - было D, сдвиг +1
+      judicialActSupervisory: row[24] || '', // Колонка Y (index 24) - НОВАЯ: судебный акт надзорной инстанции
+      responsibleLawyer: row[26] || '', // Колонка AA (index 26) - было Y, сдвиг +2
 
       // Динамически создаем массив полей из всех колонок
       fields: headers.map((header, index) => {

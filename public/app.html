@@ -481,6 +481,55 @@
       return field.value || 'Не указано';
     }
 
+    // Применение фильтра к делам
+    function applyFilter(allCases, filterType) {
+      let fieldName = '';
+      let filterTitle = '';
+
+      // Определяем поле для фильтрации
+      switch (filterType) {
+        case 'court_first_instance':
+          fieldName = 'courtFirstInstance';
+          filterTitle = 'Суд первой инстанции';
+          break;
+        case 'court_current_instance':
+          fieldName = 'courtCurrentInstance';
+          filterTitle = 'Суд текущей инстанции';
+          break;
+        case 'responsible_lawyer':
+          fieldName = 'responsibleLawyer';
+          filterTitle = 'Ответственный юрист';
+          break;
+        default:
+          return allCases; // Неизвестный фильтр - возвращаем все дела
+      }
+
+      // Получаем уникальные значения для фильтра
+      const uniqueValues = [...new Set(allCases.map(c => c[fieldName]).filter(v => v))];
+
+      if (uniqueValues.length === 0) {
+        return allCases; // Нет значений для фильтрации
+      }
+
+      // Сохраняем информацию о фильтре для отображения в UI
+      window.activeFilter = {
+        type: filterType,
+        field: fieldName,
+        title: filterTitle,
+        values: uniqueValues
+      };
+
+      console.log(`Фильтр "${filterTitle}" доступные значения:`, uniqueValues);
+
+      // Возвращаем все дела, сортированные по полю фильтра
+      // В будущем можно добавить UI для выбора конкретного значения
+      return allCases.sort((a, b) => {
+        const valA = a[fieldName] || '';
+        const valB = b[fieldName] || '';
+        return valA.localeCompare(valB, 'ru');
+      });
+    }
+
     // Загрузка дел
     async function loadCases() {
       try {
@@ -491,7 +540,18 @@
           throw new Error(data.error || 'Ошибка загрузки данных');
         }
 
-        cases = data.cases;
+        let allCases = data.cases;
+
+        // Проверяем URL параметр filter
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterType = urlParams.get('filter');
+
+        if (filterType) {
+          // Применяем фильтрацию
+          allCases = applyFilter(allCases, filterType);
+        }
+
+        cases = allCases;
         renderCasesList();
 
       } catch (error) {
@@ -523,7 +583,7 @@
 
       casesList.innerHTML = cases.map((c, index) => `
         <div class="case-card" data-index="${index}">
-          ${c.court ? `<div class="case-court">🏛️ ${c.court}</div>` : ''}
+          ${c.courtFirstInstance ? `<div class="case-court">🏛️ ${c.courtFirstInstance}</div>` : ''}
           <div class="case-subtitle">${c.caseNumber || 'Номер не указан'}</div>
           <div class="case-title">
             <span class="plaintiff">${c.plaintiff || 'Истец не указан'}</span>
@@ -532,7 +592,7 @@
           </div>
           <div class="case-meta">
             ${c.status ? `<div class="case-badge">${c.status}</div>` : ''}
-            ${c.priority ? `<div class="case-badge">${c.priority}</div>` : ''}
+            ${c.courtCurrentInstance ? `<div class="case-badge">⚖️ ${c.courtCurrentInstance}</div>` : ''}
           </div>
         </div>
       `).join('');

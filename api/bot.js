@@ -142,12 +142,12 @@ async function handleCallbackQuery(bot, callbackQuery) {
       await handleManualCaseInput(bot, chatId, messageId, 'search');
       break;
 
-    case 'filter_status':
-      await handleFilterByStatus(bot, chatId, messageId);
+    case 'filter_court_first':
+      await handleFilterByCourtFirst(bot, chatId, messageId);
       break;
 
-    case 'filter_priority':
-      await handleFilterByPriority(bot, chatId, messageId);
+    case 'filter_court_current':
+      await handleFilterByCourtCurrent(bot, chatId, messageId);
       break;
 
     case 'filter_lawyer':
@@ -408,12 +408,12 @@ let message = `\u2696\ufe0f *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n`;
 📅 *Дата:* ${dateStr}
 ⏰ ${urgency}
 
-🏛️ *Суд:* ${h.court || 'Суд не указан'}
+🏛️ *Суд:* ${h.courtFirstInstance || 'Суд не указан'}
 📋 *Дело:* ${h.caseNumber || 'Без номера'}
 
 👤 *Истец:* ${h.plaintiff || 'Не указан'}
 👤 *Ответчик:* ${h.defendant || 'Не указан'}
-🔥 *Приоритет:* ${h.priority || 'Обычный'}
+⚖️ *Текущая инстанция:* ${h.courtCurrentInstance || 'Не указана'}
 
 `;
     });
@@ -455,7 +455,7 @@ async function fetchViaAPI() {
   const fetch = require('node-fetch');
 
   // Используем первый лист без названия (обход проблемы с кириллицей)
-  const range = `A:Q`; // Колонки A-Q (0-16)
+  const range = `A:AH`; // Колонки A-AH (33 колонки после добавления D и Y)
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${GOOGLE_API_KEY}`;
 
   console.log('[API] Запрос к Google Sheets API v4');
@@ -484,21 +484,23 @@ async function fetchViaAPI() {
     cases.push({
       clientName: row[0] || '',
       caseNumber: row[1] || '',
-      court: row[2] || '',
-      status: row[3] || '',
-      priority: row[4] || '',
-      caseType: row[5] || '',
-      plaintiff: row[6] || '',
-      defendant: row[7] || '',
-      claimAmount: row[8] || '',
-      filingDate: row[9] || null,
-      incidentDate: row[10] || null,
-      caseCategory: row[11] || '',
-      assignedLawyer: row[12] || '',
-      description: row[13] || '',
-      notes: row[14] || '',
-      documentsLink: row[15] || '',
-      hearingDate: row[16] || null
+      courtFirstInstance: row[2] || '', // Колонка C - суд первой инстанции
+      courtCurrentInstance: row[3] || '', // Колонка D - НОВАЯ: суд текущей инстанции
+      status: row[4] || '', // Было D (index 3), стало E (index 4)
+      caseType: row[5] || '', // Было E, стало F
+      plaintiff: row[7] || '', // Было G (index 6), стало H (index 7)
+      defendant: row[8] || '', // Было H (index 7), стало I (index 8)
+      claimAmount: row[9] || '', // Сдвиг +1
+      filingDate: row[10] || null, // Сдвиг +1
+      incidentDate: row[11] || null, // Сдвиг +1
+      caseCategory: row[12] || '', // Сдвиг +1
+      assignedLawyer: row[13] || '', // Сдвиг +1
+      description: row[14] || '', // Сдвиг +1
+      notes: row[15] || '', // Сдвиг +1
+      documentsLink: row[16] || '', // Сдвиг +1
+      hearingDate: row[17] || null, // Сдвиг +1
+      judicialActSupervisory: row[24] || '', // Колонка Y - НОВАЯ
+      responsibleLawyer: row[26] || '' // Колонка AA - было Y (index 24), стало AA (index 26)
     });
   }
 
@@ -548,21 +550,23 @@ function parseCSVToCases(csvText) {
     cases.push({
       clientName: cols[0] || '',
       caseNumber: cols[1] || '',
-      court: cols[2] || '',
-      status: cols[3] || '',
-      priority: cols[4] || '',
-      caseType: cols[5] || '',
-      plaintiff: cols[6] || '',
-      defendant: cols[7] || '',
-      claimAmount: cols[8] || '',
-      filingDate: cols[9] || null,
-      incidentDate: cols[10] || null,
-      caseCategory: cols[11] || '',
-      assignedLawyer: cols[12] || '',
-      description: cols[13] || '',
-      notes: cols[14] || '',
-      documentsLink: cols[15] || '',
-      hearingDate: cols[16] || null
+      courtFirstInstance: cols[2] || '', // Колонка C - суд первой инстанции
+      courtCurrentInstance: cols[3] || '', // Колонка D - НОВАЯ: суд текущей инстанции
+      status: cols[4] || '', // Было D (index 3), стало E (index 4)
+      caseType: cols[5] || '', // Было E, стало F
+      plaintiff: cols[7] || '', // Было G (index 6), стало H (index 7)
+      defendant: cols[8] || '', // Было H (index 7), стало I (index 8)
+      claimAmount: cols[9] || '', // Сдвиг +1
+      filingDate: cols[10] || null, // Сдвиг +1
+      incidentDate: cols[11] || null, // Сдвиг +1
+      caseCategory: cols[12] || '', // Сдвиг +1
+      assignedLawyer: cols[13] || '', // Сдвиг +1
+      description: cols[14] || '', // Сдвиг +1
+      notes: cols[15] || '', // Сдвиг +1
+      documentsLink: cols[16] || '', // Сдвиг +1
+      hearingDate: cols[17] || null, // Сдвиг +1
+      judicialActSupervisory: cols[24] || '', // Колонка Y - НОВАЯ
+      responsibleLawyer: cols[26] || '' // Колонка AA - было Y (index 24), стало AA (index 26)
     });
   }
 
@@ -648,11 +652,11 @@ async function showFiltersMenu(bot, chatId, messageId) {
   const keyboard = {
     inline_keyboard: [
       [
-        { text: '📊 По статусу', callback_data: 'filter_status' },
-        { text: '🎯 По приоритету', callback_data: 'filter_priority' }
+        { text: '🏛 По суду 1-й инстанции', callback_data: 'filter_court_first' },
+        { text: '⚖️ По суду текущей инстанции', callback_data: 'filter_court_current' }
       ],
       [
-        { text: '👨‍⚖️ По юристу', callback_data: 'filter_lawyer' }
+        { text: '👨‍⚖️ По ответственному юристу', callback_data: 'filter_lawyer' }
       ],
       [
         { text: '⬅️ Назад', callback_data: 'back_main' }
@@ -821,11 +825,11 @@ _Для изменения прав обратитесь к администра
 }
 
 /**
- * Обработка фильтра по статусу
+ * Обработка фильтра по суду первой инстанции
  */
-async function handleFilterByStatus(bot, chatId, messageId) {
+async function handleFilterByCourtFirst(bot, chatId, messageId) {
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
-  const webAppUrl = `${baseUrl}/app?filter=status`;
+  const webAppUrl = `${baseUrl}/app?filter=court_first_instance`;
 
   const keyboard = {
     inline_keyboard: [
@@ -839,9 +843,9 @@ async function handleFilterByStatus(bot, chatId, messageId) {
   };
 
   await bot.editMessageText(
-    '📊 *Фильтр по статусу*\n\n' +
+    '🏛 *Фильтр по суду первой инстанции*\n\n' +
     'Откройте мини-приложение для просмотра дел.\n\n' +
-    '_В приложении вы сможете отфильтровать дела по статусу_',
+    '_В приложении вы сможете отфильтровать дела по суду первой инстанции_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -852,11 +856,11 @@ async function handleFilterByStatus(bot, chatId, messageId) {
 }
 
 /**
- * Обработка фильтра по приоритету
+ * Обработка фильтра по суду текущей инстанции
  */
-async function handleFilterByPriority(bot, chatId, messageId) {
+async function handleFilterByCourtCurrent(bot, chatId, messageId) {
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
-  const webAppUrl = `${baseUrl}/app?filter=priority`;
+  const webAppUrl = `${baseUrl}/app?filter=court_current_instance`;
 
   const keyboard = {
     inline_keyboard: [
@@ -870,9 +874,9 @@ async function handleFilterByPriority(bot, chatId, messageId) {
   };
 
   await bot.editMessageText(
-    '🎯 *Фильтр по приоритету*\n\n' +
+    '⚖️ *Фильтр по суду текущей инстанции*\n\n' +
     'Откройте мини-приложение для просмотра дел.\n\n' +
-    '_В приложении вы сможете отфильтровать дела по приоритету_',
+    '_В приложении вы сможете отфильтровать дела по суду текущей инстанции_',
     {
       chat_id: chatId,
       message_id: messageId,
@@ -883,11 +887,11 @@ async function handleFilterByPriority(bot, chatId, messageId) {
 }
 
 /**
- * Обработка фильтра по юристу
+ * Обработка фильтра по ответственному юристу
  */
 async function handleFilterByLawyer(bot, chatId, messageId) {
   const baseUrl = process.env.BASE_URL || 'https://legalaipro.ru';
-  const webAppUrl = `${baseUrl}/app?filter=lawyer`;
+  const webAppUrl = `${baseUrl}/app?filter=responsible_lawyer`;
 
   const keyboard = {
     inline_keyboard: [
@@ -901,7 +905,7 @@ async function handleFilterByLawyer(bot, chatId, messageId) {
   };
 
   await bot.editMessageText(
-    '👨‍⚖️ *Фильтр по юристу*\n\n' +
+    '👨‍⚖️ *Фильтр по ответственному юристу*\n\n' +
     'Откройте мини-приложение для просмотра дел.\n\n' +
     '_В приложении вы сможете отфильтровать дела по ответственному юристу_',
     {
