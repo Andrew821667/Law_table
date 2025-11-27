@@ -79,10 +79,10 @@ var HearingNotifier = (function() {
           hearings.push({
             caseNumber: caseNumber,
             date: hearingDate,
-            court: row[4] || 'Не указан',
-            plaintiff: row[6] || 'Не указан',
-            defendant: row[7] || 'Не указан',
-            priority: row[5] || '',            // Столбец F - Приоритет
+            court: row[COLUMNS.COURT] || 'Не указан',
+            plaintiff: row[COLUMNS.PLAINTIFF] || 'Не указан',
+            defendant: row[COLUMNS.DEFENDANT] || 'Не указан',
+            priority: row[COLUMNS.PRIORITY] || '',            // Столбец G - Приоритет
             columnR: row[17] || '',            // Столбец R
             columnS: row[18] || '',            // Столбец S
             columnT: row[19] || '',            // Столбец T
@@ -301,10 +301,10 @@ var HearingNotifier = (function() {
             hearings.push({
               caseNumber: row[0],
               date: hearingDate,
-              court: row[4] || 'Не указан',
-              plaintiff: row[6] || 'Не указан',
-              defendant: row[7] || 'Не указан',
-              priority: row[5] || '',            // Столбец F - Приоритет
+              court: row[COLUMNS.COURT] || 'Не указан',
+              plaintiff: row[COLUMNS.PLAINTIFF] || 'Не указан',
+              defendant: row[COLUMNS.DEFENDANT] || 'Не указан',
+              priority: row[COLUMNS.PRIORITY] || '',            // Столбец G - Приоритет
               columnR: row[17] || '',            // Столбец R
               columnS: row[18] || '',            // Столбец S
               columnT: row[19] || '',            // Столбец T
@@ -709,10 +709,10 @@ var HearingNotifier = (function() {
         upcomingHearings.push({
           caseNumber: row[0],
           date: hearingDate,
-          court: row[4] || 'Не указан',
-          plaintiff: row[6] || 'Не указан',
-          defendant: row[7] || 'Не указан',
-          priority: row[5] || '',            // Столбец F - Приоритет
+          court: row[COLUMNS.COURT] || 'Не указан',
+          plaintiff: row[COLUMNS.PLAINTIFF] || 'Не указан',
+          defendant: row[COLUMNS.DEFENDANT] || 'Не указан',
+          priority: row[COLUMNS.PRIORITY] || '',            // Столбец G - Приоритет
           columnR: row[17] || '',            // Столбец R
           columnS: row[18] || '',            // Столбец S
           columnT: row[19] || '',            // Столбец T

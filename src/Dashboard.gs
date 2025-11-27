@@ -39,8 +39,8 @@ var Dashboard = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const status = row[5] || 'Не указан';
-      const court = row[4] || 'Не указан';
+      const status = row[COLUMNS.STATUS] || 'Не указан';
+      const court = row[COLUMNS.COURT] || 'Не указан';
 
       stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
       stats.byCourt[court] = (stats.byCourt[court] || 0) + 1;
