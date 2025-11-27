@@ -556,7 +556,7 @@ var LegalWorkflowManager = (function() {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const caseNumber = row[0];
-      const hearingDate = row[16]; // Дата заседания в колонке Q (столбец 17)
+      const hearingDate = row[17]; // Дата заседания в колонке Q (столбец 18, было 17)
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
@@ -625,7 +625,7 @@ var LegalWorkflowManager = (function() {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const caseNumber = row[0];
-      const hearingDate = row[16]; // Дата заседания в колонке Q (столбец 17)
+      const hearingDate = row[17]; // Дата заседания в колонке Q (столбец 18, было 17)
 
       if (assignedCases.includes(caseNumber) && hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
