@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Судебные дела</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #000000);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ГЛАВНАЯ СТРАНИЦА - СПИСОК ДЕЛ */
+    #mainView {
+      height: 100vh;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .case-row {
+      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      border-left: 4px solid var(--tg-theme-button-color, #3390ec);
+    }
+
+    .case-row:active {
+      transform: scale(0.98);
+    }
+
+    .case-number {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--tg-theme-text-color, #000);
+    }
+
+    .case-parties {
+      font-size: 14px;
+      color: var(--tg-theme-hint-color, #666);
+    }
+
+    .party-label {
+      font-weight: 500;
+      color: var(--tg-theme-text-color, #000);
+    }
+
+    /* СТРАНИЦА ДЕЛА - КАРТОЧКИ ЯЧЕЕК */
+    #detailView {
+      display: none;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .back-button {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--tg-theme-button-color, #3390ec);
+      color: var(--tg-theme-button-text-color, #fff);
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .back-button:active {
+      transform: scale(0.95);
+    }
+
+    .cell-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px 20px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.3s ease-out;
+    }
+
+    .cell-card {
+      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      border-radius: 24px;
+      padding: 32px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .cell-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--tg-theme-hint-color, #666);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .cell-value {
+      font-size: 20px;
+      color: var(--tg-theme-text-color, #000);
+      line-height: 1.5;
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-wrap: break-word;
+    }
+
+    .cell-navigation {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--tg-theme-hint-color, #666);
+      font-size: 13px;
+    }
+
+    .cell-position {
+      font-weight: 500;
+    }
+
+    .swipe-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-size: 13px;
+      z-index: 999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .swipe-hint.show {
+      opacity: 1;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-size: 16px;
+      color: var(--tg-theme-hint-color, #666);
+    }
+
+    .spinner {
+      border: 3px solid var(--tg-theme-hint-color, #f3f3f3);
+      border-top: 3px solid var(--tg-theme-button-color, #3390ec);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Главная страница - список дел -->
+  <div id="mainView">
+    <div class="loading">
+      <div>
+        <div class="spinner"></div>
+        <div>Загрузка дел...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Страница дела - карточки ячеек -->
+  <div id="detailView">
+    <button class="back-button" id="backBtn">←</button>
+    <div id="cellsContainer"></div>
+    <div class="swipe-hint" id="swipeHint">← Свайп для навигации →</div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    let allCases = [];
+    let currentCaseIndex = 0;
+    let currentCellIndex = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    // Названия полей
+    const FIELD_NAMES = [
+      'Номер дела',
+      'Имя клиента',
+      'Тип дела',
+      'Статус',
+      'Суд',
+      'Приоритет',
+      'Истец',
+      'Ответчик',
+      'Сумма иска',
+      'Дата подачи',
+      'Дата происшествия',
+      'Категория дела',
+      'Назначенный юрист',
+      'Описание',
+      'Заметки',
+      'Ссылка на документы',
+      'Дата заседания'
+    ];
+
+    // Загрузка данных
+    async function loadCases() {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('action', 'getCases');
+        const response = await fetch(url.toString());
+        const data = await response.json();
+
+        if (data.success) {
+          allCases = data.cases;
+          renderMainView();
+        } else {
+          showError(data.error || 'Ошибка загрузки данных');
+        }
+      } catch (error) {
+        console.error('Error loading cases:', error);
+        showError('Ошибка подключения к серверу');
+      }
+    }
+
+    // Отрисовка главной страницы
+    function renderMainView() {
+      const mainView = document.getElementById('mainView');
+
+      if (!allCases || allCases.length === 0) {
+        mainView.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">Дела не найдены</div>';
+        return;
+      }
+
+      let html = '';
+      allCases.forEach((caseItem, index) => {
+        html += `
+          <div class="case-row" onclick="openCase(${index})">
+            <div class="case-number">${caseItem.caseNumber || 'Без номера'}</div>
+            <div class="case-parties">
+              <div><span class="party-label">Истец:</span> ${caseItem.plaintiff || 'Не указан'}</div>
+              <div><span class="party-label">Ответчик:</span> ${caseItem.defendant || 'Не указан'}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      mainView.innerHTML = html;
+    }
+
+    // Открыть дело
+    function openCase(index) {
+      currentCaseIndex = index;
+      currentCellIndex = 0;
+
+      document.getElementById('mainView').style.display = 'none';
+      document.getElementById('detailView').style.display = 'block';
+
+      renderCaseCells();
+      showSwipeHint();
+    }
+
+    // Отрисовка ячеек дела
+    function renderCaseCells() {
+      const container = document.getElementById('cellsContainer');
+      const caseData = allCases[currentCaseIndex];
+
+      // Получаем все поля дела как массив
+      const fields = [
+        caseData.caseNumber,
+        caseData.clientName,
+        caseData.caseType,
+        caseData.status,
+        caseData.court,
+        caseData.priority,
+        caseData.plaintiff,
+        caseData.defendant,
+        caseData.claimAmount,
+        formatDate(caseData.filingDate),
+        formatDate(caseData.incidentDate),
+        caseData.caseCategory,
+        caseData.assignedLawyer,
+        caseData.description,
+        caseData.notes,
+        caseData.documentsLink,
+        formatDate(caseData.hearingDate)
+      ];
+
+      // Отрисовываем текущую ячейку
+      container.innerHTML = `
+        <div class="cell-container" style="transform: translateX(0)">
+          <div class="cell-card">
+            <div class="cell-label">${FIELD_NAMES[currentCellIndex]}</div>
+            <div class="cell-value">${fields[currentCellIndex] || 'Не указано'}</div>
+            <div class="cell-navigation">
+              <span>Столбец ${currentCellIndex + 1} из ${fields.length}</span>
+              <span class="cell-position">Дело ${currentCaseIndex + 1} из ${allCases.length}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Навигация по ячейкам
+    function navigateCell(direction) {
+      const caseData = allCases[currentCaseIndex];
+      const totalCells = 17; // Количество полей
+
+      if (direction === 'left' && currentCellIndex > 0) {
+        currentCellIndex--;
+        renderCaseCells();
+      } else if (direction === 'right' && currentCellIndex < totalCells - 1) {
+        currentCellIndex++;
+        renderCaseCells();
+      }
+    }
+
+    // Навигация по делам
+    function navigateCase(direction) {
+      if (direction === 'up' && currentCaseIndex > 0) {
+        currentCaseIndex--;
+        currentCellIndex = 0;
+        renderCaseCells();
+      } else if (direction === 'down' && currentCaseIndex < allCases.length - 1) {
+        currentCaseIndex++;
+        currentCellIndex = 0;
+        renderCaseCells();
+      }
+    }
+
+    // Обработка свайпов
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (document.getElementById('detailView').style.display === 'none') return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+
+      // Определяем направление свайпа
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Горизонтальный свайп (по ячейкам)
+        if (Math.abs(diffX) > 50) {
+          if (diffX > 0) {
+            navigateCell('right');
+          } else {
+            navigateCell('left');
+          }
+        }
+      } else {
+        // Вертикальный свайп (по делам)
+        if (Math.abs(diffY) > 50) {
+          if (diffY > 0) {
+            navigateCase('down');
+          } else {
+            navigateCase('up');
+          }
+        }
+      }
+    }, { passive: true });
+
+    // Кнопка назад
+    document.getElementById('backBtn').addEventListener('click', () => {
+      document.getElementById('detailView').style.display = 'none';
+      document.getElementById('mainView').style.display = 'block';
+    });
+
+    // Подсказка по свайпу
+    function showSwipeHint() {
+      const hint = document.getElementById('swipeHint');
+      hint.classList.add('show');
+      setTimeout(() => {
+        hint.classList.remove('show');
+      }, 3000);
+    }
+
+    // Форматирование даты
+    function formatDate(dateStr) {
+      if (!dateStr) return null;
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    // Ошибка
+    function showError(message) {
+      document.getElementById('mainView').innerHTML = `
+        <div style="text-align:center;padding:40px;color:#f44336;">
+          <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+          <div>${message}</div>
+        </div>
+      `;
+    }
+
+    // Загрузка при старте
+    loadCases();
+  </script>
+</body>
+</html>
