@@ -8,7 +8,11 @@
     "scheduler": "node scheduler.js",
     "dev": "node server.js",
     "test": "node api/health.js",
-    "lint": "echo '✅ Lint check passed (no linter configured yet)'"
+    "lint": "echo '✅ Lint check passed (no linter configured yet)'",
+    "deploy:sheets": "cd google-apps-script && clasp push",
+    "deploy:sheets:force": "cd google-apps-script && clasp push --force",
+    "open:sheets": "cd google-apps-script && clasp open",
+    "status:sheets": "cd google-apps-script && clasp status"
   },
   "dependencies": {
     "body-parser": "^1.20.2",

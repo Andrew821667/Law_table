@@ -1,0 +1,8 @@
+# Игнорировать markdown файлы
+*.md
+README.md
+QUICK_START.md
+CLASP_SETUP.md
+
+# Игнорировать настройки
+.clasp.json
