@@ -65,7 +65,7 @@ var HearingNotifier = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const caseNumber = row[0];
+      const caseNumber = row[1]; // Столбец B - Номер дела
       const hearingDate = row[17]; // Столбец Q (было 16, сдвинулось из-за колонки D)
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
@@ -80,8 +80,8 @@ var HearingNotifier = (function() {
             caseNumber: caseNumber,
             date: hearingDate,
             court: row[4] || 'Не указан',
-            plaintiff: row[6] || 'Не указан',
-            defendant: row[7] || 'Не указан',
+            plaintiff: row[7] || 'Не указан', // Столбец H
+            defendant: row[8] || 'Не указан', // Столбец I
             priority: row[5] || '',            // Столбец F - Приоритет
             columnR: row[18] || '',            // Столбец R (было 17)
             columnS: row[19] || '',            // Столбец S (было 18)
@@ -299,11 +299,11 @@ var HearingNotifier = (function() {
 
           if (daysUntil <= 30) { // Только заседания в ближайшие 30 дней
             hearings.push({
-              caseNumber: row[0],
+              caseNumber: row[1], // Столбец B
               date: hearingDate,
               court: row[4] || 'Не указан',
-              plaintiff: row[6] || 'Не указан',
-              defendant: row[7] || 'Не указан',
+              plaintiff: row[7] || 'Не указан', // Столбец H
+              defendant: row[8] || 'Не указан', // Столбец I
               priority: row[5] || '',            // Столбец F - Приоритет
               columnR: row[18] || '',            // Столбец R (было 17)
               columnS: row[19] || '',            // Столбец S (было 18)
@@ -724,7 +724,7 @@ var HearingNotifier = (function() {
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         upcomingHearings.push({
-          caseNumber: row[0],
+          caseNumber: row[1], // Столбец B
           date: hearingDate,
           court: row[4] || 'Не указан',
           plaintiff: row[6] || 'Не указан',
