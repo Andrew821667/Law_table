@@ -1,8 +1,6 @@
-# Игнорировать всё кроме src/ и appsscript.json
+# Игнорировать всё кроме src/
 **/**
 !src/**
-!appsscript.json
-!.clasp.json
 
 # Node modules
 node_modules/
