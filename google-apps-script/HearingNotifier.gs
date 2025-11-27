@@ -65,8 +65,8 @@ var HearingNotifier = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const caseNumber = row[0];
-      const hearingDate = row[16]; // Столбец Q
+      const caseNumber = row[1]; // Столбец B - Номер дела
+      const hearingDate = row[17]; // Столбец Q (было 16, сдвинулось из-за колонки D)
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         const hoursUntil = (hearingDate - now) / (1000 * 60 * 60);
@@ -79,17 +79,16 @@ var HearingNotifier = (function() {
           hearings.push({
             caseNumber: caseNumber,
             date: hearingDate,
-            court: row[4] || 'Не указан',
-            plaintiff: row[6] || 'Не указан',
-            defendant: row[7] || 'Не указан',
-            priority: row[5] || '',            // Столбец F - Приоритет
-            columnR: row[17] || '',            // Столбец R
-            columnS: row[18] || '',            // Столбец S
-            columnT: row[19] || '',            // Столбец T
-            columnU: row[20] || '',            // Столбец U
-            columnV: row[21] || '',            // Столбец V
-            columnW: row[22] || '',            // Столбец W
-            columnX: row[23] || '',            // Столбец X
+            court: row[3] || 'Не указан',  // Столбец D - Текущая инстанция
+            plaintiff: row[7] || 'Не указан', // Столбец H
+            defendant: row[8] || 'Не указан', // Столбец I
+            columnR: row[18] || '',
+            columnS: row[19] || '',
+            columnT: row[20] || '',
+            columnU: row[21] || '',
+            columnV: row[22] || '',
+            columnW: row[23] || '',
+            columnX: row[24] || '',
             daysUntil: daysUntil,
             hoursUntil: hoursUntil,
             notificationType: needsNotification
@@ -214,16 +213,23 @@ var HearingNotifier = (function() {
    * Отправить уведомление о заседании
    */
   function sendHearingNotification(user, hearing) {
-    const dateStr = Utilities.formatDate(hearing.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+    const dateStr = Utilities.formatDate(hearing.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
 
-    // Определяем тип уведомления
+    // Определяем тип уведомления с визуальными индикаторами
     let timeInfo = '';
-    if (hearing.notificationType.includes('days')) {
-      const days = parseInt(hearing.notificationType);
-      timeInfo = `через ${days} ${getDaysWord(days)}`;
-    } else if (hearing.notificationType.includes('hours')) {
-      const hours = parseInt(hearing.notificationType);
-      timeInfo = `через ${hours} ${getHoursWord(hours)}`;
+    const hoursUntil = hearing.hoursUntil || ((hearing.date - new Date()) / (1000 * 60 * 60));
+    const daysUntil = hearing.daysUntil || Math.floor(hoursUntil / 24);
+
+    if (hoursUntil < 24) {
+      const hours = Math.floor(hoursUntil);
+      timeInfo = hours <= 1 ? '🔴 СРОЧНО! Через 1 час' :
+                 hours <= 5 ? `🔴 СРОЧНО! Через ${hours} часов` :
+                 `🟡 Сегодня через ${hours} часов`;
+    } else {
+      timeInfo = daysUntil === 1 ? '🔴 ЗАВТРА!' :
+                 daysUntil <= 3 ? `🟡 Через ${daysUntil} дня` :
+                 daysUntil <= 7 ? `🟢 Через ${daysUntil} дней` :
+                 `🟢 Через ${daysUntil} дней`;
     }
 
     // Формируем дополнительную информацию
@@ -231,8 +237,8 @@ var HearingNotifier = (function() {
 
     const message =
       `⚖️ *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
-      `📅 Дата: ${dateStr}\n` +
-      `⏰ ${timeInfo}\n\n` +
+      `⏰ ${timeInfo}\n` +
+      `📅 Дата: ${dateStr} (МСК)\n\n` +
       `📋 Дело: ${hearing.caseNumber}\n` +
       `🏛️ Суд: ${hearing.court}\n\n` +
       `👤 Истец: ${hearing.plaintiff}\n` +
@@ -292,26 +298,25 @@ var HearingNotifier = (function() {
 
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
-        const hearingDate = row[16];
+        const hearingDate = row[17];
 
         if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
           const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
 
           if (daysUntil <= 30) { // Только заседания в ближайшие 30 дней
             hearings.push({
-              caseNumber: row[0],
+              caseNumber: row[1], // Столбец B
               date: hearingDate,
-              court: row[4] || 'Не указан',
-              plaintiff: row[6] || 'Не указан',
-              defendant: row[7] || 'Не указан',
-              priority: row[5] || '',            // Столбец F - Приоритет
-              columnR: row[17] || '',            // Столбец R
-              columnS: row[18] || '',            // Столбец S
-              columnT: row[19] || '',            // Столбец T
-              columnU: row[20] || '',            // Столбец U
-              columnV: row[21] || '',            // Столбец V
-              columnW: row[22] || '',            // Столбец W
-              columnX: row[23] || '',            // Столбец X
+              court: row[3] || 'Не указан',  // Столбец D - Текущая инстанция
+              plaintiff: row[7] || 'Не указан', // Столбец H
+              defendant: row[8] || 'Не указан', // Столбец I
+              columnR: row[18] || '',            // Столбец R (было 17)
+              columnS: row[19] || '',            // Столбец S (было 18)
+              columnT: row[20] || '',            // Столбец T (было 19)
+              columnU: row[21] || '',            // Столбец U (было 20)
+              columnV: row[22] || '',            // Столбец V (было 21)
+              columnW: row[23] || '',            // Столбец W (было 22)
+              columnX: row[24] || '',            // Столбец X (было 23)
               daysUntil: daysUntil,
               notificationType: 'manual'
             });
@@ -346,13 +351,41 @@ var HearingNotifier = (function() {
         }
       }
 
-      ui.alert(
-        '✅ Уведомления отправлены!',
-        `Отправлено: ${sentCount} уведомлений\n` +
-        `О заседаниях: ${hearings.length}\n` +
-        `В течение: 30 дней`,
-        ui.ButtonSet.OK
-      );
+      // Формируем детальное сообщение о заседаниях
+      let message = `📅 Предстоящие заседания (${hearings.length}):\n\n`;
+
+      const displayHearings = hearings.slice(0, 10); // Показываем максимум 10
+      displayHearings.forEach((h, i) => {
+        // Форматируем срочность и время до заседания
+        let timeInfo = '';
+        if (h.hoursUntil < 24) {
+          const hours = Math.floor(h.hoursUntil);
+          timeInfo = hours <= 1 ? '🔴 СРОЧНО! Через 1 час' :
+                     hours <= 5 ? `🔴 СРОЧНО! Через ${hours} часов` :
+                     `🟡 Сегодня через ${hours} часов`;
+        } else {
+          timeInfo = h.daysUntil === 1 ? '🔴 ЗАВТРА!' :
+                     h.daysUntil <= 3 ? `🟡 Через ${h.daysUntil} дня` :
+                     h.daysUntil <= 7 ? `🟢 Через ${h.daysUntil} дней` :
+                     `🟢 Через ${h.daysUntil} дней`;
+        }
+
+        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+
+        message += `${i + 1}. ${timeInfo}\n`;
+        message += `   📋 Дело: ${h.caseNumber}\n`;
+        message += `   📅 Дата: ${dateStr}\n`;
+        message += `   🏛️ Суд: ${h.court}\n`;
+        message += `   ⚖️ ${h.plaintiff} vs ${h.defendant}\n\n`;
+      });
+
+      if (hearings.length > 10) {
+        message += `...и ещё ${hearings.length - 10} заседаний\n\n`;
+      }
+
+      message += `\n✅ Отправлено уведомлений: ${sentCount}`;
+
+      ui.alert('📅 Уведомления о заседаниях', message, ui.ButtonSet.OK);
 
       AppLogger.info('HearingNotifier', `Ручная отправка: ${sentCount} уведомлений`);
 
@@ -703,23 +736,22 @@ var HearingNotifier = (function() {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      const hearingDate = row[16]; // Столбец Q
+      const hearingDate = row[17]; // Столбец Q (было 16, сдвинулось из-за колонки D)
 
       if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
         upcomingHearings.push({
-          caseNumber: row[0],
+          caseNumber: row[1], // Столбец B
           date: hearingDate,
-          court: row[4] || 'Не указан',
-          plaintiff: row[6] || 'Не указан',
-          defendant: row[7] || 'Не указан',
-          priority: row[5] || '',            // Столбец F - Приоритет
-          columnR: row[17] || '',            // Столбец R
-          columnS: row[18] || '',            // Столбец S
-          columnT: row[19] || '',            // Столбец T
-          columnU: row[20] || '',            // Столбец U
-          columnV: row[21] || '',            // Столбец V
-          columnW: row[22] || '',            // Столбец W
-          columnX: row[23] || '',            // Столбец X
+          court: row[3] || 'Не указан',  // Столбец D - Текущая инстанция
+          plaintiff: row[7] || 'Не указан', // Столбец H
+          defendant: row[8] || 'Не указан', // Столбец I
+          columnR: row[18] || '',
+          columnS: row[19] || '',
+          columnT: row[20] || '',
+          columnU: row[21] || '',
+          columnV: row[22] || '',
+          columnW: row[23] || '',
+          columnX: row[24] || '',
           rowIndex: i + 1
         });
       }
@@ -1096,6 +1128,18 @@ var HearingNotifier = (function() {
   }
 
   // ============================================
+  // PUBLIC API WRAPPERS
+  // ============================================
+
+  /**
+   * Получить предстоящие заседания (PUBLIC API)
+   * Wrapper для использования в AutomaticHearingTrigger
+   */
+  function getUpcomingHearings() {
+    return findUpcomingHearings();
+  }
+
+  // ============================================
   // ЭКСПОРТ
   // ============================================
 
@@ -1108,7 +1152,10 @@ var HearingNotifier = (function() {
     getNotificationSchedule: getNotificationSchedule,
     setupCustomCaseNotification: setupCustomCaseNotification,
     sendCustomCaseNotification: sendCustomCaseNotification,
-    showCustomNotifications: showCustomNotifications
+    showCustomNotifications: showCustomNotifications,
+    // Новые экспортированные методы для AutomaticHearingTrigger
+    getUpcomingHearings: getUpcomingHearings,
+    sendHearingNotification: sendHearingNotification
   };
 
 })();
