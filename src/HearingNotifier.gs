@@ -213,16 +213,23 @@ var HearingNotifier = (function() {
    * Отправить уведомление о заседании
    */
   function sendHearingNotification(user, hearing) {
-    const dateStr = Utilities.formatDate(hearing.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+    const dateStr = Utilities.formatDate(hearing.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
 
-    // Определяем тип уведомления
+    // Определяем тип уведомления с визуальными индикаторами
     let timeInfo = '';
-    if (hearing.notificationType.includes('days')) {
-      const days = parseInt(hearing.notificationType);
-      timeInfo = `через ${days} ${getDaysWord(days)}`;
-    } else if (hearing.notificationType.includes('hours')) {
-      const hours = parseInt(hearing.notificationType);
-      timeInfo = `через ${hours} ${getHoursWord(hours)}`;
+    const hoursUntil = hearing.hoursUntil || ((hearing.date - new Date()) / (1000 * 60 * 60));
+    const daysUntil = hearing.daysUntil || Math.floor(hoursUntil / 24);
+
+    if (hoursUntil < 24) {
+      const hours = Math.floor(hoursUntil);
+      timeInfo = hours <= 1 ? '🔴 СРОЧНО! Через 1 час' :
+                 hours <= 5 ? `🔴 СРОЧНО! Через ${hours} часов` :
+                 `🟡 Сегодня через ${hours} часов`;
+    } else {
+      timeInfo = daysUntil === 1 ? '🔴 ЗАВТРА!' :
+                 daysUntil <= 3 ? `🟡 Через ${daysUntil} дня` :
+                 daysUntil <= 7 ? `🟢 Через ${daysUntil} дней` :
+                 `🟢 Через ${daysUntil} дней`;
     }
 
     // Формируем дополнительную информацию
@@ -230,8 +237,8 @@ var HearingNotifier = (function() {
 
     const message =
       `⚖️ *НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
-      `📅 Дата: ${dateStr}\n` +
-      `⏰ ${timeInfo}\n\n` +
+      `⏰ ${timeInfo}\n` +
+      `📅 Дата: ${dateStr} (МСК)\n\n` +
       `📋 Дело: ${hearing.caseNumber}\n` +
       `🏛️ Суд: ${hearing.court}\n\n` +
       `👤 Истец: ${hearing.plaintiff}\n` +
@@ -1121,6 +1128,18 @@ var HearingNotifier = (function() {
   }
 
   // ============================================
+  // PUBLIC API WRAPPERS
+  // ============================================
+
+  /**
+   * Получить предстоящие заседания (PUBLIC API)
+   * Wrapper для использования в AutomaticHearingTrigger
+   */
+  function getUpcomingHearings() {
+    return findUpcomingHearings();
+  }
+
+  // ============================================
   // ЭКСПОРТ
   // ============================================
 
@@ -1133,7 +1152,10 @@ var HearingNotifier = (function() {
     getNotificationSchedule: getNotificationSchedule,
     setupCustomCaseNotification: setupCustomCaseNotification,
     sendCustomCaseNotification: sendCustomCaseNotification,
-    showCustomNotifications: showCustomNotifications
+    showCustomNotifications: showCustomNotifications,
+    // Новые экспортированные методы для AutomaticHearingTrigger
+    getUpcomingHearings: getUpcomingHearings,
+    sendHearingNotification: sendHearingNotification
   };
 
 })();
