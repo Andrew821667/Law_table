@@ -76,11 +76,11 @@ var AppLogger = (function() {
     // Проверка уровня
     if (LOG_LEVELS[level] < currentLevel) return;
 
-    // Логирование в консоль
+    // Console log
     const logMessage = `[${level}] ${module}: ${message}`;
     Logger.log(logMessage);
 
-    // Логирование в лист
+    // Sheet log
     try {
       const sheet = getLogSheet();
       const timestamp = new Date();

@@ -80,27 +80,12 @@ var UserManager = (function() {
   }
 
   /**
-   * ✅ НОВОЕ: Валидация формата email
-   * @param {string} email - Email для проверки
-   * @return {boolean} true если валидный
-   */
-  function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  /**
    * Добавить пользователя
    * @param {string} email - Email пользователя
    * @param {string} role - Роль (ADMIN, MANAGER, LAWYER, ASSISTANT, OBSERVER)
    * @param {Object} options - Дополнительные опции
    */
   function addUser(email, role, options = {}) {
-    // ✅ ИСПРАВЛЕНО: Валидация формата email
-    if (!isValidEmail(email)) {
-      throw new Error(`Неверный формат email: ${email}`);
-    }
-
     if (!ROLES[role]) {
       throw new Error(`Неизвестная роль: ${role}`);
     }
@@ -278,214 +263,125 @@ var UserManager = (function() {
   }
 
   /**
-   * Создать или обновить лист управления пользователями
+   * Показать UI для управления пользователями
    */
-  function createUsersSheet() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('👥 Пользователи');
-
-    if (!sheet) {
-      sheet = ss.insertSheet('👥 Пользователи');
-      AppLogger.info('UserManager', 'Создан лист "👥 Пользователи"');
-    }
-
-    // Очистить и создать заголовки
-    sheet.clear();
-
-    // Заголовки
-    const headers = [
-      'Email',
-      'Роль',
-      'Имя',
-      'Telegram Chat ID',
-      '✉️ Email',
-      '📱 Telegram',
-      '📞 SMS',
-      'Назначенные дела'
-    ];
-
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.getRange(1, 1, 1, headers.length)
-      .setBackground('#4285f4')
-      .setFontColor('#ffffff')
-      .setFontWeight('bold')
-      .setHorizontalAlignment('center');
-
-    // Инструкция
-    sheet.getRange('A2').setValue('📝 ИНСТРУКЦИЯ:');
-    sheet.getRange('A3').setValue('1. Введите Email пользователя в столбец A');
-    sheet.getRange('A4').setValue('2. Выберите Роль из выпадающего списка в столбец B');
-    sheet.getRange('A5').setValue('3. Введите Имя в столбец C');
-    sheet.getRange('A6').setValue('4. Введите Telegram Chat ID в столбец D (если есть)');
-    sheet.getRange('A7').setValue('5. Поставьте ✓ в столбцах E, F, G для включения уведомлений');
-    sheet.getRange('A8').setValue('6. В столбец H можно ввести номера дел через запятую (для роли LAWYER)');
-    sheet.getRange('A9').setValue('7. После заполнения нажмите: Меню → ⚖️ Судебные дела → ⚙️ Настройки → 💾 Синхронизировать пользователей');
-    sheet.getRange('A2:A9').setFontSize(10).setFontColor('#666666');
-
-    // Валидация для столбца "Роль"
-    const roleRule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['ADMIN', 'MANAGER', 'LAWYER', 'ASSISTANT', 'OBSERVER'], true)
-      .setAllowInvalid(false)
-      .setHelpText('Выберите роль из списка')
-      .build();
-
-    sheet.getRange('B11:B1000').setDataValidation(roleRule);
-
-    // Валидация для чекбоксов уведомлений
-    const checkboxRule = SpreadsheetApp.newDataValidation()
-      .requireCheckbox()
-      .build();
-
-    sheet.getRange('E11:G1000').setDataValidation(checkboxRule);
-
-    // Заголовок данных
-    sheet.getRange('A10').setValue('=== ДАННЫЕ ПОЛЬЗОВАТЕЛЕЙ (начните с строки 11) ===');
-    sheet.getRange('A10').setFontWeight('bold').setBackground('#fff3cd');
-
-    // Загрузить существующих пользователей
+  function showManageUsersDialog() {
     const users = getAllUsers();
     const usersList = Object.values(users);
 
-    if (usersList.length > 0) {
-      const data = usersList.map(user => [
-        user.email,
-        user.role,
-        user.name || '',
-        user.telegram_chat_id || '',
-        user.notification_preferences.email || false,
-        user.notification_preferences.telegram || false,
-        user.notification_preferences.sms || false,
-        (user.assigned_cases || []).join(', ')
-      ]);
+    let html = `
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .users-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .users-table th, .users-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        .users-table th { background: #4285f4; color: white; }
+        .role-badge { padding: 3px 8px; border-radius: 3px; font-size: 11px; }
+        .role-ADMIN { background: #ea4335; color: white; }
+        .role-MANAGER { background: #fbbc04; }
+        .role-LAWYER { background: #34a853; color: white; }
+        .role-ASSISTANT { background: #4285f4; color: white; }
+        .role-OBSERVER { background: #9aa0a6; color: white; }
+        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; background: #4285f4; color: white; border: none; border-radius: 3px; }
+      </style>
 
-      sheet.getRange(11, 1, data.length, headers.length).setValues(data);
+      <h2>👥 Управление пользователями</h2>
+
+      <button class="btn" onclick="addNewUser()">➕ Добавить пользователя</button>
+
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Имя</th>
+            <th>Роль</th>
+            <th>Telegram</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    if (usersList.length === 0) {
+      html += '<tr><td colspan="5" style="text-align: center;">Нет пользователей</td></tr>';
+    } else {
+      usersList.forEach(user => {
+        html += `
+          <tr>
+            <td>${user.email}</td>
+            <td>${user.name}</td>
+            <td><span class="role-badge role-${user.role}">${ROLES[user.role].name}</span></td>
+            <td>${user.telegram_chat_id ? '✅' : '❌'}</td>
+            <td>
+              <button onclick="editUser('${user.email}')">✏️</button>
+              <button onclick="deleteUser('${user.email}')">🗑️</button>
+            </td>
+          </tr>
+        `;
+      });
     }
 
-    // Ширина столбцов
-    sheet.setColumnWidth(1, 200); // Email
-    sheet.setColumnWidth(2, 100); // Роль
-    sheet.setColumnWidth(3, 150); // Имя
-    sheet.setColumnWidth(4, 120); // Chat ID
-    sheet.setColumnWidth(5, 70);  // Email checkbox
-    sheet.setColumnWidth(6, 90);  // Telegram checkbox
-    sheet.setColumnWidth(7, 70);  // SMS checkbox
-    sheet.setColumnWidth(8, 250); // Назначенные дела
+    html += `
+        </tbody>
+      </table>
 
-    // Заморозить заголовок
-    sheet.setFrozenRows(1);
+      <script>
+        function addNewUser() {
+          const email = prompt('Email пользователя:');
+          if (!email) return;
 
-    AppLogger.info('UserManager', 'Лист пользователей создан/обновлён');
+          const role = prompt('Роль (ADMIN/MANAGER/LAWYER/ASSISTANT/OBSERVER):');
+          if (!role) return;
 
-    return sheet;
-  }
+          const name = prompt('Имя (опционально):') || email.split('@')[0];
 
-  /**
-   * Синхронизировать пользователей из листа в Properties Service
-   */
-  function syncUsersFromSheet() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('👥 Пользователи');
-
-    if (!sheet) {
-      SpreadsheetApp.getUi().alert(
-        '❌ Лист "👥 Пользователи" не найден!\n\n' +
-        'Создайте его через меню: ⚖️ Судебные дела → ⚙️ Настройки → 👥 Управление пользователями'
-      );
-      return;
-    }
-
-    // Получить данные (начиная с строки 11)
-    const lastRow = sheet.getLastRow();
-
-    if (lastRow < 11) {
-      SpreadsheetApp.getUi().alert('⚠️ Нет данных для синхронизации!');
-      return;
-    }
-
-    const data = sheet.getRange(11, 1, lastRow - 10, 8).getValues();
-    const users = {};
-    let addedCount = 0;
-    let errorCount = 0;
-    const errors = [];
-
-    data.forEach((row, index) => {
-      const [email, role, name, chatId, emailNotif, telegramNotif, smsNotif, assignedCases] = row;
-
-      // Пропустить пустые строки
-      if (!email || email.toString().trim() === '') return;
-
-      // Валидация
-      if (!ROLES[role]) {
-        errors.push(`Строка ${index + 11}: Неизвестная роль "${role}"`);
-        errorCount++;
-        return;
-      }
-
-      // Создать пользователя
-      users[email] = {
-        email: email,
-        role: role,
-        name: name || email.split('@')[0],
-        phone: '',
-        telegram_chat_id: chatId ? chatId.toString() : '',
-        notification_preferences: {
-          email: emailNotif === true,
-          telegram: telegramNotif === true,
-          sms: smsNotif === true
-        },
-        assigned_cases: assignedCases ?
-          assignedCases.toString().split(',').map(c => c.trim()).filter(c => c) :
-          [],
-        created_at: new Date().toISOString(),
-        active: true
-      };
-
-      addedCount++;
-    });
-
-    // Сохранить
-    if (Object.keys(users).length > 0) {
-      saveUsers(users);
-
-      let message = `✅ Синхронизация завершена!\n\n`;
-      message += `Добавлено/обновлено: ${addedCount} пользователей\n`;
-
-      if (errorCount > 0) {
-        message += `\n⚠️ Ошибок: ${errorCount}\n\n`;
-        message += errors.slice(0, 5).join('\n');
-        if (errors.length > 5) {
-          message += `\n... и ещё ${errors.length - 5} ошибок`;
+          google.script.run
+            .withSuccessHandler(() => {
+              alert('✅ Пользователь добавлен!');
+              window.location.reload();
+            })
+            .withFailureHandler((error) => {
+              alert('❌ Ошибка: ' + error.message);
+            })
+            .addUserFromUI(email, role, name);
         }
-      }
 
-      SpreadsheetApp.getUi().alert('💾 Синхронизация пользователей', message, SpreadsheetApp.getUi().ButtonSet.OK);
-      AppLogger.info('UserManager', `Синхронизировано ${addedCount} пользователей`);
-    }
+        function editUser(email) {
+          alert('Редактирование пользователя ' + email);
+          // TODO: Implement edit dialog
+        }
+
+        function deleteUser(email) {
+          if (confirm('Удалить пользователя ' + email + '?')) {
+            google.script.run
+              .withSuccessHandler(() => {
+                alert('✅ Пользователь удалён!');
+                window.location.reload();
+              })
+              .removeUserFromUI(email);
+          }
+        }
+      </script>
+    `;
+
+    const htmlOutput = HtmlService.createHtmlOutput(html)
+      .setWidth(700)
+      .setHeight(500);
+
+    SpreadsheetApp.getUi().showModalDialog(htmlOutput, '👥 Управление пользователями');
   }
 
   /**
-   * Показать лист управления пользователями
+   * Добавить пользователя из UI
    */
-  function showManageUsersDialog() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName('👥 Пользователи');
+  function addUserFromUI(email, role, name) {
+    addUser(email, role, { name: name });
+  }
 
-    if (!sheet) {
-      createUsersSheet();
-      sheet = ss.getSheetByName('👥 Пользователи');
-    }
-
-    // Активировать лист
-    sheet.activate();
-
-    SpreadsheetApp.getUi().alert(
-      '👥 Управление пользователями',
-      '📋 Лист "👥 Пользователи" открыт!\n\n' +
-      'Заполните таблицу и нажмите:\n' +
-      '⚖️ Судебные дела → ⚙️ Настройки → 💾 Синхронизировать пользователей\n\n' +
-      'Инструкция находится в строках 2-9 листа.',
-      SpreadsheetApp.getUi().ButtonSet.OK
-    );
+  /**
+   * Удалить пользователя из UI
+   */
+  function removeUserFromUI(email) {
+    removeUser(email);
   }
 
   // Экспорт публичных методов
@@ -501,9 +397,9 @@ var UserManager = (function() {
     hasPermission: hasPermission,
     assignCase: assignCase,
     unassignCase: unassignCase,
-    createUsersSheet: createUsersSheet,
-    syncUsersFromSheet: syncUsersFromSheet,
-    showManageUsersDialog: showManageUsersDialog
+    showManageUsersDialog: showManageUsersDialog,
+    addUserFromUI: addUserFromUI,
+    removeUserFromUI: removeUserFromUI
   };
 })();
 
