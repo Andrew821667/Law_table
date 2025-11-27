@@ -1,0 +1,18 @@
+# Игнорировать всё кроме src/ и appsscript.json
+**/**
+!src/**
+!appsscript.json
+!.clasp.json
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Git
+.git/
+.gitignore
+
+# API и другие папки
+api/
+public/
+google-apps-script/
