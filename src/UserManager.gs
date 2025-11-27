@@ -80,12 +80,27 @@ var UserManager = (function() {
   }
 
   /**
+   * ✅ НОВОЕ: Валидация формата email
+   * @param {string} email - Email для проверки
+   * @return {boolean} true если валидный
+   */
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
    * Добавить пользователя
    * @param {string} email - Email пользователя
    * @param {string} role - Роль (ADMIN, MANAGER, LAWYER, ASSISTANT, OBSERVER)
    * @param {Object} options - Дополнительные опции
    */
   function addUser(email, role, options = {}) {
+    // ✅ ИСПРАВЛЕНО: Валидация формата email
+    if (!isValidEmail(email)) {
+      throw new Error(`Неверный формат email: ${email}`);
+    }
+
     if (!ROLES[role]) {
       throw new Error(`Неизвестная роль: ${role}`);
     }

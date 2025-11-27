@@ -15,15 +15,16 @@
 
 var Utils = (function() {
 
-  // 🔥 НОВОЕ: Кэш для оптимизации
+  // ✅ ИСПРАВЛЕНО Issue #15: TTL-based кэш
   const dateCache = {
-    parsed: {},      // Кэш распарсенных дат
-    formatted: {},   // Кэш отформатированных дат
-    maxSize: 1000    // Максимальный размер кэша
+    parsed: {},      // Кэш распарсенных дат: { key: { value, timestamp } }
+    formatted: {},   // Кэш отформатированных дат: { key: { value, timestamp } }
+    maxSize: 1000,   // Максимальный размер кэша
+    ttl: 5 * 60 * 1000  // TTL: 5 минут в миллисекундах
   };
 
   /**
-   * 🔥 НОВОЕ: Очистка кэша
+   * ✅ ИСПРАВЛЕНО: Очистка кэша
    * Вызывайте периодически или при большом объеме данных
    */
   function clearCache() {
@@ -33,14 +34,54 @@ var Utils = (function() {
   }
 
   /**
-   * 🔥 УЛУЧШЕНО: Автоматическая очистка при переполнении
+   * ✅ НОВОЕ: Очистка устаревших записей по TTL
+   */
+  function cleanExpiredCache() {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    // Очистка parsed кэша
+    for (const key in dateCache.parsed) {
+      if (dateCache.parsed.hasOwnProperty(key)) {
+        const entry = dateCache.parsed[key];
+        if (entry.timestamp && (now - entry.timestamp) > dateCache.ttl) {
+          delete dateCache.parsed[key];
+          cleanedCount++;
+        }
+      }
+    }
+
+    // Очистка formatted кэша
+    for (const key in dateCache.formatted) {
+      if (dateCache.formatted.hasOwnProperty(key)) {
+        const entry = dateCache.formatted[key];
+        if (entry.timestamp && (now - entry.timestamp) > dateCache.ttl) {
+          delete dateCache.formatted[key];
+          cleanedCount++;
+        }
+      }
+    }
+
+    if (cleanedCount > 0) {
+      Logger.log(`🧹 Очищено ${cleanedCount} устаревших записей из кэша`);
+    }
+
+    return cleanedCount;
+  }
+
+  /**
+   * ✅ УЛУЧШЕНО: Проверка размера кэша с TTL-очисткой
    */
   function checkCacheSize() {
+    // Сначала пытаемся очистить устаревшие
+    cleanExpiredCache();
+
     const totalSize = Object.keys(dateCache.parsed).length +
                      Object.keys(dateCache.formatted).length;
 
+    // Если после очистки устаревших все еще переполнен - полная очистка
     if (totalSize > dateCache.maxSize) {
-      Logger.log('⚠️ Кэш переполнен, очистка...');
+      Logger.log('⚠️ Кэш переполнен даже после TTL-очистки, полная очистка...');
       clearCache();
     }
   }
@@ -79,7 +120,7 @@ var Utils = (function() {
   }
 
   /**
-   * 🔥 УЛУЧШЕНО: Форматирует дату с кэшированием
+   * ✅ УЛУЧШЕНО: Форматирует дату с TTL-кэшированием
    * @param {Date} date - Объект даты
    * @return {string} Отформатированная дата в формате dd.MM.yyyy
    */
@@ -88,10 +129,19 @@ var Utils = (function() {
       return '';
     }
 
-    // Проверяем кэш
-    const cacheKey = date.getTime();
+    // Проверяем кэш с TTL
+    const cacheKey = String(date.getTime());
+    const now = Date.now();
+
     if (dateCache.formatted[cacheKey]) {
-      return dateCache.formatted[cacheKey];
+      const entry = dateCache.formatted[cacheKey];
+      // Проверяем не истек ли TTL
+      if (entry.timestamp && (now - entry.timestamp) < dateCache.ttl) {
+        return entry.value;
+      } else {
+        // TTL истек - удаляем из кэша
+        delete dateCache.formatted[cacheKey];
+      }
     }
 
     const day = String(date.getDate()).padStart(2, '0');
@@ -99,15 +149,18 @@ var Utils = (function() {
     const year = date.getFullYear();
     const formatted = `${day}.${month}.${year}`;
 
-    // Сохраняем в кэш
-    dateCache.formatted[cacheKey] = formatted;
+    // Сохраняем в кэш с timestamp
+    dateCache.formatted[cacheKey] = {
+      value: formatted,
+      timestamp: now
+    };
     checkCacheSize();
 
     return formatted;
   }
 
   /**
-   * 🔥 УЛУЧШЕНО: Парсит дату с кэшированием и валидацией
+   * ✅ УЛУЧШЕНО: Парсит дату с TTL-кэшированием и валидацией
    * @param {string} dateString - Строка даты в формате dd.MM.yyyy
    * @return {Date|null} Объект Date или null если некорректная дата
    */
@@ -117,10 +170,18 @@ var Utils = (function() {
     }
 
     const trimmed = dateString.trim();
+    const now = Date.now();
 
-    // Проверяем кэш
+    // Проверяем кэш с TTL
     if (dateCache.parsed[trimmed]) {
-      return new Date(dateCache.parsed[trimmed]); // Возвращаем копию
+      const entry = dateCache.parsed[trimmed];
+      // Проверяем не истек ли TTL
+      if (entry.timestamp && (now - entry.timestamp) < dateCache.ttl) {
+        return new Date(entry.value); // Возвращаем копию
+      } else {
+        // TTL истек - удаляем из кэша
+        delete dateCache.parsed[trimmed];
+      }
     }
 
     const parts = trimmed.split('.');
@@ -133,7 +194,7 @@ var Utils = (function() {
     const month = parseInt(parts[1], 10) - 1;
     const year = parseInt(parts[2], 10);
 
-    // 🔥 НОВОЕ: Валидация даты
+    // Валидация даты
     if (isNaN(day) || isNaN(month) || isNaN(year)) {
       Logger.log(`⚠️ Некорректные числа в дате: ${dateString}`);
       return null;
@@ -146,14 +207,17 @@ var Utils = (function() {
 
     const date = new Date(year, month, day);
 
-    // 🔥 НОВОЕ: Проверка что дата корректна (например, 31 февраля)
+    // Проверка что дата корректна (например, 31 февраля)
     if (date.getDate() !== day || date.getMonth() !== month || date.getFullYear() !== year) {
       Logger.log(`⚠️ Некорректная дата: ${dateString}`);
       return null;
     }
 
-    // Сохраняем в кэш (сохраняем timestamp)
-    dateCache.parsed[trimmed] = date.getTime();
+    // Сохраняем в кэш с timestamp
+    dateCache.parsed[trimmed] = {
+      value: date.getTime(),
+      timestamp: now
+    };
     checkCacheSize();
 
     return date;

@@ -82,20 +82,13 @@ var TelegramBot = (function() {
 
   /**
    * Обработчик входящих webhook запросов от Telegram
-   *
-   * ⚠️ ПРОВЕРКА UPDATE_ID ОТКЛЮЧЕНА ⚠️
-   * Apps Script ненадежен для хранения состояния - постоянно сбрасывается
-   * Дубли маловероятны, а если будут - не критично
-   * TODO: Мигрировать на Vercel для надежной работы
    */
   function doPost(e) {
     try {
       const update = JSON.parse(e.postData.contents);
 
       AppLogger.info('TelegramBot', 'Получен update', {
-        update_id: update.update_id,
-        has_message: !!update.message,
-        has_callback: !!update.callback_query
+        update_id: update.update_id
       });
 
       // Обработка обычного сообщения
@@ -108,7 +101,6 @@ var TelegramBot = (function() {
         handleCallbackQuery(update.callback_query);
       }
 
-      // ВСЕГДА возвращаем ok:true чтобы Telegram не повторял запрос
       return ContentService.createTextOutput(JSON.stringify({ ok: true }))
         .setMimeType(ContentService.MimeType.JSON);
 
@@ -118,8 +110,7 @@ var TelegramBot = (function() {
         stack: error.stack
       });
 
-      // ВАЖНО: даже при ошибке возвращаем ok:true чтобы Telegram не повторял
-      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+      return ContentService.createTextOutput(JSON.stringify({ ok: false }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
@@ -266,10 +257,7 @@ var TelegramBot = (function() {
           break;
 
         case 'back_main':
-          // Удаляем текущее сообщение и отправляем новое с web_app кнопкой
-          // (Telegram API не позволяет редактировать сообщения, добавляя web_app)
-          deleteMessage(chatId, messageId);
-          sendMainMenu(chatId, user);
+          editMainMenu(chatId, messageId, user);
           break;
 
         case 'back_view':
@@ -303,16 +291,17 @@ var TelegramBot = (function() {
    * Отправить главное меню
    */
   function sendMainMenu(chatId, user) {
-    // ВАЖНО: используем правильный Web App deployment URL
-    const webAppUrl = 'https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec';
-
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
+          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
         ],
         [
-          { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
+          { text: '➕ Добавить', callback_data: 'menu_add:main' }
+        ],
+        [
+          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
         ]
       ]
     };
@@ -320,7 +309,8 @@ var TelegramBot = (function() {
     const roleText = getRoleText(user.role);
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
-      `Роль: ${roleText}`;
+      `Роль: ${roleText}\n\n` +
+      `Выберите действие:`;
 
     sendMessage(chatId, message, keyboard);
   }
@@ -329,16 +319,17 @@ var TelegramBot = (function() {
    * Редактировать сообщение на главное меню
    */
   function editMainMenu(chatId, messageId, user) {
-    // ВАЖНО: используем правильный Web App deployment URL
-    const webAppUrl = 'https://script.google.com/macros/s/AKfycbyFfwijoiLoXWxswMXD3kJX4Xq2VFh4bBfk2T24w58vADbUbmnB7FBCZCzs_kDVrvHCvA/exec';
-
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '📱 Открыть приложение', web_app: { url: webAppUrl } }
+          { text: '📋 Просмотр', callback_data: 'menu_view:main' },
+          { text: '✏️ Редактирование', callback_data: 'menu_edit:main' }
         ],
         [
-          { text: '📅 Мои предстоящие заседания', callback_data: 'view_hearings' }
+          { text: '➕ Добавить', callback_data: 'menu_add:main' }
+        ],
+        [
+          { text: '📅 Мои заседания', callback_data: 'view_hearings' }
         ]
       ]
     };
@@ -346,7 +337,8 @@ var TelegramBot = (function() {
     const roleText = getRoleText(user.role);
     const message =
       `👋 Добро пожаловать, ${user.name || user.email}!\n\n` +
-      `Роль: ${roleText}`;
+      `Роль: ${roleText}\n\n` +
+      `Выберите действие:`;
 
     editMessage(chatId, messageId, message, keyboard);
   }
@@ -1059,41 +1051,6 @@ var TelegramBot = (function() {
   }
 
   /**
-   * Удалить сообщение
-   */
-  function deleteMessage(chatId, messageId) {
-    const props = PropertiesService.getScriptProperties();
-    const botToken = props.getProperty(BOT_TOKEN_KEY);
-
-    if (!botToken) return false;
-
-    const url = `https://api.telegram.org/bot${botToken}/deleteMessage`;
-
-    const payload = {
-      chat_id: chatId,
-      message_id: messageId
-    };
-
-    const options = {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-
-    try {
-      const response = UrlFetchApp.fetch(url, options);
-      const result = JSON.parse(response.getContentText());
-      return result.ok;
-    } catch (e) {
-      AppLogger.error('TelegramBot', 'Ошибка удаления сообщения', {
-        error: e.message
-      });
-      return false;
-    }
-  }
-
-  /**
    * Ответить на callback query
    */
   function answerCallbackQuery(callbackQueryId, text = null) {
@@ -1384,3 +1341,8 @@ var TelegramBot = (function() {
   };
 
 })();
+
+// Глобальная функция для webhook
+function doPost(e) {
+  return TelegramBot.doPost(e);
+}

@@ -17,7 +17,9 @@ function onOpen() {
   // Получить текущего пользователя и его роль
   const userEmail = Session.getActiveUser().getEmail();
   const currentUser = UserManager.getUser(userEmail);
-  const userRole = currentUser ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
+
+  // ✅ ИСПРАВЛЕНО Issue #20: Явная проверка на null/undefined
+  const userRole = (currentUser && currentUser.role) ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
 
   AppLogger.info('Main', `Меню для пользователя ${userEmail} (роль: ${userRole})`);
 
@@ -30,7 +32,14 @@ function onOpen() {
  */
 function initializeSystem() {
   try {
-    const owner = SpreadsheetApp.getActiveSpreadsheet().getOwner();
+    // ✅ ИСПРАВЛЕНО Issue #27: Безопасная работа с spreadsheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      Logger.log('❌ Не удалось получить активную таблицу');
+      return;
+    }
+
+    const owner = ss.getOwner();
     const ownerEmail = owner ? owner.getEmail() : Session.getActiveUser().getEmail();
 
     // Проверить есть ли пользователи
@@ -65,7 +74,27 @@ function initializeSystem() {
       );
     }
   } catch (e) {
-    Logger.log('Ошибка инициализации: ' + e.message);
+    // ✅ ИСПРАВЛЕНО Issue #6: Улучшенная обработка ошибок с уведомлением
+    Logger.log('❌ Ошибка инициализации: ' + e.message);
+    AppLogger.error('Main', 'Критическая ошибка инициализации', {
+      error: e.message,
+      stack: e.stack
+    });
+
+    // Показываем уведомление пользователю только если это серьезная ошибка
+    try {
+      const ui = SpreadsheetApp.getUi();
+      ui.alert(
+        '⚠️ Ошибка инициализации',
+        `Произошла ошибка при запуске системы:\n${e.message}\n\n` +
+        'Система продолжит работу, но некоторые функции могут быть недоступны.\n' +
+        'Обратитесь к администратору.',
+        ui.ButtonSet.OK
+      );
+    } catch (uiError) {
+      // Если даже UI недоступен - просто логируем
+      Logger.log('❌ Невозможно показать уведомление: ' + uiError.message);
+    }
   }
 }
 
@@ -94,13 +123,45 @@ function createMenuForRole(ui, role) {
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
         .addItem('⏰ Контроль сроков исковой давности', 'checkStatuteOfLimitations')
         .addItem('⚖️ Исполнительные производства', 'manageEnforcementProceedings')
+        .addSeparator()
         .addItem('📅 Расписание заседаний', 'showCourtSchedule')
+        .addItem('📱 Отправить уведомления сейчас', 'sendManualHearingNotifications')
+        .addSeparator()
+        .addItem('⚙️ Настройка графика уведомлений', 'configureHearingNotifications')
+        .addItem('ℹ️ Текущий график уведомлений', 'showHearingNotificationSchedule')
+        .addSeparator()
+        .addItem('🔔 Настроить уведомление по делу', 'setupCaseCustomNotification')
+        .addItem('📋 Список кастомных уведомлений', 'showCaseCustomNotifications')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
-        .addItem('👥 База клиентов', 'showClientsDatabase')
-        .addItem('💵 Финансовый учёт', 'showFinancialReport')
-        .addItem('⏱️ Учёт времени работы', 'showTimeTracking')
+        .addSubMenu(ui.createMenu('👥 База клиентов')
+          .addItem('➕ Добавить клиента', 'addNewClient')
+          .addItem('🔍 Найти клиента', 'searchClient')
+          .addItem('📋 Все клиенты', 'showAllClients')
+          .addSeparator()
+          .addItem('📊 Статистика по клиентам', 'showClientStatistics')
+          .addItem('🔄 Обновить статистику дел', 'updateAllClientStatistics')
+        )
+        .addSeparator()
+        .addSubMenu(ui.createMenu('💵 Финансовый учёт')
+          .addItem('💰 Добавить гонорар', 'addFee')
+          .addItem('💸 Добавить расход', 'addExpense')
+          .addItem('📄 Создать счёт', 'createInvoice')
+          .addSeparator()
+          .addItem('📊 Финансовая сводка', 'showFinancialSummary')
+          .addItem('⬇️ Импорт из учёта времени', 'importFromTimeTracking')
+        )
+        .addSeparator()
+        .addSubMenu(ui.createMenu('⏱️ Учёт времени')
+          .addItem('📊 Общий учёт времени', 'showTimeTracking')
+          .addItem('📈 Детальная статистика', 'showDetailedTimeStatistics')
+          .addSeparator()
+          .addItem('✅ Утвердить записи', 'approveTimeEntries')
+          .addItem('🔄 Пересчитать стоимость', 'recalculateTimeCosts')
+          .addSeparator()
+          .addItem('📤 Экспорт в CSV', 'exportTimeToCSV')
+        )
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('⚙️ Обработка и синхронизация')
@@ -122,7 +183,12 @@ function createMenuForRole(ui, role) {
         .addItem('Настройки системы', 'showConfigDialog')
         .addItem('👥 Управление пользователями', 'showUsersDialog')
         .addItem('💾 Синхронизировать пользователей', 'syncUsers')
-        .addItem('📱 Настройка Telegram', 'setupTelegram')
+        .addSeparator()
+        .addSubMenu(ui.createMenu('📱 Telegram')
+          .addItem('🔧 Настройка Bot Token', 'setupTelegram')
+          .addItem('🌐 Настроить Webhook', 'setupTelegramWebhook')
+          .addItem('ℹ️ Информация о Webhook', 'showWebhookInfo')
+        )
         .addSeparator()
         .addItem('⏰ Настроить триггеры', 'setupAllTriggers')
       )
@@ -157,13 +223,45 @@ function createMenuForRole(ui, role) {
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
         .addItem('⏰ Контроль сроков исковой давности', 'checkStatuteOfLimitations')
         .addItem('⚖️ Исполнительные производства', 'manageEnforcementProceedings')
+        .addSeparator()
         .addItem('📅 Расписание заседаний', 'showCourtSchedule')
+        .addItem('📱 Отправить уведомления сейчас', 'sendManualHearingNotifications')
+        .addSeparator()
+        .addItem('⚙️ Настройка графика уведомлений', 'configureHearingNotifications')
+        .addItem('ℹ️ Текущий график уведомлений', 'showHearingNotificationSchedule')
+        .addSeparator()
+        .addItem('🔔 Настроить уведомление по делу', 'setupCaseCustomNotification')
+        .addItem('📋 Список кастомных уведомлений', 'showCaseCustomNotifications')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('💼 Финансы и клиенты')
-        .addItem('👥 База клиентов', 'showClientsDatabase')
-        .addItem('💵 Финансовый учёт', 'showFinancialReport')
-        .addItem('⏱️ Учёт времени работы', 'showTimeTracking')
+        .addSubMenu(ui.createMenu('👥 База клиентов')
+          .addItem('➕ Добавить клиента', 'addNewClient')
+          .addItem('🔍 Найти клиента', 'searchClient')
+          .addItem('📋 Все клиенты', 'showAllClients')
+          .addSeparator()
+          .addItem('📊 Статистика по клиентам', 'showClientStatistics')
+          .addItem('🔄 Обновить статистику дел', 'updateAllClientStatistics')
+        )
+        .addSeparator()
+        .addSubMenu(ui.createMenu('💵 Финансовый учёт')
+          .addItem('💰 Добавить гонорар', 'addFee')
+          .addItem('💸 Добавить расход', 'addExpense')
+          .addItem('📄 Создать счёт', 'createInvoice')
+          .addSeparator()
+          .addItem('📊 Финансовая сводка', 'showFinancialSummary')
+          .addItem('⬇️ Импорт из учёта времени', 'importFromTimeTracking')
+        )
+        .addSeparator()
+        .addSubMenu(ui.createMenu('⏱️ Учёт времени')
+          .addItem('📊 Общий учёт времени', 'showTimeTracking')
+          .addItem('📈 Детальная статистика', 'showDetailedTimeStatistics')
+          .addSeparator()
+          .addItem('✅ Утвердить записи', 'approveTimeEntries')
+          .addItem('🔄 Пересчитать стоимость', 'recalculateTimeCosts')
+          .addSeparator()
+          .addItem('📤 Экспорт в CSV', 'exportTimeToCSV')
+        )
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('⚙️ Обработка и синхронизация')
@@ -329,10 +427,10 @@ function processMyCases() {
       return;
     }
 
-    // TODO: Реализовать фильтрацию по assigned_cases в CaseManager
-    CaseManager.processAllCases(); // Пока обрабатываем все
+    // ✅ ИСПРАВЛЕНО: Фильтрация по назначенным делам (RBAC)
+    CaseManager.processAllCases(assignedCases);
 
-    SpreadsheetApp.getUi().alert(`✅ Обработано ${assignedCases.length} ваших дел!`);
+    SpreadsheetApp.getUi().alert(`✅ Обработано ваших назначенных дел!`);
   } catch (error) {
     AppLogger.error('Main', 'Ошибка обработки дел', { error: error.message });
     SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
@@ -423,8 +521,7 @@ function updateDashboard() {
   if (!checkPermission('view')) return;
 
   try {
-    Dashboard.updateDashboard();
-    SpreadsheetApp.getUi().alert('✅ Дашборд обновлён!');
+    EnhancedDashboard.createOrUpdateDashboard();
   } catch (error) {
     AppLogger.error('Main', 'Ошибка обновления дашборда', { error: error.message });
     SpreadsheetApp.getUi().alert('❌ Ошибка: ' + error.message);
@@ -464,6 +561,36 @@ function setupTelegram() {
   TelegramNotifier.setup();
 }
 
+function setupTelegramWebhook() {
+  if (!checkPermission('all')) return;
+  TelegramBot.setupWebhook();
+}
+
+function showWebhookInfo() {
+  if (!checkPermission('all')) return;
+  const info = TelegramBot.getWebhookInfo();
+
+  if (info && info.result) {
+    const result = info.result;
+    const ui = SpreadsheetApp.getUi();
+
+    let message = '📱 *Информация о Telegram Webhook*\n\n';
+    message += `URL: ${result.url || 'Не настроен'}\n`;
+    message += `Ожидающих обновлений: ${result.pending_update_count || 0}\n`;
+
+    if (result.last_error_date) {
+      const errorDate = new Date(result.last_error_date * 1000);
+      message += `\n⚠️ Последняя ошибка:\n`;
+      message += `Дата: ${errorDate.toLocaleString('ru-RU')}\n`;
+      message += `Сообщение: ${result.last_error_message || 'Неизвестно'}`;
+    }
+
+    ui.alert('📱 Webhook информация', message, ui.ButtonSet.OK);
+  } else {
+    SpreadsheetApp.getUi().alert('❌ Не удалось получить информацию о webhook');
+  }
+}
+
 function syncUsers() {
   if (!checkPermission('all')) return;
   UserManager.syncUsersFromSheet();
@@ -477,13 +604,15 @@ function setupAllTriggers() {
     Dashboard.setupAutoUpdate();
     TelegramNotifier.setupDailyDigest();
     ReminderManager.setupDailyCheck();
+    HearingNotifier.setupHearingNotificationTrigger();
 
     SpreadsheetApp.getUi().alert(
       '✅ Все триггеры настроены:\n\n' +
       '- Автоочистка логов (ежедневно в 3:00)\n' +
       '- Обновление дашборда (каждый час)\n' +
       '- Telegram дайджест (ежедневно в 9:00)\n' +
-      '- Проверка напоминаний (ежедневно в 8:00)'
+      '- Проверка напоминаний (ежедневно в 8:00)\n' +
+      '- Уведомления о заседаниях (каждый час)'
     );
 
     AppLogger.info('Main', 'Все триггеры настроены');
@@ -586,4 +715,192 @@ function checkPermission(permission) {
   }
 
   return true;
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ LEGALWORKFLOWMANAGER
+// ============================================
+
+/**
+ * Юридические функции - обёртки для LegalWorkflowManager
+ */
+
+function assignCaseToLawyer() {
+  return LegalWorkflowManager.assignCaseToLawyer();
+}
+
+function bulkAssignCases() {
+  return LegalWorkflowManager.bulkAssignCases();
+}
+
+function searchCase() {
+  return LegalWorkflowManager.searchCase();
+}
+
+function filterCasesByStatus() {
+  return LegalWorkflowManager.filterCasesByStatus();
+}
+
+function showLawyerCases() {
+  return LegalWorkflowManager.showLawyerCases();
+}
+
+function archiveCompletedCases() {
+  return LegalWorkflowManager.archiveCompletedCases();
+}
+
+function checkStatuteOfLimitations() {
+  return LegalWorkflowManager.checkStatuteOfLimitations();
+}
+
+function showCourtSchedule() {
+  return LegalWorkflowManager.showCourtSchedule();
+}
+
+function showMyCourtSchedule() {
+  return LegalWorkflowManager.showMyCourtSchedule();
+}
+
+function manageEnforcementProceedings() {
+  return LegalWorkflowManager.manageEnforcementProceedings();
+}
+
+function showClientsDatabase() {
+  return LegalWorkflowManager.showClientsDatabase();
+}
+
+function showFinancialReport() {
+  return LegalWorkflowManager.showFinancialReport();
+}
+
+function showTimeTracking() {
+  return LegalWorkflowManager.showTimeTracking();
+}
+
+function showMyTimeTracking() {
+  return LegalWorkflowManager.showMyTimeTracking();
+}
+
+function addTimeEntry() {
+  return LegalWorkflowManager.addTimeEntry();
+}
+
+function generateReport() {
+  return LegalWorkflowManager.generateReport();
+}
+
+function generateMyReport() {
+  return LegalWorkflowManager.generateMyReport();
+}
+
+function showLawyersStatistics() {
+  return LegalWorkflowManager.showLawyersStatistics();
+}
+
+function showMyStatistics() {
+  return LegalWorkflowManager.showMyStatistics();
+}
+
+function showDeadlinesReport() {
+  return LegalWorkflowManager.showDeadlinesReport();
+}
+
+function showMyDeadlinesReport() {
+  return LegalWorkflowManager.showMyDeadlinesReport();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ TIMETRACKER
+// ============================================
+
+function showDetailedTimeStatistics() {
+  return TimeTracker.showDetailedStatistics();
+}
+
+function approveTimeEntries() {
+  return TimeTracker.approveTimeEntries();
+}
+
+function recalculateTimeCosts() {
+  return TimeTracker.recalculateCosts();
+}
+
+function exportTimeToCSV() {
+  return TimeTracker.exportTimeToCSV();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ CLIENTDATABASE
+// ============================================
+
+function addNewClient() {
+  return ClientDatabase.addNewClient();
+}
+
+function searchClient() {
+  return ClientDatabase.searchClient();
+}
+
+function showAllClients() {
+  return ClientDatabase.showAllClients();
+}
+
+function showClientStatistics() {
+  return ClientDatabase.showClientStatistics();
+}
+
+function updateAllClientStatistics() {
+  return ClientDatabase.updateAllClientStatistics();
+}
+
+function showClientCases(clientId) {
+  return ClientDatabase.showClientCases(clientId);
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ FINANCIALMANAGER
+// ============================================
+
+function addFee() {
+  return FinancialManager.addFee();
+}
+
+function addExpense() {
+  return FinancialManager.addExpense();
+}
+
+function createInvoice() {
+  return FinancialManager.createInvoice();
+}
+
+function showFinancialSummary() {
+  return FinancialManager.showFinancialSummary();
+}
+
+function importFromTimeTracking() {
+  return FinancialManager.importFromTimeTracking();
+}
+
+// ============================================
+// ОБЁРТКИ ДЛЯ HEARINGNOTIFIER
+// ============================================
+
+function sendManualHearingNotifications() {
+  return HearingNotifier.sendManualNotifications();
+}
+
+function configureHearingNotifications() {
+  return HearingNotifier.configureNotificationSchedule();
+}
+
+function showHearingNotificationSchedule() {
+  return HearingNotifier.showCurrentSchedule();
+}
+
+function setupCaseCustomNotification() {
+  return HearingNotifier.setupCustomCaseNotification();
+}
+
+function showCaseCustomNotifications() {
+  return HearingNotifier.showCustomNotifications();
 }
