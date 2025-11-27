@@ -79,17 +79,16 @@ var HearingNotifier = (function() {
           hearings.push({
             caseNumber: caseNumber,
             date: hearingDate,
-            court: row[4] || 'Не указан',
+            court: row[3] || 'Не указан',  // Столбец D - Текущая инстанция
             plaintiff: row[7] || 'Не указан', // Столбец H
             defendant: row[8] || 'Не указан', // Столбец I
-            priority: row[5] || '',            // Столбец F - Приоритет
-            columnR: row[18] || '',            // Столбец R (было 17)
-            columnS: row[19] || '',            // Столбец S (было 18)
-            columnT: row[20] || '',            // Столбец T (было 19)
-            columnU: row[21] || '',            // Столбец U (было 20)
-            columnV: row[22] || '',            // Столбец V (было 21)
-            columnW: row[23] || '',            // Столбец W (было 22)
-            columnX: row[24] || '',            // Столбец X (было 23)
+            columnR: row[18] || '',
+            columnS: row[19] || '',
+            columnT: row[20] || '',
+            columnU: row[21] || '',
+            columnV: row[22] || '',
+            columnW: row[23] || '',
+            columnX: row[24] || '',
             daysUntil: daysUntil,
             hoursUntil: hoursUntil,
             notificationType: needsNotification
@@ -301,10 +300,9 @@ var HearingNotifier = (function() {
             hearings.push({
               caseNumber: row[1], // Столбец B
               date: hearingDate,
-              court: row[4] || 'Не указан',
+              court: row[3] || 'Не указан',  // Столбец D - Текущая инстанция
               plaintiff: row[7] || 'Не указан', // Столбец H
               defendant: row[8] || 'Не указан', // Столбец I
-              priority: row[5] || '',            // Столбец F - Приоритет
               columnR: row[18] || '',            // Столбец R (было 17)
               columnS: row[19] || '',            // Столбец S (было 18)
               columnT: row[20] || '',            // Столбец T (было 19)
@@ -351,12 +349,23 @@ var HearingNotifier = (function() {
 
       const displayHearings = hearings.slice(0, 10); // Показываем максимум 10
       displayHearings.forEach((h, i) => {
-        const urgency = h.daysUntil <= 1 ? '🔴 СРОЧНО!' :
-                       h.daysUntil <= 3 ? '🟡 Скоро' :
-                       '🟢 Запланировано';
-        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy');
+        // Форматируем срочность и время до заседания
+        let timeInfo = '';
+        if (h.hoursUntil < 24) {
+          const hours = Math.floor(h.hoursUntil);
+          timeInfo = hours <= 1 ? '🔴 СРОЧНО! Через 1 час' :
+                     hours <= 5 ? `🔴 СРОЧНО! Через ${hours} часов` :
+                     `🟡 Сегодня через ${hours} часов`;
+        } else {
+          timeInfo = h.daysUntil === 1 ? '🔴 ЗАВТРА!' :
+                     h.daysUntil <= 3 ? `🟡 Через ${h.daysUntil} дня` :
+                     h.daysUntil <= 7 ? `🟢 Через ${h.daysUntil} дней` :
+                     `🟢 Через ${h.daysUntil} дней`;
+        }
 
-        message += `${i + 1}. ${urgency}\n`;
+        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+
+        message += `${i + 1}. ${timeInfo}\n`;
         message += `   📋 Дело: ${h.caseNumber}\n`;
         message += `   📅 Дата: ${dateStr}\n`;
         message += `   🏛️ Суд: ${h.court}\n`;
@@ -726,17 +735,16 @@ var HearingNotifier = (function() {
         upcomingHearings.push({
           caseNumber: row[1], // Столбец B
           date: hearingDate,
-          court: row[4] || 'Не указан',
-          plaintiff: row[6] || 'Не указан',
-          defendant: row[7] || 'Не указан',
-          priority: row[5] || '',            // Столбец F - Приоритет
-          columnR: row[17] || '',            // Столбец R
-          columnS: row[18] || '',            // Столбец S
-          columnT: row[19] || '',            // Столбец T
-          columnU: row[20] || '',            // Столбец U
-          columnV: row[21] || '',            // Столбец V
-          columnW: row[22] || '',            // Столбец W
-          columnX: row[23] || '',            // Столбец X
+          court: row[3] || 'Не указан',  // Столбец D - Текущая инстанция
+          plaintiff: row[7] || 'Не указан', // Столбец H
+          defendant: row[8] || 'Не указан', // Столбец I
+          columnR: row[18] || '',
+          columnS: row[19] || '',
+          columnT: row[20] || '',
+          columnU: row[21] || '',
+          columnV: row[22] || '',
+          columnW: row[23] || '',
+          columnX: row[24] || '',
           rowIndex: i + 1
         });
       }
