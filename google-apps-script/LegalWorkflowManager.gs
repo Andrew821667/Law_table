@@ -564,9 +564,9 @@ var LegalWorkflowManager = (function() {
         upcoming.push({
           caseNumber: caseNumber,
           date: hearingDate,
-          court: row[COLUMNS.COURT] || 'Не указан',
-          plaintiff: row[COLUMNS.PLAINTIFF] || 'Не указан',      // Столбец H - Истец
-          defendant: row[COLUMNS.DEFENDANT] || 'Не указан',      // Столбец I - Ответчик
+          court: row[4] || 'Не указан',
+          plaintiff: row[6] || 'Не указан',      // Столбец G - Истец
+          defendant: row[7] || 'Не указан',      // Столбец H - Ответчик
           daysUntil: daysUntil,
           row: i + 1
         });
@@ -633,9 +633,9 @@ var LegalWorkflowManager = (function() {
         myHearings.push({
           caseNumber: caseNumber,
           date: hearingDate,
-          court: row[COLUMNS.COURT] || 'Не указан',
-          plaintiff: row[COLUMNS.PLAINTIFF] || 'Не указан',      // Столбец H - Истец
-          defendant: row[COLUMNS.DEFENDANT] || 'Не указан',      // Столбец I - Ответчик
+          court: row[4] || 'Не указан',
+          plaintiff: row[6] || 'Не указан',      // Столбец G - Истец
+          defendant: row[7] || 'Не указан',      // Столбец H - Ответчик
           daysUntil: daysUntil
         });
       }

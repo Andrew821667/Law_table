@@ -114,7 +114,7 @@ var EnhancedDashboard = (function() {
 
       stats.total++;
 
-      const status = row[COLUMNS.STATUS] || 'Не указан';
+      const status = row[6] || 'Не указан';
       stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
 
       if (status === 'В работе') {
