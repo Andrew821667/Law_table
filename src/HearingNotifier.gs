@@ -346,13 +346,30 @@ var HearingNotifier = (function() {
         }
       }
 
-      ui.alert(
-        '✅ Уведомления отправлены!',
-        `Отправлено: ${sentCount} уведомлений\n` +
-        `О заседаниях: ${hearings.length}\n` +
-        `В течение: 30 дней`,
-        ui.ButtonSet.OK
-      );
+      // Формируем детальное сообщение о заседаниях
+      let message = `📅 Предстоящие заседания (${hearings.length}):\n\n`;
+
+      const displayHearings = hearings.slice(0, 10); // Показываем максимум 10
+      displayHearings.forEach((h, i) => {
+        const urgency = h.daysUntil <= 1 ? '🔴 СРОЧНО!' :
+                       h.daysUntil <= 3 ? '🟡 Скоро' :
+                       '🟢 Запланировано';
+        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy');
+
+        message += `${i + 1}. ${urgency}\n`;
+        message += `   📋 Дело: ${h.caseNumber}\n`;
+        message += `   📅 Дата: ${dateStr}\n`;
+        message += `   🏛️ Суд: ${h.court}\n`;
+        message += `   ⚖️ ${h.plaintiff} vs ${h.defendant}\n\n`;
+      });
+
+      if (hearings.length > 10) {
+        message += `...и ещё ${hearings.length - 10} заседаний\n\n`;
+      }
+
+      message += `\n✅ Отправлено уведомлений: ${sentCount}`;
+
+      ui.alert('📅 Уведомления о заседаниях', message, ui.ButtonSet.OK);
 
       AppLogger.info('HearingNotifier', `Ручная отправка: ${sentCount} уведомлений`);
 
