@@ -767,8 +767,8 @@ var HearingNotifier = (function() {
 
     // Шаг 2: Показать список дел для выбора
     const casesList = upcomingHearings.slice(0, 20).map((h, i) => {
-      const dateStr = Utilities.formatDate(h.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
-      return `${i + 1}. ${h.caseNumber} - ${dateStr}\n   ${h.plaintiff} vs ${h.defendant}`;
+      const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+      return `${i + 1}. ${h.caseNumber} - ${dateStr} (МСК)\n   ${h.plaintiff} vs ${h.defendant}`;
     }).join('\n\n');
 
     const caseResp = ui.prompt(
@@ -794,7 +794,7 @@ var HearingNotifier = (function() {
     const typeResp = ui.prompt(
       '🔔 Кастомное уведомление - Шаг 2/3',
       `Дело: ${selectedCase.caseNumber}\n` +
-      `Заседание: ${Utilities.formatDate(selectedCase.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}\n\n` +
+      `Заседание: ${Utilities.formatDate(selectedCase.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')} (МСК)\n\n` +
       `Выберите тип уведомления:\n\n` +
       `1 - За N дней до заседания\n` +
       `2 - За N часов до заседания\n` +
@@ -831,13 +831,13 @@ var HearingNotifier = (function() {
     // Шаг 5: Создать триггер
     createCustomNotificationTrigger(selectedCase, notificationDate);
 
-    const notifDateStr = Utilities.formatDate(notificationDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+    const notifDateStr = Utilities.formatDate(notificationDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
 
     ui.alert(
       '✅ Кастомное уведомление создано!',
       `Дело: ${selectedCase.caseNumber}\n` +
-      `Заседание: ${Utilities.formatDate(selectedCase.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}\n\n` +
-      `Уведомление будет отправлено:\n${notifDateStr}`,
+      `Заседание: ${Utilities.formatDate(selectedCase.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')} (МСК)\n\n` +
+      `Уведомление будет отправлено:\n${notifDateStr} (МСК)`,
       ui.ButtonSet.OK
     );
 
@@ -1037,7 +1037,7 @@ var HearingNotifier = (function() {
           if (timeDiff >= 0 && timeDiff <= 3600000) { // 1 час в миллисекундах
 
             const hearingDate = new Date(data.hearingDate);
-            const dateStr = Utilities.formatDate(hearingDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+            const dateStr = Utilities.formatDate(hearingDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
 
             // Формируем дополнительную информацию
             const additionalInfo = formatAdditionalInfo({
@@ -1053,7 +1053,7 @@ var HearingNotifier = (function() {
 
             const message =
               `🔔 *КАСТОМНОЕ НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
-              `📅 Дата заседания: ${dateStr}\n\n` +
+              `📅 Дата заседания: ${dateStr} (МСК)\n\n` +
               `📋 Дело: ${data.caseNumber}\n` +
               `🏛️ Суд: ${data.court}\n\n` +
               `👤 Истец: ${data.plaintiff}\n` +
@@ -1115,9 +1115,9 @@ var HearingNotifier = (function() {
     }
 
     const list = customNotifications.map((n, i) => {
-      const hearingDateStr = Utilities.formatDate(new Date(n.hearingDate), Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
-      const notifDateStr = Utilities.formatDate(new Date(n.notificationDate), Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
-      return `${i + 1}. ${n.caseNumber}\n   Заседание: ${hearingDateStr}\n   Уведомление: ${notifDateStr}`;
+      const hearingDateStr = Utilities.formatDate(new Date(n.hearingDate), 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+      const notifDateStr = Utilities.formatDate(new Date(n.notificationDate), 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+      return `${i + 1}. ${n.caseNumber}\n   Заседание: ${hearingDateStr} (МСК)\n   Уведомление: ${notifDateStr} (МСК)`;
     }).join('\n\n');
 
     ui.alert(
