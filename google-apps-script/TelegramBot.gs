@@ -1217,7 +1217,9 @@ var TelegramBot = (function() {
       const hour = parseInt(timeParts[0]);
       const minute = parseInt(timeParts[1]);
 
-      const date = new Date(year, month, day, hour, minute, 0);
+      // Создаем дату в MSK и вычитаем 3 часа для корректного сохранения в Google Sheets
+      // Google Sheets интерпретирует дату как UTC, поэтому вычитаем offset MSK (+3)
+      const date = new Date(year, month, day, hour - 3, minute, 0);
 
       if (isNaN(date.getTime())) return null;
 
