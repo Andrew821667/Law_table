@@ -59,8 +59,7 @@ var HearingNotifier = (function() {
     const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
     const data = sheet.getDataRange().getValues();
 
-    // Получаем текущее московское время
-    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    const now = new Date();
     const schedule = getNotificationSchedule();
     const hearings = [];
 
@@ -105,7 +104,7 @@ var HearingNotifier = (function() {
    * Проверить нужно ли отправить уведомление
    */
   function checkIfNeedsNotification(daysUntil, hoursUntil, schedule) {
-    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    const now = new Date();
     const currentHour = now.getHours();
 
     // Проверяем дневные уведомления (отправляем в 9:00)
@@ -218,8 +217,7 @@ var HearingNotifier = (function() {
 
     // Определяем тип уведомления с визуальными индикаторами
     let timeInfo = '';
-    const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
-    const hoursUntil = hearing.hoursUntil || ((hearing.date - nowMoscow) / (1000 * 60 * 60));
+    const hoursUntil = hearing.hoursUntil || ((hearing.date - new Date()) / (1000 * 60 * 60));
     const daysUntil = hearing.daysUntil || Math.floor(hoursUntil / 24);
 
     if (hoursUntil < 24) {
@@ -295,7 +293,7 @@ var HearingNotifier = (function() {
       const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
       const data = sheet.getDataRange().getValues();
 
-      const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+      const now = new Date();
       const hearings = [];
 
       for (let i = 1; i < data.length; i++) {
@@ -733,7 +731,7 @@ var HearingNotifier = (function() {
     const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
     const data = sheet.getDataRange().getValues();
 
-    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    const now = new Date();
     const upcomingHearings = [];
 
     for (let i = 1; i < data.length; i++) {
@@ -769,8 +767,8 @@ var HearingNotifier = (function() {
 
     // Шаг 2: Показать список дел для выбора
     const casesList = upcomingHearings.slice(0, 20).map((h, i) => {
-      const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
-      return `${i + 1}. ${h.caseNumber} - ${dateStr} (МСК)\n   ${h.plaintiff} vs ${h.defendant}`;
+      const dateStr = Utilities.formatDate(h.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+      return `${i + 1}. ${h.caseNumber} - ${dateStr}\n   ${h.plaintiff} vs ${h.defendant}`;
     }).join('\n\n');
 
     const caseResp = ui.prompt(
@@ -796,7 +794,7 @@ var HearingNotifier = (function() {
     const typeResp = ui.prompt(
       '🔔 Кастомное уведомление - Шаг 2/3',
       `Дело: ${selectedCase.caseNumber}\n` +
-      `Заседание: ${Utilities.formatDate(selectedCase.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')} (МСК)\n\n` +
+      `Заседание: ${Utilities.formatDate(selectedCase.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}\n\n` +
       `Выберите тип уведомления:\n\n` +
       `1 - За N дней до заседания\n` +
       `2 - За N часов до заседания\n` +
@@ -833,13 +831,13 @@ var HearingNotifier = (function() {
     // Шаг 5: Создать триггер
     createCustomNotificationTrigger(selectedCase, notificationDate);
 
-    const notifDateStr = Utilities.formatDate(notificationDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+    const notifDateStr = Utilities.formatDate(notificationDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
 
     ui.alert(
       '✅ Кастомное уведомление создано!',
       `Дело: ${selectedCase.caseNumber}\n` +
-      `Заседание: ${Utilities.formatDate(selectedCase.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')} (МСК)\n\n` +
-      `Уведомление будет отправлено:\n${notifDateStr} (МСК)`,
+      `Заседание: ${Utilities.formatDate(selectedCase.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}\n\n` +
+      `Уведомление будет отправлено:\n${notifDateStr}`,
       ui.ButtonSet.OK
     );
 
@@ -873,8 +871,7 @@ var HearingNotifier = (function() {
     notificationDate.setDate(notificationDate.getDate() - days);
     notificationDate.setHours(9, 0, 0, 0); // 9:00
 
-    const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
-    if (notificationDate <= nowMoscow) {
+    if (notificationDate <= new Date()) {
       ui.alert('❌ Дата уведомления уже прошла! Выберите меньше дней.');
       return null;
     }
@@ -905,8 +902,7 @@ var HearingNotifier = (function() {
     const notificationDate = new Date(selectedCase.date);
     notificationDate.setHours(notificationDate.getHours() - hours);
 
-    const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
-    if (notificationDate <= nowMoscow) {
+    if (notificationDate <= new Date()) {
       ui.alert('❌ Дата уведомления уже прошла! Выберите меньше часов.');
       return null;
     }
@@ -952,8 +948,7 @@ var HearingNotifier = (function() {
         throw new Error('Некорректная дата');
       }
 
-      const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
-      if (notificationDate <= nowMoscow) {
+      if (notificationDate <= new Date()) {
         ui.alert('❌ Дата уже прошла! Выберите будущую дату.');
         return null;
       }
@@ -1029,7 +1024,7 @@ var HearingNotifier = (function() {
     const props = PropertiesService.getScriptProperties();
     const allProps = props.getProperties();
 
-    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    const now = new Date();
 
     for (const key in allProps) {
       if (key.startsWith('CUSTOM_NOTIFICATION_')) {
@@ -1042,7 +1037,7 @@ var HearingNotifier = (function() {
           if (timeDiff >= 0 && timeDiff <= 3600000) { // 1 час в миллисекундах
 
             const hearingDate = new Date(data.hearingDate);
-            const dateStr = Utilities.formatDate(hearingDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+            const dateStr = Utilities.formatDate(hearingDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
 
             // Формируем дополнительную информацию
             const additionalInfo = formatAdditionalInfo({
@@ -1058,7 +1053,7 @@ var HearingNotifier = (function() {
 
             const message =
               `🔔 *КАСТОМНОЕ НАПОМИНАНИЕ О ЗАСЕДАНИИ*\n\n` +
-              `📅 Дата заседания: ${dateStr} (МСК)\n\n` +
+              `📅 Дата заседания: ${dateStr}\n\n` +
               `📋 Дело: ${data.caseNumber}\n` +
               `🏛️ Суд: ${data.court}\n\n` +
               `👤 Истец: ${data.plaintiff}\n` +
@@ -1120,9 +1115,9 @@ var HearingNotifier = (function() {
     }
 
     const list = customNotifications.map((n, i) => {
-      const hearingDateStr = Utilities.formatDate(new Date(n.hearingDate), 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
-      const notifDateStr = Utilities.formatDate(new Date(n.notificationDate), 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
-      return `${i + 1}. ${n.caseNumber}\n   Заседание: ${hearingDateStr} (МСК)\n   Уведомление: ${notifDateStr} (МСК)`;
+      const hearingDateStr = Utilities.formatDate(new Date(n.hearingDate), Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+      const notifDateStr = Utilities.formatDate(new Date(n.notificationDate), Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
+      return `${i + 1}. ${n.caseNumber}\n   Заседание: ${hearingDateStr}\n   Уведомление: ${notifDateStr}`;
     }).join('\n\n');
 
     ui.alert(
