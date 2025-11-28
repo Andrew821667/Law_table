@@ -407,6 +407,101 @@ var HearingNotifier = (function() {
     }
   }
 
+  /**
+   * 🔍 DEBUG версия ручной отправки (без UI, только логи)
+   * Можно запускать из редактора Apps Script
+   */
+  function sendManualNotifications_DEBUG() {
+    Logger.log('🔍 DEBUG: Начало ручной отправки уведомлений');
+
+    try {
+      // Получаем все предстоящие заседания
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
+      const data = sheet.getDataRange().getValues();
+
+      const now = new Date();
+      const hearings = [];
+
+      // DEBUG: Логируем для проверки
+      Logger.log('DEBUG: Текущее время: ' + now);
+      Logger.log('DEBUG: Текущее время (Moscow): ' + Utilities.formatDate(now, 'Europe/Moscow', 'dd.MM.yyyy HH:mm:ss'));
+      Logger.log('DEBUG: Всего строк в таблице: ' + data.length);
+      Logger.log('DEBUG: Имя листа: ' + sheet.getName());
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const hearingDate = row[17]; // Колонка Q (индекс 17)
+
+        // DEBUG: Логируем первые 10 строк детально
+        if (i <= 10) {
+          Logger.log(`\nDEBUG: === Строка ${i} ===`);
+          Logger.log(`  Дело (B): ${row[1]}`);
+          Logger.log(`  Колонка Q (row[17]): ${hearingDate}`);
+          Logger.log(`  Тип: ${typeof hearingDate}`);
+          Logger.log(`  isDate: ${hearingDate instanceof Date}`);
+          if (hearingDate instanceof Date) {
+            Logger.log(`  Дата: ${Utilities.formatDate(hearingDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')}`);
+            Logger.log(`  >= now: ${hearingDate >= now}`);
+          }
+        }
+
+        if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
+          const hoursUntil = (hearingDate - now) / (1000 * 60 * 60);
+          const daysUntil = Math.floor(hoursUntil / 24);
+
+          Logger.log(`\n✅ DEBUG: Найдено заседание!`);
+          Logger.log(`  Строка: ${i}`);
+          Logger.log(`  Дело: ${row[1]}`);
+          Logger.log(`  Через ${daysUntil} дней (${hoursUntil.toFixed(1)} часов)`);
+          Logger.log(`  Дата: ${Utilities.formatDate(hearingDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')}`);
+
+          if (daysUntil <= 30) {
+            hearings.push({
+              caseNumber: row[1],
+              date: hearingDate,
+              court: row[3] || 'Не указан',
+              plaintiff: row[7] || 'Не указан',
+              defendant: row[8] || 'Не указан',
+              columnR: row[18] || '',
+              columnS: row[19] || '',
+              columnT: row[20] || '',
+              columnU: row[21] || '',
+              columnV: row[22] || '',
+              columnW: row[23] || '',
+              columnX: row[24] || '',
+              daysUntil: daysUntil,
+              hoursUntil: hoursUntil,
+              notificationType: 'manual'
+            });
+          } else {
+            Logger.log(`  ⚠️ Пропускаем: заседание позже 30 дней`);
+          }
+        }
+      }
+
+      Logger.log(`\n📊 ИТОГО: Найдено заседаний в ближайшие 30 дней: ${hearings.length}`);
+
+      if (hearings.length === 0) {
+        Logger.log('⚠️ Нет предстоящих заседаний в ближайшие 30 дней');
+        return;
+      }
+
+      // Выводим список найденных заседаний
+      Logger.log('\n📅 СПИСОК НАЙДЕННЫХ ЗАСЕДАНИЙ:');
+      hearings.forEach((h, i) => {
+        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+        Logger.log(`${i + 1}. ${h.caseNumber} - ${dateStr} (через ${h.daysUntil} дн.)`);
+      });
+
+      Logger.log('\n✅ DEBUG завершен успешно');
+
+    } catch (error) {
+      Logger.log('❌ ОШИБКА: ' + error.message);
+      Logger.log('Stack: ' + error.stack);
+    }
+  }
+
   // ============================================
   // НАСТРОЙКА ГРАФИКА УВЕДОМЛЕНИЙ
   // ============================================
@@ -1158,6 +1253,7 @@ var HearingNotifier = (function() {
   return {
     sendScheduledNotifications: sendScheduledNotifications,
     sendManualNotifications: sendManualNotifications,
+    sendManualNotifications_DEBUG: sendManualNotifications_DEBUG,
     configureNotificationSchedule: configureNotificationSchedule,
     showCurrentSchedule: showCurrentSchedule,
     setupHearingNotificationTrigger: setupHearingNotificationTrigger,
@@ -1181,7 +1277,7 @@ function sendCustomCaseNotification() {
   HearingNotifier.sendCustomCaseNotification();
 }
 
-// DEBUG: Глобальная функция для ручного запуска уведомлений
+// DEBUG: Глобальная функция для отладки уведомлений (БЕЗ UI, только логи)
 function debugManualNotifications() {
-  HearingNotifier.sendManualNotifications();
+  HearingNotifier.sendManualNotifications_DEBUG();
 }
