@@ -1180,3 +1180,8 @@ function sendScheduledNotifications() {
 function sendCustomCaseNotification() {
   HearingNotifier.sendCustomCaseNotification();
 }
+
+// DEBUG: Глобальная функция для ручного запуска уведомлений
+function debugManualNotifications() {
+  HearingNotifier.sendManualNotifications();
+}
