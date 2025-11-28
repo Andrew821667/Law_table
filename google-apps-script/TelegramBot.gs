@@ -1217,9 +1217,12 @@ var TelegramBot = (function() {
       const hour = parseInt(timeParts[0]);
       const minute = parseInt(timeParts[1]);
 
-      // Создаем дату в MSK и вычитаем 3 часа для корректного сохранения в Google Sheets
-      // Google Sheets интерпретирует дату как UTC, поэтому вычитаем offset MSK (+3)
-      const date = new Date(year, month, day, hour - 3, minute, 0);
+      // Создаем дату с указанным временем
+      // Google Apps Script выполняется в UTC, а пользователь вводит время в MSK (UTC+3)
+      // Вычитаем 3 часа через milliseconds, чтобы избежать отрицательных значений часов
+      const localDate = new Date(year, month, day, hour, minute, 0);
+      const mskOffsetMs = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах
+      const date = new Date(localDate.getTime() - mskOffsetMs);
 
       if (isNaN(date.getTime())) return null;
 
