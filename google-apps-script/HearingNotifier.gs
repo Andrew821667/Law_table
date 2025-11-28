@@ -59,7 +59,8 @@ var HearingNotifier = (function() {
     const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
     const data = sheet.getDataRange().getValues();
 
-    const now = new Date();
+    // Получаем текущее московское время
+    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
     const schedule = getNotificationSchedule();
     const hearings = [];
 
@@ -104,7 +105,7 @@ var HearingNotifier = (function() {
    * Проверить нужно ли отправить уведомление
    */
   function checkIfNeedsNotification(daysUntil, hoursUntil, schedule) {
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
     const currentHour = now.getHours();
 
     // Проверяем дневные уведомления (отправляем в 9:00)
@@ -217,7 +218,8 @@ var HearingNotifier = (function() {
 
     // Определяем тип уведомления с визуальными индикаторами
     let timeInfo = '';
-    const hoursUntil = hearing.hoursUntil || ((hearing.date - new Date()) / (1000 * 60 * 60));
+    const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    const hoursUntil = hearing.hoursUntil || ((hearing.date - nowMoscow) / (1000 * 60 * 60));
     const daysUntil = hearing.daysUntil || Math.floor(hoursUntil / 24);
 
     if (hoursUntil < 24) {
@@ -293,7 +295,7 @@ var HearingNotifier = (function() {
       const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
       const data = sheet.getDataRange().getValues();
 
-      const now = new Date();
+      const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
       const hearings = [];
 
       for (let i = 1; i < data.length; i++) {
@@ -731,7 +733,7 @@ var HearingNotifier = (function() {
     const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
     const data = sheet.getDataRange().getValues();
 
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
     const upcomingHearings = [];
 
     for (let i = 1; i < data.length; i++) {
@@ -871,7 +873,8 @@ var HearingNotifier = (function() {
     notificationDate.setDate(notificationDate.getDate() - days);
     notificationDate.setHours(9, 0, 0, 0); // 9:00
 
-    if (notificationDate <= new Date()) {
+    const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    if (notificationDate <= nowMoscow) {
       ui.alert('❌ Дата уведомления уже прошла! Выберите меньше дней.');
       return null;
     }
@@ -902,7 +905,8 @@ var HearingNotifier = (function() {
     const notificationDate = new Date(selectedCase.date);
     notificationDate.setHours(notificationDate.getHours() - hours);
 
-    if (notificationDate <= new Date()) {
+    const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    if (notificationDate <= nowMoscow) {
       ui.alert('❌ Дата уведомления уже прошла! Выберите меньше часов.');
       return null;
     }
@@ -948,7 +952,8 @@ var HearingNotifier = (function() {
         throw new Error('Некорректная дата');
       }
 
-      if (notificationDate <= new Date()) {
+      const nowMoscow = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+      if (notificationDate <= nowMoscow) {
         ui.alert('❌ Дата уже прошла! Выберите будущую дату.');
         return null;
       }
@@ -1024,7 +1029,7 @@ var HearingNotifier = (function() {
     const props = PropertiesService.getScriptProperties();
     const allProps = props.getProperties();
 
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
 
     for (const key in allProps) {
       if (key.startsWith('CUSTOM_NOTIFICATION_')) {
