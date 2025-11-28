@@ -296,12 +296,24 @@ var HearingNotifier = (function() {
       const now = new Date();
       const hearings = [];
 
+      // DEBUG: Логируем для проверки
+      Logger.log('DEBUG: Текущее время: ' + now);
+      Logger.log('DEBUG: Всего строк в таблице: ' + data.length);
+
       for (let i = 1; i < data.length; i++) {
         const row = data[i];
-        const hearingDate = row[17];
+        const hearingDate = row[17]; // Колонка Q
+
+        // DEBUG: Логируем каждую дату
+        if (i <= 5) { // Первые 5 строк
+          Logger.log(`DEBUG: Строка ${i}, Колонка Q (row[17]): ${hearingDate}, Тип: ${typeof hearingDate}, isDate: ${hearingDate instanceof Date}`);
+        }
 
         if (hearingDate && hearingDate instanceof Date && hearingDate >= now) {
-          const daysUntil = Math.floor((hearingDate - now) / (1000 * 60 * 60 * 24));
+          const hoursUntil = (hearingDate - now) / (1000 * 60 * 60);
+          const daysUntil = Math.floor(hoursUntil / 24);
+
+          Logger.log(`DEBUG: Найдено заседание через ${daysUntil} дней (${hoursUntil.toFixed(1)} часов)`);
 
           if (daysUntil <= 30) { // Только заседания в ближайшие 30 дней
             hearings.push({
