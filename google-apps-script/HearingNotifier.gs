@@ -56,7 +56,7 @@ var HearingNotifier = (function() {
    */
   function findUpcomingHearings() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
+    const sheet = ss.getSheetByName('Активные дела') || ss.getActiveSheet();
     const data = sheet.getDataRange().getValues();
 
     const now = new Date();
@@ -213,7 +213,7 @@ var HearingNotifier = (function() {
    * Отправить уведомление о заседании
    */
   function sendHearingNotification(user, hearing) {
-    const dateStr = Utilities.formatDate(hearing.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+    const dateStr = Utilities.formatDate(hearing.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
 
     // Определяем тип уведомления с визуальными индикаторами
     let timeInfo = '';
@@ -290,7 +290,7 @@ var HearingNotifier = (function() {
     try {
       // Получаем все предстоящие заседания
       const ss = SpreadsheetApp.getActiveSpreadsheet();
-      const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
+      const sheet = ss.getSheetByName('Активные дела') || ss.getActiveSheet();
       const data = sheet.getDataRange().getValues();
 
       const now = new Date();
@@ -382,7 +382,7 @@ var HearingNotifier = (function() {
                      `🟢 Через ${h.daysUntil} дней`;
         }
 
-        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+        const dateStr = Utilities.formatDate(h.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
 
         message += `${i + 1}. ${timeInfo}\n`;
         message += `   📋 Дело: ${h.caseNumber}\n`;
@@ -417,7 +417,7 @@ var HearingNotifier = (function() {
     try {
       // Получаем все предстоящие заседания
       const ss = SpreadsheetApp.getActiveSpreadsheet();
-      const sheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
+      const sheet = ss.getSheetByName('Активные дела') || ss.getActiveSheet();
       const data = sheet.getDataRange().getValues();
 
       const now = new Date();
@@ -425,7 +425,7 @@ var HearingNotifier = (function() {
 
       // DEBUG: Логируем для проверки
       Logger.log('DEBUG: Текущее время: ' + now);
-      Logger.log('DEBUG: Текущее время (Moscow): ' + Utilities.formatDate(now, 'Europe/Moscow', 'dd.MM.yyyy HH:mm:ss'));
+      Logger.log('DEBUG: Текущее время (Moscow): ' + Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm:ss'));
       Logger.log('DEBUG: Всего строк в таблице: ' + data.length);
       Logger.log('DEBUG: Имя листа: ' + sheet.getName());
 
@@ -441,7 +441,7 @@ var HearingNotifier = (function() {
           Logger.log(`  Тип: ${typeof hearingDate}`);
           Logger.log(`  isDate: ${hearingDate instanceof Date}`);
           if (hearingDate instanceof Date) {
-            Logger.log(`  Дата: ${Utilities.formatDate(hearingDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')}`);
+            Logger.log(`  Дата: ${Utilities.formatDate(hearingDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}`);
             Logger.log(`  >= now: ${hearingDate >= now}`);
           }
         }
@@ -454,7 +454,7 @@ var HearingNotifier = (function() {
           Logger.log(`  Строка: ${i}`);
           Logger.log(`  Дело: ${row[1]}`);
           Logger.log(`  Через ${daysUntil} дней (${hoursUntil.toFixed(1)} часов)`);
-          Logger.log(`  Дата: ${Utilities.formatDate(hearingDate, 'Europe/Moscow', 'dd.MM.yyyy HH:mm')}`);
+          Logger.log(`  Дата: ${Utilities.formatDate(hearingDate, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm')}`);
 
           if (daysUntil <= 30) {
             hearings.push({
@@ -490,7 +490,7 @@ var HearingNotifier = (function() {
       // Выводим список найденных заседаний
       Logger.log('\n📅 СПИСОК НАЙДЕННЫХ ЗАСЕДАНИЙ:');
       hearings.forEach((h, i) => {
-        const dateStr = Utilities.formatDate(h.date, 'Europe/Moscow', 'dd.MM.yyyy HH:mm');
+        const dateStr = Utilities.formatDate(h.date, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm');
         Logger.log(`${i + 1}. ${h.caseNumber} - ${dateStr} (через ${h.daysUntil} дн.)`);
       });
 
