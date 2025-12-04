@@ -96,14 +96,16 @@ var HearingNotifier = (function() {
             court: row[2] || 'Не указан',
             plaintiff: row[7] || 'Не указан',
             defendant: row[8] || 'Не указан',
-            priority: row[5] || '',            // Столбец F - Приоритет
+            caseType: row[4] || '',            // Столбец E - Категория дела
+            status: row[5] || '',              // Столбец F - Статус
+            priority: row[6] || '',            // Столбец G - Приоритет
             columnR: row[18] || '',            // Столбец S
             columnS: row[19] || '',            // Столбец T
             columnT: row[20] || '',            // Столбец U
             columnU: row[21] || '',            // Столбец V
             columnV: row[22] || '',            // Столбец W
             columnW: row[23] || '',            // Столбец X
-            columnX: row[23] || '',            // Столбец X (ИСПРАВЛЕНО: было row[24])
+            columnX: row[24] || '',            // Столбец Y
             daysUntil: daysUntil,
             hoursUntil: hoursUntil,
             notificationType: needsNotification
@@ -371,8 +373,10 @@ var HearingNotifier = (function() {
               court: row[2] || 'Не указан',
               plaintiff: row[7] || 'Не указан',
               defendant: row[8] || 'Не указан',
-              priority: row[5] || '',            // Столбец F - Приоритет
-              columnR: row[18] || '',            // Столбец R
+              caseType: row[4] || '',            // Столбец E - Категория дела
+              status: row[5] || '',              // Столбец F - Статус
+              priority: row[6] || '',            // Столбец G - Приоритет
+              columnR: row[18] || '',            // Столбец S
               columnS: row[19] || '',            // Столбец S
               columnT: row[20] || '',            // Столбец T
               columnU: row[21] || '',            // Столбец U
