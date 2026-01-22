@@ -389,6 +389,27 @@ var LegalWorkflowManager = (function() {
       archiveSheet.getRange(1, 1, 1, headers[0].length).setValues(headers);
     }
 
+    try {
+      const startCol = 17;
+      const lastCol = mainSheet.getLastColumn();
+      const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
+      const numCols = Math.max(0, lastCol - startCol + 1);
+
+      if (numCols > 0) {
+        if (archiveSheet.getMaxRows() < maxRows) {
+          archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
+        }
+
+        const srcRange = mainSheet.getRange(1, startCol, maxRows, numCols);
+        const dstRange = archiveSheet.getRange(1, startCol, maxRows, numCols);
+
+        srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+        srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+        srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_COLUMN_WIDTHS, false);
+      }
+    } catch (e) {
+    }
+
     const data = mainSheet.getDataRange().getValues();
     let archivedCount = 0;
     const rowsToArchive = [];
@@ -435,7 +456,12 @@ var LegalWorkflowManager = (function() {
       const shouldArchive = statusValue === true || normalizedStatus.startsWith('заверш');
 
       if (shouldArchive) {
-        rowsToArchive.push(row);
+        const rowToArchive = row.slice();
+        const archiveDateIndex = 16;
+        if (rowToArchive.length > archiveDateIndex && !rowToArchive[archiveDateIndex]) {
+          rowToArchive[archiveDateIndex] = new Date();
+        }
+        rowsToArchive.push(rowToArchive);
         rowsToDelete.push(i + 1);
       }
     }
