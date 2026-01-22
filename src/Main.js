@@ -11,19 +11,30 @@
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
 
-  // Инициализация системы при первом запуске
-  initializeSystem();
+  let userEmail = '';
+  let userRole = 'OBSERVER';
 
-  // Получить текущего пользователя и его роль
-  const userEmail = Session.getActiveUser().getEmail();
-  const currentUser = UserManager.getUser(userEmail);
+  try {
+    initializeSystem();
 
-  // ✅ ИСПРАВЛЕНО Issue #20: Явная проверка на null/undefined
-  const userRole = (currentUser && currentUser.role) ? currentUser.role : 'OBSERVER'; // По умолчанию Observer
+    userEmail = Session.getActiveUser().getEmail();
 
-  AppLogger.info('Main', `Меню для пользователя ${userEmail} (роль: ${userRole})`);
+    if (typeof UserManager !== 'undefined' && UserManager && typeof UserManager.getUser === 'function') {
+      const currentUser = UserManager.getUser(userEmail);
+      userRole = (currentUser && currentUser.role) ? currentUser.role : 'OBSERVER';
+    }
 
-  // Создать меню на основе роли
+    if (typeof AppLogger !== 'undefined' && AppLogger && typeof AppLogger.info === 'function') {
+      AppLogger.info('Main', `Меню для пользователя ${userEmail} (роль: ${userRole})`);
+    }
+  } catch (e) {
+    try {
+      Logger.log('❌ Ошибка onOpen: ' + e.message);
+    } catch (e2) {
+    }
+    userRole = 'ADMIN';
+  }
+
   createMenuForRole(ui, userRole);
 }
 
