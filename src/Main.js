@@ -130,6 +130,7 @@ function createMenuForRole(ui, role) {
         .addSeparator()
         .addItem('📦 Архивировать завершённые дела', 'archiveCompletedCases')
         .addItem('🗓️ Заполнить дату архивации в архиве', 'fillArchiveDates')
+        .addItem('🧩 Синхронизировать столбцы архива (Q+)', 'syncArchiveColumns')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
@@ -763,6 +764,10 @@ function archiveCompletedCases() {
 
 function fillArchiveDates() {
   return LegalWorkflowManager.fillArchiveDates();
+}
+
+function syncArchiveColumns() {
+  return LegalWorkflowManager.syncArchiveColumns();
 }
 
 function checkStatuteOfLimitations() {

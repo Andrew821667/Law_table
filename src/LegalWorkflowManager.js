@@ -655,6 +655,68 @@ var LegalWorkflowManager = (function() {
     });
   }
 
+  function syncArchiveColumns() {
+    if (!checkPermission('manage_cases')) return;
+
+    const ui = SpreadsheetApp.getUi();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    const mainSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.MAIN)
+      ? CONFIG.SHEET_NAMES.MAIN
+      : 'Судебные дела';
+    const archiveSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.ARCHIVE)
+      ? CONFIG.SHEET_NAMES.ARCHIVE
+      : 'Архив';
+
+    const mainSheet = ss.getSheetByName(mainSheetName);
+    const archiveSheet = ss.getSheetByName(archiveSheetName);
+
+    if (!mainSheet) {
+      ui.alert('❌ Основной лист не найден');
+      return;
+    }
+    if (!archiveSheet) {
+      ui.alert('❌ Лист "Архив" не найден');
+      return;
+    }
+
+    const startCol = 17;
+    const lastCol = mainSheet.getLastColumn();
+    const numCols = Math.max(0, lastCol - startCol + 1);
+
+    if (numCols === 0) {
+      ui.alert('ℹ️ Нет столбцов для синхронизации');
+      return;
+    }
+
+    if (archiveSheet.getMaxColumns() < lastCol) {
+      archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), lastCol - archiveSheet.getMaxColumns());
+    }
+
+    const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
+    if (archiveSheet.getMaxRows() < maxRows) {
+      archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
+    }
+
+    const srcRange = mainSheet.getRange(1, startCol, maxRows, numCols);
+    const dstRange = archiveSheet.getRange(1, startCol, maxRows, numCols);
+
+    srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+
+    for (let col = startCol; col <= lastCol; col++) {
+      archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
+    }
+
+    ui.alert('✅ Готово', 'Столбцы архива (Q+) синхронизированы с основным листом', ui.ButtonSet.OK);
+
+    AppLogger.info('LegalWorkflow', 'Синхронизированы столбцы архива', {
+      archiveSheet: archiveSheet.getName(),
+      startCol: startCol,
+      lastCol: lastCol
+    });
+  }
+
   // ============================================
   // КОНТРОЛЬ СРОКОВ ИСКОВОЙ ДАВНОСТИ
   // ============================================
@@ -1728,6 +1790,7 @@ var LegalWorkflowManager = (function() {
     showLawyerCases: showLawyerCases,
     archiveCompletedCases: archiveCompletedCases,
     fillArchiveDates: fillArchiveDates,
+    syncArchiveColumns: syncArchiveColumns,
     checkStatuteOfLimitations: checkStatuteOfLimitations,
     showCourtSchedule: showCourtSchedule,
     showMyCourtSchedule: showMyCourtSchedule,
