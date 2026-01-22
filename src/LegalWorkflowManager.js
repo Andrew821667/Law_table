@@ -404,34 +404,53 @@ var LegalWorkflowManager = (function() {
     }
     let archiveSheet = ss.getSheetByName(archiveSheetName);
 
+    const mainLastCol = mainSheet.getLastColumn();
+    const archiveDateHeader = 'Дата архивирования';
+
     if (!archiveSheet) {
       archiveSheet = ss.insertSheet(archiveSheetName);
-      // Копировать заголовки
-      const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues();
-      archiveSheet.getRange(1, 1, 1, headers[0].length).setValues(headers);
+      const headers = mainSheet.getRange(1, 1, 1, mainLastCol).getValues();
+      const archiveHeaders = headers[0].slice();
+      archiveHeaders.push(archiveDateHeader);
+      archiveSheet.getRange(1, 1, 1, archiveHeaders.length).setValues([archiveHeaders]);
+    } else {
+      const archiveHeaderRow = archiveSheet.getRange(1, 1, 1, archiveSheet.getLastColumn()).getValues()[0] || [];
+      if (archiveHeaderRow.length < mainLastCol + 1) {
+        const missing = (mainLastCol + 1) - archiveHeaderRow.length;
+        archiveSheet.insertColumnsAfter(archiveHeaderRow.length || 1, missing);
+      }
+      const newHeaderRow = archiveSheet.getRange(1, 1, 1, Math.max(archiveSheet.getLastColumn(), mainLastCol + 1)).getValues()[0] || [];
+      if (String(newHeaderRow[mainLastCol] || '').trim() !== archiveDateHeader) {
+        newHeaderRow[mainLastCol] = archiveDateHeader;
+        archiveSheet.getRange(1, 1, 1, mainLastCol + 1).setValues([newHeaderRow.slice(0, mainLastCol + 1)]);
+      }
     }
 
     try {
-      const startCol = 17;
-      const lastCol = mainSheet.getLastColumn();
       const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
-      const numCols = Math.max(0, lastCol - startCol + 1);
-
-      if (numCols > 0) {
-        if (archiveSheet.getMaxRows() < maxRows) {
-          archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
-        }
-
-        const srcRange = mainSheet.getRange(1, startCol, maxRows, numCols);
-        const dstRange = archiveSheet.getRange(1, startCol, maxRows, numCols);
-
-        srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
-        srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
-
-        for (let col = startCol; col <= lastCol; col++) {
-          archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
-        }
+      if (archiveSheet.getMaxRows() < maxRows) {
+        archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
       }
+
+      if (archiveSheet.getMaxColumns() < mainLastCol + 1) {
+        archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), (mainLastCol + 1) - archiveSheet.getMaxColumns());
+      }
+
+      if (archiveSheet.getMaxColumns() > mainLastCol + 1) {
+        archiveSheet.deleteColumns(mainLastCol + 2, archiveSheet.getMaxColumns() - (mainLastCol + 1));
+      }
+
+      const srcRange = mainSheet.getRange(1, 1, maxRows, mainLastCol);
+      const dstRange = archiveSheet.getRange(1, 1, maxRows, mainLastCol);
+      srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+      srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+
+      for (let col = 1; col <= mainLastCol; col++) {
+        archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
+      }
+
+      archiveSheet.setColumnWidth(mainLastCol + 1, 140);
+      archiveSheet.getRange(2, mainLastCol + 1, maxRows - 1, 1).setNumberFormat('dd.MM.yyyy');
     } catch (e) {
     }
 
@@ -452,16 +471,6 @@ var LegalWorkflowManager = (function() {
         .trim()
         .toLowerCase();
     };
-
-    let archiveDateColIndex = headersRow.findIndex((h) => {
-      const nh = normalizeHeader(h);
-      return nh.includes('дата') && nh.includes('архив');
-    });
-    if (archiveDateColIndex < 0) {
-      archiveDateColIndex = 16;
-    }
-
-    const lastColCount = mainSheet.getLastColumn();
 
     let statusColIndex = (typeof CONFIG !== 'undefined' && CONFIG.DATA_COLUMNS && CONFIG.DATA_COLUMNS.STATUS)
       ? (CONFIG.DATA_COLUMNS.STATUS - 1)
@@ -492,16 +501,8 @@ var LegalWorkflowManager = (function() {
       const shouldArchive = statusValue === true || normalizedStatus.startsWith('заверш');
 
       if (shouldArchive) {
-        const rowToArchive = row.slice();
-
-        while (rowToArchive.length < lastColCount) {
-          rowToArchive.push('');
-        }
-
-        if (!rowToArchive[archiveDateColIndex]) {
-          rowToArchive[archiveDateColIndex] = now;
-        }
-
+        const rowToArchive = row.slice(0, mainLastCol);
+        rowToArchive.push(now);
         rowsToArchive.push(rowToArchive);
         rowsToDelete.push(i + 1);
       }
@@ -624,27 +625,8 @@ var LegalWorkflowManager = (function() {
 
     const lastCol = archiveSheet.getLastColumn();
     const data = archiveSheet.getRange(1, 1, lastRow, lastCol).getValues();
-    const headersRow = data[0] || [];
-
-    const normalizeHeader = (v) => {
-      if (v === null || v === undefined) return '';
-      return String(v)
-        .replace(/\u00A0/g, ' ')
-        .replace(/[✅✔️☑️]/g, '')
-        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
-    };
-
-    let archiveDateColIndex = headersRow.findIndex((h) => {
-      const nh = normalizeHeader(h);
-      return nh.includes('дата') && nh.includes('архив');
-    });
-
-    if (archiveDateColIndex < 0) {
-      archiveDateColIndex = 16;
-    }
+    const mainLastCol = lastCol - 1;
+    const archiveDateColIndex = mainLastCol;
 
     const now = new Date();
     let filled = 0;
@@ -720,21 +702,15 @@ var LegalWorkflowManager = (function() {
       return;
     }
 
-    const startCol = 17;
-    const lastCol = mainSheet.getLastColumn();
-    const numCols = Math.max(0, lastCol - startCol + 1);
+    const mainLastCol = mainSheet.getLastColumn();
+    const archiveLastCol = mainLastCol + 1;
 
-    if (numCols === 0) {
-      ui.alert('ℹ️ Нет столбцов для синхронизации');
-      return;
+    if (archiveSheet.getMaxColumns() < archiveLastCol) {
+      archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), archiveLastCol - archiveSheet.getMaxColumns());
     }
 
-    if (archiveSheet.getMaxColumns() < lastCol) {
-      archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), lastCol - archiveSheet.getMaxColumns());
-    }
-
-    if (archiveSheet.getMaxColumns() > lastCol) {
-      archiveSheet.deleteColumns(lastCol + 1, archiveSheet.getMaxColumns() - lastCol);
+    if (archiveSheet.getMaxColumns() > archiveLastCol) {
+      archiveSheet.deleteColumns(archiveLastCol + 1, archiveSheet.getMaxColumns() - archiveLastCol);
     }
 
     const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
@@ -742,22 +718,25 @@ var LegalWorkflowManager = (function() {
       archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
     }
 
-    const srcRange = mainSheet.getRange(1, startCol, maxRows, numCols);
-    const dstRange = archiveSheet.getRange(1, startCol, maxRows, numCols);
+    const srcRange = mainSheet.getRange(1, 1, maxRows, mainLastCol);
+    const dstRange = archiveSheet.getRange(1, 1, maxRows, mainLastCol);
 
     srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
     srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
 
-    for (let col = startCol; col <= lastCol; col++) {
+    for (let col = 1; col <= mainLastCol; col++) {
       archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
     }
 
-    ui.alert('✅ Готово', 'Столбцы архива (Q+) синхронизированы с основным листом', ui.ButtonSet.OK);
+    archiveSheet.setColumnWidth(archiveLastCol, 140);
+    archiveSheet.getRange(2, archiveLastCol, maxRows - 1, 1).setNumberFormat('dd.MM.yyyy');
+
+    ui.alert('✅ Готово', 'Структура листа "Архив" синхронизирована с основным листом', ui.ButtonSet.OK);
 
     AppLogger.info('LegalWorkflow', 'Синхронизированы столбцы архива', {
       archiveSheet: archiveSheet.getName(),
-      startCol: startCol,
-      lastCol: lastCol
+      startCol: 1,
+      lastCol: archiveLastCol
     });
   }
 
