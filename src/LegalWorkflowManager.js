@@ -733,6 +733,10 @@ var LegalWorkflowManager = (function() {
       archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), lastCol - archiveSheet.getMaxColumns());
     }
 
+    if (archiveSheet.getMaxColumns() > lastCol) {
+      archiveSheet.deleteColumns(lastCol + 1, archiveSheet.getMaxColumns() - lastCol);
+    }
+
     const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
     if (archiveSheet.getMaxRows() < maxRows) {
       archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
