@@ -659,6 +659,70 @@ var LegalWorkflowManager = (function() {
     });
   }
 
+  function showSheetsStructureDiff() {
+    if (!checkPermission('manage_cases')) return;
+
+    const ui = SpreadsheetApp.getUi();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    const mainSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.MAIN)
+      ? CONFIG.SHEET_NAMES.MAIN
+      : 'Судебные дела';
+    const archiveSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.ARCHIVE)
+      ? CONFIG.SHEET_NAMES.ARCHIVE
+      : 'Архив';
+
+    const mainSheet = ss.getSheetByName(mainSheetName) || ss.getSheetByName('Активные дела');
+    const archiveSheet = ss.getSheetByName(archiveSheetName);
+
+    if (!mainSheet) {
+      ui.alert('❌ Основной лист не найден');
+      return;
+    }
+    if (!archiveSheet) {
+      ui.alert('❌ Лист "Архив" не найден');
+      return;
+    }
+
+    const normalizeHeader = (v) => {
+      if (v === null || v === undefined) return '';
+      return String(v)
+        .replace(/\u00A0/g, ' ')
+        .replace(/[✅✔️☑️]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    };
+
+    const mainHeaders = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0] || [];
+    const archiveHeaders = archiveSheet.getRange(1, 1, 1, archiveSheet.getLastColumn()).getValues()[0] || [];
+
+    const mainSet = new Set(mainHeaders.map(normalizeHeader).filter(Boolean));
+    const archiveSet = new Set(archiveHeaders.map(normalizeHeader).filter(Boolean));
+
+    const missingInArchive = [];
+    for (const h of mainSet) {
+      if (!archiveSet.has(h)) missingInArchive.push(h);
+    }
+
+    const extraInArchive = [];
+    for (const h of archiveSet) {
+      if (!mainSet.has(h) && !h.includes('дата') && !h.includes('архив')) extraInArchive.push(h);
+    }
+
+    ui.alert(
+      '📋 Структура листов',
+      `Основной лист: ${mainSheet.getName()}\n` +
+      `Архив: ${archiveSheet.getName()}\n\n` +
+      `Колонок в основном: ${mainHeaders.length}\n` +
+      `Колонок в архиве: ${archiveHeaders.length}\n\n` +
+      `Нет в архиве (нормализовано):\n${missingInArchive.slice(0, 30).join('\n') || '—'}\n\n` +
+      `Лишние в архиве (нормализовано):\n${extraInArchive.slice(0, 30).join('\n') || '—'}`,
+      ui.ButtonSet.OK
+    );
+  }
+
   function syncArchiveColumns() {
     if (!checkPermission('manage_cases')) return;
 
@@ -702,41 +766,107 @@ var LegalWorkflowManager = (function() {
       return;
     }
 
-    const mainLastCol = mainSheet.getLastColumn();
-    const archiveLastCol = mainLastCol + 1;
+    const normalizeHeader = (v) => {
+      if (v === null || v === undefined) return '';
+      return String(v)
+        .replace(/\u00A0/g, ' ')
+        .replace(/[✅✔️☑️]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    };
 
-    if (archiveSheet.getMaxColumns() < archiveLastCol) {
-      archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), archiveLastCol - archiveSheet.getMaxColumns());
+    const mainHeaders = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues()[0] || [];
+    const mainLastCol = mainHeaders.length;
+    const archiveDateHeader = 'Дата архивирования';
+    const newHeaders = mainHeaders.slice();
+    newHeaders.push(archiveDateHeader);
+
+    const archiveLastRow = archiveSheet.getLastRow();
+    const archiveLastCol = Math.max(archiveSheet.getLastColumn(), 1);
+    const archiveData = (archiveLastRow >= 1)
+      ? archiveSheet.getRange(1, 1, archiveLastRow, archiveLastCol).getValues()
+      : [[]];
+
+    const oldHeaders = archiveData[0] || [];
+    const oldMap = {};
+    for (let i = 0; i < oldHeaders.length; i++) {
+      const k = normalizeHeader(oldHeaders[i]);
+      if (k && oldMap[k] === undefined) oldMap[k] = i;
     }
 
-    if (archiveSheet.getMaxColumns() > archiveLastCol) {
-      archiveSheet.deleteColumns(archiveLastCol + 1, archiveSheet.getMaxColumns() - archiveLastCol);
+    let oldDateIndex = -1;
+    for (let i = 0; i < oldHeaders.length; i++) {
+      const k = normalizeHeader(oldHeaders[i]);
+      if (k.includes('дата') && k.includes('архив')) {
+        oldDateIndex = i;
+        break;
+      }
     }
 
-    const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
-    if (archiveSheet.getMaxRows() < maxRows) {
-      archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), maxRows - archiveSheet.getMaxRows());
+    const out = [newHeaders];
+    for (let r = 1; r < archiveData.length; r++) {
+      const oldRow = archiveData[r] || [];
+      const newRow = new Array(newHeaders.length).fill('');
+
+      for (let c = 0; c < mainHeaders.length; c++) {
+        const key = normalizeHeader(mainHeaders[c]);
+        const oldIdx = oldMap[key];
+        if (oldIdx !== undefined) {
+          newRow[c] = oldRow[oldIdx];
+        }
+      }
+
+      if (oldDateIndex >= 0) {
+        newRow[newHeaders.length - 1] = oldRow[oldDateIndex];
+      }
+
+      out.push(newRow);
     }
 
-    const srcRange = mainSheet.getRange(1, 1, maxRows, mainLastCol);
-    const dstRange = archiveSheet.getRange(1, 1, maxRows, mainLastCol);
+    const targetRows = out.length;
+    const targetCols = newHeaders.length;
 
-    srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
-    srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
-
-    for (let col = 1; col <= mainLastCol; col++) {
-      archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
+    if (archiveSheet.getMaxRows() < targetRows) {
+      archiveSheet.insertRowsAfter(archiveSheet.getMaxRows(), targetRows - archiveSheet.getMaxRows());
     }
 
-    archiveSheet.setColumnWidth(archiveLastCol, 140);
-    archiveSheet.getRange(2, archiveLastCol, maxRows - 1, 1).setNumberFormat('dd.MM.yyyy');
+    if (archiveSheet.getMaxColumns() < targetCols) {
+      archiveSheet.insertColumnsAfter(archiveSheet.getMaxColumns(), targetCols - archiveSheet.getMaxColumns());
+    }
 
-    ui.alert('✅ Готово', 'Структура листа "Архив" синхронизирована с основным листом', ui.ButtonSet.OK);
+    if (archiveSheet.getMaxColumns() > targetCols) {
+      archiveSheet.deleteColumns(targetCols + 1, archiveSheet.getMaxColumns() - targetCols);
+    }
 
-    AppLogger.info('LegalWorkflow', 'Синхронизированы столбцы архива', {
+    archiveSheet.getRange(1, 1, targetRows, targetCols).setValues(out);
+
+    try {
+      const maxRows = Math.max(mainSheet.getMaxRows(), archiveSheet.getMaxRows());
+      const srcRange = mainSheet.getRange(1, 1, maxRows, mainLastCol);
+      const dstRange = archiveSheet.getRange(1, 1, maxRows, mainLastCol);
+      srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+      srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+
+      for (let col = 1; col <= mainLastCol; col++) {
+        archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
+      }
+    } catch (e) {
+    }
+
+    archiveSheet.setColumnWidth(targetCols, 140);
+    if (targetRows > 1) {
+      archiveSheet.getRange(2, targetCols, targetRows - 1, 1).setNumberFormat('dd.MM.yyyy');
+    }
+
+    ui.alert('✅ Готово', 'Архив перестроен под актуальную структуру основного листа (по заголовкам)', ui.ButtonSet.OK);
+
+    AppLogger.info('LegalWorkflow', 'Архив перестроен по заголовкам', {
       archiveSheet: archiveSheet.getName(),
-      startCol: 1,
-      lastCol: archiveLastCol
+      mainSheet: mainSheet.getName(),
+      columns: targetCols,
+      rows: targetRows
     });
   }
 
@@ -1813,6 +1943,7 @@ var LegalWorkflowManager = (function() {
     showLawyerCases: showLawyerCases,
     archiveCompletedCases: archiveCompletedCases,
     fillArchiveDates: fillArchiveDates,
+    showSheetsStructureDiff: showSheetsStructureDiff,
     syncArchiveColumns: syncArchiveColumns,
     checkStatuteOfLimitations: checkStatuteOfLimitations,
     showCourtSchedule: showCourtSchedule,
