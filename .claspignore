@@ -1,0 +1,27 @@
+# Only push Apps Script source to GAS
+
+# Exclude Node/Vercel backend and other non-GAS files
+api/**
+public/**
+scripts/**
+node_modules/**
+
+server.js
+scheduler.js
+ecosystem.config.js
+fix-bot-now.html
+
+package.json
+package-lock.json
+
+.env*
+.git/**
+.github/**
+
+*.md
+*.sh
+*.txt
+
+# Keep Apps Script source
+!src/**
+!src/appsscript.json
