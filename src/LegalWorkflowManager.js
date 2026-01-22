@@ -372,11 +372,18 @@ var LegalWorkflowManager = (function() {
     if (confirm !== ui.Button.YES) return;
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const mainSheet = ss.getSheetByName('Судебные дела') || ss.getActiveSheet();
-    let archiveSheet = ss.getSheetByName('Архив');
+    const mainSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.MAIN)
+      ? CONFIG.SHEET_NAMES.MAIN
+      : 'Судебные дела';
+    const archiveSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.ARCHIVE)
+      ? CONFIG.SHEET_NAMES.ARCHIVE
+      : 'Архив';
+
+    const mainSheet = ss.getSheetByName(mainSheetName) || ss.getActiveSheet();
+    let archiveSheet = ss.getSheetByName(archiveSheetName);
 
     if (!archiveSheet) {
-      archiveSheet = ss.insertSheet('Архив');
+      archiveSheet = ss.insertSheet(archiveSheetName);
       // Копировать заголовки
       const headers = mainSheet.getRange(1, 1, 1, mainSheet.getLastColumn()).getValues();
       archiveSheet.getRange(1, 1, 1, headers[0].length).setValues(headers);
@@ -387,19 +394,45 @@ var LegalWorkflowManager = (function() {
     const rowsToArchive = [];
     const rowsToDelete = [];
 
+    let statusColIndex = (typeof CONFIG !== 'undefined' && CONFIG.DATA_COLUMNS && CONFIG.DATA_COLUMNS.STATUS)
+      ? (CONFIG.DATA_COLUMNS.STATUS - 1)
+      : 5;
+
+    try {
+      const headers = (data && data.length > 0) ? data[0] : [];
+      const normalizeHeader = (v) => {
+        if (v === null || v === undefined) return '';
+        return String(v)
+          .replace(/\u00A0/g, ' ')
+          .replace(/[✅✔️☑️]/g, '')
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toLowerCase();
+      };
+
+      const detectedIndex = headers.findIndex((h) => normalizeHeader(h).includes('статус'));
+      if (detectedIndex >= 0) {
+        statusColIndex = detectedIndex;
+      }
+    } catch (e) {
+    }
+
     // ✅ ИСПРАВЛЕНО: Сначала собираем все данные для архивации
     for (let i = data.length - 1; i >= 1; i--) {
       const row = data[i];
-      const archiveTrigger = row[5];
 
-      const triggerText = (archiveTrigger === null || archiveTrigger === undefined)
-        ? ''
-        : String(archiveTrigger).trim().toLowerCase();
+      const statusValue = row[statusColIndex];
+      const statusText = (statusValue === null || statusValue === undefined) ? '' : String(statusValue);
+      const normalizedStatus = statusText
+        .replace(/\u00A0/g, ' ')
+        .replace(/[✅✔️☑️]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
 
-      const shouldArchive =
-        archiveTrigger === true ||
-        triggerText === 'завершено' ||
-        triggerText === '✅ завершено';
+      const shouldArchive = statusValue === true || normalizedStatus.startsWith('заверш');
 
       if (shouldArchive) {
         rowsToArchive.push(row);
@@ -408,7 +441,56 @@ var LegalWorkflowManager = (function() {
     }
 
     if (rowsToArchive.length === 0) {
-      ui.alert('ℹ️ Нет завершённых дел для архивации');
+      let header = '';
+      let statusSamples = '';
+      try {
+        header = (data && data.length > 0 && data[0]) ? data[0][statusColIndex] : '';
+
+        const counts = {};
+        const maxRows = Math.min(data.length - 1, 200);
+        for (let i = 1; i <= maxRows; i++) {
+          const v = data[i][statusColIndex];
+          const t = (v === null || v === undefined) ? '' : String(v);
+          const n = t
+            .replace(/\u00A0/g, ' ')
+            .replace(/[✅✔️☑️]/g, '')
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+
+          const key = n || '(пусто)';
+          counts[key] = (counts[key] || 0) + 1;
+        }
+
+        const top = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([k, c]) => `${k}: ${c}`)
+          .join('\n');
+
+        statusSamples = top;
+      } catch (e) {
+      }
+
+      try {
+        AppLogger.info('LegalWorkflow', 'Архивация: завершённых дел не найдено', {
+          sheet: mainSheet.getName(),
+          statusColIndex: statusColIndex,
+          statusHeader: header,
+          statusSamples: statusSamples
+        });
+      } catch (e) {
+      }
+
+      ui.alert(
+        'ℹ️ Нет завершённых дел для архивации',
+        `Лист: ${mainSheet.getName()}\n` +
+        `Колонка статуса (0-based): ${statusColIndex}\n` +
+        `Заголовок: ${header}\n\n` +
+        `Примеры статусов (нормализовано):\n${statusSamples || '(нет данных)'}`,
+        ui.ButtonSet.OK
+      );
       return;
     }
 
