@@ -379,7 +379,29 @@ var LegalWorkflowManager = (function() {
       ? CONFIG.SHEET_NAMES.ARCHIVE
       : 'Архив';
 
-    const mainSheet = ss.getSheetByName(mainSheetName) || ss.getActiveSheet();
+    let mainSheet = ss.getSheetByName(mainSheetName);
+    if (!mainSheet) {
+      mainSheet = ss.getSheetByName('Активные дела');
+    }
+    if (!mainSheet && typeof CONFIG !== 'undefined' && Array.isArray(CONFIG.ACTIVE_SHEETS)) {
+      for (const n of CONFIG.ACTIVE_SHEETS) {
+        const s = ss.getSheetByName(n);
+        if (s) {
+          mainSheet = s;
+          break;
+        }
+      }
+    }
+    if (!mainSheet) {
+      const active = ss.getActiveSheet();
+      if (active && active.getName() !== archiveSheetName) {
+        mainSheet = active;
+      }
+    }
+    if (!mainSheet) {
+      ui.alert('❌ Основной лист не найден');
+      return;
+    }
     let archiveSheet = ss.getSheetByName(archiveSheetName);
 
     if (!archiveSheet) {
@@ -668,7 +690,25 @@ var LegalWorkflowManager = (function() {
       ? CONFIG.SHEET_NAMES.ARCHIVE
       : 'Архив';
 
-    const mainSheet = ss.getSheetByName(mainSheetName);
+    let mainSheet = ss.getSheetByName(mainSheetName);
+    if (!mainSheet) {
+      mainSheet = ss.getSheetByName('Активные дела');
+    }
+    if (!mainSheet && typeof CONFIG !== 'undefined' && Array.isArray(CONFIG.ACTIVE_SHEETS)) {
+      for (const n of CONFIG.ACTIVE_SHEETS) {
+        const s = ss.getSheetByName(n);
+        if (s) {
+          mainSheet = s;
+          break;
+        }
+      }
+    }
+    if (!mainSheet) {
+      const active = ss.getActiveSheet();
+      if (active && active.getName() !== archiveSheetName) {
+        mainSheet = active;
+      }
+    }
     const archiveSheet = ss.getSheetByName(archiveSheetName);
 
     if (!mainSheet) {
