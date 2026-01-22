@@ -405,34 +405,48 @@ var LegalWorkflowManager = (function() {
 
         srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
         srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
-        srcRange.copyTo(dstRange, SpreadsheetApp.CopyPasteType.PASTE_COLUMN_WIDTHS, false);
+
+        for (let col = startCol; col <= lastCol; col++) {
+          archiveSheet.setColumnWidth(col, mainSheet.getColumnWidth(col));
+        }
       }
     } catch (e) {
     }
 
     const data = mainSheet.getDataRange().getValues();
+    const now = new Date();
     let archivedCount = 0;
     const rowsToArchive = [];
     const rowsToDelete = [];
+
+    const headersRow = (data && data.length > 0) ? data[0] : [];
+    const normalizeHeader = (v) => {
+      if (v === null || v === undefined) return '';
+      return String(v)
+        .replace(/\u00A0/g, ' ')
+        .replace(/[✅✔️☑️]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    };
+
+    let archiveDateColIndex = headersRow.findIndex((h) => {
+      const nh = normalizeHeader(h);
+      return nh.includes('дата') && nh.includes('архив');
+    });
+    if (archiveDateColIndex < 0) {
+      archiveDateColIndex = 16;
+    }
+
+    const lastColCount = mainSheet.getLastColumn();
 
     let statusColIndex = (typeof CONFIG !== 'undefined' && CONFIG.DATA_COLUMNS && CONFIG.DATA_COLUMNS.STATUS)
       ? (CONFIG.DATA_COLUMNS.STATUS - 1)
       : 5;
 
     try {
-      const headers = (data && data.length > 0) ? data[0] : [];
-      const normalizeHeader = (v) => {
-        if (v === null || v === undefined) return '';
-        return String(v)
-          .replace(/\u00A0/g, ' ')
-          .replace(/[✅✔️☑️]/g, '')
-          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .toLowerCase();
-      };
-
-      const detectedIndex = headers.findIndex((h) => normalizeHeader(h).includes('статус'));
+      const detectedIndex = headersRow.findIndex((h) => normalizeHeader(h).includes('статус'));
       if (detectedIndex >= 0) {
         statusColIndex = detectedIndex;
       }
@@ -457,10 +471,15 @@ var LegalWorkflowManager = (function() {
 
       if (shouldArchive) {
         const rowToArchive = row.slice();
-        const archiveDateIndex = 16;
-        if (rowToArchive.length > archiveDateIndex && !rowToArchive[archiveDateIndex]) {
-          rowToArchive[archiveDateIndex] = new Date();
+
+        while (rowToArchive.length < lastColCount) {
+          rowToArchive.push('');
         }
+
+        if (!rowToArchive[archiveDateColIndex]) {
+          rowToArchive[archiveDateColIndex] = now;
+        }
+
         rowsToArchive.push(rowToArchive);
         rowsToDelete.push(i + 1);
       }
