@@ -129,6 +129,7 @@ function createMenuForRole(ui, role) {
         .addItem('👥 Дела конкретного юриста', 'showLawyerCases')
         .addSeparator()
         .addItem('📦 Архивировать завершённые дела', 'archiveCompletedCases')
+        .addItem('🗓️ Заполнить дату архивации в архиве', 'fillArchiveDates')
       )
       .addSeparator()
       .addSubMenu(ui.createMenu('⚖️ Юридический контроль')
@@ -758,6 +759,10 @@ function showLawyerCases() {
 
 function archiveCompletedCases() {
   return LegalWorkflowManager.archiveCompletedCases();
+}
+
+function fillArchiveDates() {
+  return LegalWorkflowManager.fillArchiveDates();
 }
 
 function checkStatuteOfLimitations() {

@@ -578,6 +578,83 @@ var LegalWorkflowManager = (function() {
     AppLogger.info('LegalWorkflow', `Архивировано ${archivedCount} завершённых дел`);
   }
 
+  function fillArchiveDates() {
+    if (!checkPermission('manage_cases')) return;
+
+    const ui = SpreadsheetApp.getUi();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    const archiveSheetName = (typeof CONFIG !== 'undefined' && CONFIG.SHEET_NAMES && CONFIG.SHEET_NAMES.ARCHIVE)
+      ? CONFIG.SHEET_NAMES.ARCHIVE
+      : 'Архив';
+
+    const archiveSheet = ss.getSheetByName(archiveSheetName);
+    if (!archiveSheet) {
+      ui.alert('❌ Лист "Архив" не найден');
+      return;
+    }
+
+    const lastRow = archiveSheet.getLastRow();
+    if (lastRow < 2) {
+      ui.alert('ℹ️ На листе "Архив" нет данных');
+      return;
+    }
+
+    const lastCol = archiveSheet.getLastColumn();
+    const data = archiveSheet.getRange(1, 1, lastRow, lastCol).getValues();
+    const headersRow = data[0] || [];
+
+    const normalizeHeader = (v) => {
+      if (v === null || v === undefined) return '';
+      return String(v)
+        .replace(/\u00A0/g, ' ')
+        .replace(/[✅✔️☑️]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    };
+
+    let archiveDateColIndex = headersRow.findIndex((h) => {
+      const nh = normalizeHeader(h);
+      return nh.includes('дата') && nh.includes('архив');
+    });
+
+    if (archiveDateColIndex < 0) {
+      archiveDateColIndex = 16;
+    }
+
+    const now = new Date();
+    let filled = 0;
+    const updates = [];
+
+    for (let r = 1; r < data.length; r++) {
+      const row = data[r];
+      const current = row[archiveDateColIndex];
+
+      if (!current) {
+        filled++;
+        updates.push([now]);
+      } else {
+        updates.push([current]);
+      }
+    }
+
+    archiveSheet.getRange(2, archiveDateColIndex + 1, updates.length, 1).setValues(updates);
+
+    ui.alert(
+      '✅ Готово',
+      `Заполнено дат архивации: ${filled}`,
+      ui.ButtonSet.OK
+    );
+
+    AppLogger.info('LegalWorkflow', 'Заполнены даты архивации на листе Архив', {
+      sheet: archiveSheet.getName(),
+      archiveDateColIndex: archiveDateColIndex,
+      filled: filled
+    });
+  }
+
   // ============================================
   // КОНТРОЛЬ СРОКОВ ИСКОВОЙ ДАВНОСТИ
   // ============================================
@@ -1650,6 +1727,7 @@ var LegalWorkflowManager = (function() {
     filterCasesByStatus: filterCasesByStatus,
     showLawyerCases: showLawyerCases,
     archiveCompletedCases: archiveCompletedCases,
+    fillArchiveDates: fillArchiveDates,
     checkStatuteOfLimitations: checkStatuteOfLimitations,
     showCourtSchedule: showCourtSchedule,
     showMyCourtSchedule: showMyCourtSchedule,
